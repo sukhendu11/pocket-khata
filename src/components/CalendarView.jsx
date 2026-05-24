@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { ArrowLeft, ChevronLeft, ChevronRight, Calendar, Info } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber } from '../utils';
 import TransactionItem from './TransactionItem';
@@ -239,6 +240,15 @@ export default function CalendarView({
     </div>
   );
 }
+
+CalendarView.propTypes = {
+  transactions: PropTypes.array,
+  accounts: PropTypes.array,
+  categories: PropTypes.array,
+  onNavigate: PropTypes.func,
+  onEditTransaction: PropTypes.func,
+  lang: PropTypes.string,
+};
 
 const styles = {
   container: {

@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   ArrowLeft, Plus, Calendar, BellRing, DollarSign, 
   CheckCircle, AlertCircle, Trash2, X, CreditCard 
 } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber } from '../utils';
 
@@ -388,6 +389,18 @@ export default function ReminderManager({
     </div>
   );
 }
+
+ReminderManager.propTypes = {
+  reminders: PropTypes.array,
+  accounts: PropTypes.array,
+  categories: PropTypes.array,
+  onAddReminder: PropTypes.func,
+  onUpdateReminder: PropTypes.func,
+  onPayReminder: PropTypes.func,
+  onDeleteReminder: PropTypes.func,
+  onNavigate: PropTypes.func,
+  lang: PropTypes.string,
+};
 
 const styles = {
   container: {

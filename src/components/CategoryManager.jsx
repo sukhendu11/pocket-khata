@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Plus, Trash2, X, AlertCircle, Info,
   Briefcase, Globe, TrendingUp, Utensils, ShoppingBag, 
   Home, Lightbulb, Car, Tv, HeartPulse, Plane, GraduationCap, Sparkles
 } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { t } from '../i18n';
 
 // Dictionary mapping icon names to Lucide components
@@ -304,6 +305,16 @@ export default function CategoryManager({
     </div>
   );
 }
+
+CategoryManager.propTypes = {
+  categories: PropTypes.array,
+  transactions: PropTypes.array,
+  onAddCategory: PropTypes.func,
+  onUpdateCategory: PropTypes.func,
+  onDeleteCategory: PropTypes.func,
+  onNavigate: PropTypes.func,
+  lang: PropTypes.string,
+};
 
 const styles = {
   container: {

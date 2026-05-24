@@ -1,9 +1,10 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { 
   ArrowLeft, CloudLightning, FileSpreadsheet, 
   RotateCcw, RefreshCw, ShieldAlert, CheckCircle,
   Download, Upload
 } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { t } from '../i18n';
 
 export default function Settings({
@@ -306,6 +307,17 @@ export default function Settings({
     </div>
   );
 }
+
+Settings.propTypes = {
+  onResetDatabase: PropTypes.func,
+  onImportDatabase: PropTypes.func,
+  onExportDatabase: PropTypes.func,
+  transactions: PropTypes.array,
+  accounts: PropTypes.array,
+  categories: PropTypes.array,
+  onNavigate: PropTypes.func,
+  lang: PropTypes.string,
+};
 
 const styles = {
   container: {

@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber, formatPercent } from '../utils';
 import PieChart from './PieChart';
@@ -106,7 +107,7 @@ export default function AnalyticsView({
     }
 
     return { data, income, expense, total };
-  }, [filteredTxs]);
+  }, [filteredTxs, lang]);
 
   // 3. Calculations: Income Categories breakdown
   const incomeBreakdown = useMemo(() => {
@@ -136,7 +137,7 @@ export default function AnalyticsView({
       ...item,
       percentage: totalIncome > 0 ? Math.round((item.amount / totalIncome) * 100) : 0
     })).sort((a, b) => b.amount - a.amount);
-  }, [filteredTxs, categories]);
+  }, [filteredTxs, categories, lang]);
 
   // 4. Calculations: Expense Categories breakdown
   const expenseBreakdown = useMemo(() => {
@@ -166,7 +167,7 @@ export default function AnalyticsView({
       ...item,
       percentage: totalExpense > 0 ? Math.round((item.amount / totalExpense) * 100) : 0
     })).sort((a, b) => b.amount - a.amount);
-  }, [filteredTxs, categories]);
+  }, [filteredTxs, categories, lang]);
 
   return (
     <div style={styles.container}>
@@ -362,6 +363,13 @@ export default function AnalyticsView({
     </div>
   );
 }
+
+AnalyticsView.propTypes = {
+  transactions: PropTypes.array,
+  categories: PropTypes.array,
+  onNavigate: PropTypes.func,
+  lang: PropTypes.string,
+};
 
 const styles = {
   container: {

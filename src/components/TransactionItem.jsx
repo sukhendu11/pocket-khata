@@ -1,4 +1,4 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 import { ArrowUpRight, ArrowDownLeft, Edit3, TrendingUp } from 'lucide-react';
 import { t } from '../i18n';
 import { formatNumber } from '../utils';
@@ -188,3 +188,16 @@ export default function TransactionItem({
     </div>
   );
 }
+
+TransactionItem.propTypes = {
+  transaction: PropTypes.object,
+  account: PropTypes.object,
+  category: PropTypes.object,
+  toAccount: PropTypes.object,
+  onClick: PropTypes.func,
+  variant: PropTypes.string,
+  showEdit: PropTypes.bool,
+  showDate: PropTypes.bool,
+  lang: PropTypes.string,
+  style: PropTypes.object,
+};

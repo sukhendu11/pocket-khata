@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * ErrorBoundary — catches render errors and shows a safe fallback UI
@@ -20,6 +21,10 @@ export default class ErrorBoundary extends React.Component {
 
   handleRetry = () => {
     this.setState({ hasError: false, error: null });
+  };
+
+  static propTypes = {
+    children: PropTypes.node,
   };
 
   render() {

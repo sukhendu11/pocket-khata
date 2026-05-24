@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Trash2, Calendar, Info } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber } from '../utils';
 
@@ -287,6 +288,16 @@ export default function TransactionForm({
     </>
   );
 }
+
+TransactionForm.propTypes = {
+  transaction: PropTypes.object,
+  accounts: PropTypes.array,
+  categories: PropTypes.array,
+  onSave: PropTypes.func,
+  onDelete: PropTypes.func,
+  onClose: PropTypes.func,
+  lang: PropTypes.string,
+};
 
 const styles = {
   drawer: {

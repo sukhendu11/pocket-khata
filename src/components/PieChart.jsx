@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * Reusable SVG Donut Chart Component
@@ -162,7 +163,7 @@ export default function PieChart({
           fontSize="7"
           fontWeight="600"
           fill="var(--text-secondary)"
-          textTransform="uppercase"
+          style={{ textTransform: 'uppercase' }}
         >
           {centerSubtext}
         </text>
@@ -170,3 +171,19 @@ export default function PieChart({
     </svg>
   );
 }
+
+PieChart.propTypes = {
+  data: PropTypes.array,
+  activeIndex: PropTypes.number,
+  onSliceClick: PropTypes.func,
+  centerText: PropTypes.string,
+  centerSubtext: PropTypes.string,
+  radius: PropTypes.number,
+  innerRadius: PropTypes.number,
+  size: PropTypes.number,
+  animate: PropTypes.bool,
+  animationProgress: PropTypes.number,
+  gradients: PropTypes.oneOfType([PropTypes.array, PropTypes.bool]),
+  showLabels: PropTypes.bool,
+  labelThreshold: PropTypes.number,
+};

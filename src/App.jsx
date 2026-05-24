@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db } from './db';
 
 // Import Screen Components
@@ -190,11 +190,6 @@ export default function App() {
     setAccounts(db.getAccounts());
   };
 
-  const handleUpdateAccount = (acc) => {
-    db.updateAccount(acc);
-    setAccounts(db.getAccounts());
-  };
-
   const handleDeleteAccount = (id) => {
     db.deleteAccount(id);
     setAccounts(db.getAccounts());
@@ -237,12 +232,6 @@ export default function App() {
     setReminders(db.getReminders());
     setTransactions(db.getTransactions());
     setAccounts(db.getAccounts());
-  };
-
-  // -- Security
-  const handleSaveSecuritySettings = (settings) => {
-    db.saveSecuritySettings(settings);
-    setSecuritySettings(settings);
   };
 
   // -- Backup Restores
@@ -335,7 +324,6 @@ export default function App() {
             categories={categories}
             reminders={reminders}
             onNavigate={handleNavigate}
-            onAddTransaction={handleAddTransactionClick}
             theme={theme}
             onToggleTheme={handleToggleTheme}
             lang={lang}
@@ -394,7 +382,6 @@ export default function App() {
             accounts={accounts}
             transactions={transactions}
             onAddAccount={handleAddAccount}
-            onUpdateAccount={handleUpdateAccount}
             onDeleteAccount={handleDeleteAccount}
             onNavigate={handleNavigate}
             lang={lang}

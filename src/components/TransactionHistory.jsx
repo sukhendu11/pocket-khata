@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   ArrowLeft, Search, SlidersHorizontal, X, Eye
 } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber } from '../utils';
 import TransactionItem from './TransactionItem';
@@ -302,6 +303,16 @@ export default function TransactionHistory({
     </div>
   );
 }
+
+TransactionHistory.propTypes = {
+  transactions: PropTypes.array,
+  accounts: PropTypes.array,
+  categories: PropTypes.array,
+  onNavigate: PropTypes.func,
+  onEditTransaction: PropTypes.func,
+  lang: PropTypes.string,
+  filterType: PropTypes.string,
+};
 
 const styles = {
   container: {

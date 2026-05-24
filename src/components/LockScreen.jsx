@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { Fingerprint, Delete, Lock, Unlock } from 'lucide-react';
 
 export default function LockScreen({ onUnlock, securitySettings }) {
@@ -175,6 +176,11 @@ export default function LockScreen({ onUnlock, securitySettings }) {
     </div>
   );
 }
+
+LockScreen.propTypes = {
+  onUnlock: PropTypes.func,
+  securitySettings: PropTypes.object,
+};
 
 const styles = {
   container: {

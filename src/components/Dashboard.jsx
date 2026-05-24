@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Bell, Sun, Moon, ArrowUpRight, ArrowDownLeft,
   TrendingUp, Wallet, Landmark, CreditCard, ChevronRight, HelpCircle,
 } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber, formatPercent } from '../utils';
 import PieChart from './PieChart';
@@ -14,7 +15,6 @@ export default function Dashboard({
   categories, 
   reminders,
   onNavigate, 
-  onAddTransaction,
   theme, 
   onToggleTheme,
   lang,
@@ -129,7 +129,7 @@ export default function Dashboard({
     }
 
     return trendData;
-  }, [transactions]);
+  }, [transactions, lang]);
 
   // 5. Account branding resolver
   const getAccountIcon = (type) => {
@@ -535,6 +535,18 @@ export default function Dashboard({
     </div>
   );
 }
+
+Dashboard.propTypes = {
+  accounts: PropTypes.array,
+  transactions: PropTypes.array,
+  categories: PropTypes.array,
+  reminders: PropTypes.array,
+  onNavigate: PropTypes.func,
+  theme: PropTypes.string,
+  onToggleTheme: PropTypes.func,
+  lang: PropTypes.string,
+  onSetLang: PropTypes.func,
+};
 
 const styles = {
   scrollContainer: {

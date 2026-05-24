@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   ArrowLeft, Plus, Landmark, CreditCard, Wallet, 
-  Trash2, X, AlertCircle, TrendingUp, Info 
+  Trash2, X, AlertCircle, Info 
 } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber } from '../utils';
 
@@ -10,7 +11,6 @@ export default function AccountManager({
   accounts,
   transactions,
   onAddAccount,
-  onUpdateAccount,
   onDeleteAccount,
   onNavigate,
   lang
@@ -287,6 +287,15 @@ export default function AccountManager({
     </div>
   );
 }
+
+AccountManager.propTypes = {
+  accounts: PropTypes.array,
+  transactions: PropTypes.array,
+  onAddAccount: PropTypes.func,
+  onDeleteAccount: PropTypes.func,
+  onNavigate: PropTypes.func,
+  lang: PropTypes.string,
+};
 
 const styles = {
   container: {
