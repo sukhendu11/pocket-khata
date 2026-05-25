@@ -13,7 +13,7 @@ import Settings from './components/Settings';
 import AccountManager from './components/AccountManager';
 import CategoryManager from './components/CategoryManager';
 import ErrorBoundary from './components/ErrorBoundary';
-import LockScreen from './components/LockScreen';
+
 import BudgetManager from './components/BudgetManager';
 import SavingsTracker from './components/SavingsTracker';
 import GlobalSearch from './components/GlobalSearch';
@@ -84,7 +84,7 @@ export default function App() {
   const [reminders, setReminders] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [savingsGoals, setSavingsGoals] = useState([]);
-  const [securitySettings, setSecuritySettings] = useState(null);
+  // Security (lock screen) removed
 
   // 2. Language State
   const [lang, setLang] = useState(() => {
@@ -108,15 +108,11 @@ export default function App() {
   // 4. System States
   const [theme, setTheme] = useState('light');
   const [currentTime, setCurrentTime] = useState('');
-  const [isLocked, setIsLocked] = useState(false);
+  // Lock screen removed (direct entry)
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
 
   // 5. Initial Load
   useEffect(() => {
-    // Check if PIN is enabled
-    const loadedSecurity = db.getSecuritySettings();
-    setSecuritySettings(loadedSecurity);
-    setIsLocked(loadedSecurity?.isPINEnabled !== false);
 
     // Load database
     const loadedAccounts = db.getAccounts();
@@ -251,7 +247,6 @@ export default function App() {
     setCategories(freshDb.categories);
     setTransactions(freshDb.transactions);
     setReminders(freshDb.reminders);
-    setSecuritySettings(freshDb.security);
   };
 
   const handleImportDatabase = (jsonString) => {
@@ -261,7 +256,6 @@ export default function App() {
       setCategories(db.getCategories());
       setTransactions(db.getTransactions());
       setReminders(db.getReminders());
-      setSecuritySettings(db.getSecuritySettings());
     }
     return success;
   };
@@ -323,40 +317,7 @@ export default function App() {
     setShowGlobalSearch(false);
   };
 
-  // 11. If app is locked, show LockScreen instead
-  const handleAppUnlock = useCallback(() => {
-    setIsLocked(false);
-  }, []);
-
-  if (isLocked && securitySettings?.isPINEnabled !== false) {
-    return (
-      <div className="phone-shell">
-        <div className="android-status-bar">
-          <span>{currentTime}</span>
-          <div className="android-status-icons">
-            <svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor">
-              <rect x="0" y="9" width="2" height="3" rx="0.5" />
-              <rect x="3" y="7" width="2" height="5" rx="0.5" />
-              <rect x="6" y="5" width="2" height="7" rx="0.5" />
-              <rect x="9" y="3" width="2" height="9" rx="0.5" />
-              <rect x="12" y="0" width="2" height="12" rx="0.5" />
-            </svg>
-            <svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor">
-              <path d="M7 11.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm-3.5-4a5 5 0 017 0 .5.5 0 01-.7.7 4 4 0 00-5.6 0 .5.5 0 01-.7-.7zm-2.8-2.8a9 9 0 0112.6 0 .5.5 0 01-.7.7 8 8 0 00-11.2 0 .5.5 0 01-.7-.7z" />
-            </svg>
-            <svg width="22" height="12" viewBox="0 0 22 12" fill="currentColor">
-              <rect x="0" y="1" width="18" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1" />
-              <rect x="2" y="3" width="12" height="6" rx="1" />
-              <path d="M20 4v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </div>
-        </div>
-        <div className="app-container">
-          <LockScreen onUnlock={handleAppUnlock} securitySettings={securitySettings} />
-        </div>
-      </div>
-    );
-  }
+  // 11. Lock screen is removed — app starts directly in the dashboard
 
   // 12. Render Screen Routing
   const renderScreen = () => {

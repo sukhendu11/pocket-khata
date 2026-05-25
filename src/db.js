@@ -108,9 +108,9 @@ const DEFAULT_REMINDERS = [
 ];
 
 const DEFAULT_SECURITY = {
-  isPINEnabled: true,
+  isPINEnabled: false,
   pin: '1234',
-  isBiometricEnabled: true,
+  isBiometricEnabled: false,
 };
 
 const DEFAULT_BUDGETS = [];
