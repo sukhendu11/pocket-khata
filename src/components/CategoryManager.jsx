@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Plus, Trash2, X, AlertCircle, Info,
   Briefcase, Globe, TrendingUp, Utensils, ShoppingBag, 
-  Home, Lightbulb, Car, Tv, HeartPulse, Plane, GraduationCap, Sparkles
+  Home, Lightbulb, Car, Tv, HeartPulse, Plane, GraduationCap, Sparkles,
+  Heart, Gift, CreditCard, Tag
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
@@ -22,6 +23,10 @@ const ICON_COMPONENTS = {
   Plane: Plane,
   GraduationCap: GraduationCap,
   Sparkles: Sparkles,
+  Heart: Heart,
+  Gift: Gift,
+  CreditCard: CreditCard,
+  Tag: Tag,
 };
 
 export default function CategoryManager({
@@ -42,6 +47,8 @@ export default function CategoryManager({
   const [type, setType] = useState('expense'); // 'expense', 'income'
   const [icon, setIcon] = useState('Utensils');
   const [color, setColor] = useState('#ff7b54');
+  const [subcategories, setSubcategories] = useState([]);
+  const [subcategoryInput, setSubcategoryInput] = useState('');
   const [formError, setFormError] = useState('');
 
   const colors = ['#ff7b54', '#e84393', '#16a085', '#f1c40f', '#0984e3', '#a29bfe', '#e74c3c', '#3cd070', '#00c9db', '#8e44ad'];
@@ -60,6 +67,7 @@ export default function CategoryManager({
       setType(editingCategory.type);
       setIcon(editingCategory.icon);
       setColor(editingCategory.color);
+      setSubcategories(editingCategory.subcategories || []);
       setShowAddModal(true);
     }
   }, [editingCategory]);
@@ -83,6 +91,7 @@ export default function CategoryManager({
         type,
         icon,
         color,
+        subcategories: subcategories.filter(s => s.trim()),
       });
     } else {
       onAddCategory({
@@ -90,6 +99,7 @@ export default function CategoryManager({
         type,
         icon,
         color,
+        subcategories: subcategories.filter(s => s.trim()),
       });
     }
 
@@ -98,6 +108,8 @@ export default function CategoryManager({
     setType('expense');
     setIcon('Utensils');
     setColor('#ff7b54');
+    setSubcategories([]);
+    setSubcategoryInput('');
     setEditingCategory(null);
     setShowAddModal(false);
   };
@@ -108,6 +120,8 @@ export default function CategoryManager({
     setType(activeTab);
     setIcon('Utensils');
     setColor(activeTab === 'expense' ? '#ff7b54' : '#3cd070');
+    setSubcategories([]);
+    setSubcategoryInput('');
     setFormError('');
     setShowAddModal(true);
   };
@@ -117,7 +131,7 @@ export default function CategoryManager({
   };
 
   const handleDelete = (catId) => {
-    const hasTxs = transactions.some(t => t.categoryId === catId);
+    const hasTxs = transactions.some(tx => tx.categoryId === catId);
     if (hasTxs) {
       const confirmDelete = window.confirm(
         t('categories.deleteWarning', lang)
@@ -126,6 +140,32 @@ export default function CategoryManager({
     }
 
     onDeleteCategory(catId);
+  };
+
+  const handleAddSubcategory = () => {
+    const val = subcategoryInput.trim();
+    if (!val) return;
+    if (subcategories.includes(val)) return;
+    setSubcategories([...subcategories, val]);
+    setSubcategoryInput('');
+  };
+
+  const handleRemoveSubcategory = (idx) => {
+    setSubcategories(subcategories.filter((_, i) => i !== idx));
+  };
+
+  const handleSubcategoryKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddSubcategory();
+    }
+  };
+
+  // Translate default category name
+  const getCategoryLocalized = (cat) => {
+    const key = `cat.name.${cat.id.replace('cat_', '')}`;
+    const localized = t(key, lang);
+    return localized !== key ? localized : cat.name;
   };
 
   return (
@@ -180,11 +220,30 @@ export default function CategoryManager({
                   >
                     {renderIcon(cat.icon, 20)}
                   </span>
-                  <button className="neo-btn" style={styles.deleteCardBtn} onClick={(e) => { e.stopPropagation(); handleDelete(cat.id); }}>
-                    <Trash2 size={12} />
-                  </button>
+                  <div style={styles.cardActions}>
+                    {cat.default && (
+                      <span className="neo-pressed-sm" style={{ ...styles.defaultBadge, backgroundColor: `${cat.color}15`, color: cat.color }}>
+                        {t('categories.systemDefault', lang)}
+                      </span>
+                    )}
+                    {!cat.default && (
+                      <button className="neo-btn" style={styles.deleteCardBtn} onClick={(e) => { e.stopPropagation(); handleDelete(cat.id); }}>
+                        <Trash2 size={12} />
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <h4 style={styles.catName}>{cat.name}</h4>
+                <h4 style={styles.catName}>{getCategoryLocalized(cat)}</h4>
+                {cat.subcategories?.length > 0 && (
+                  <div style={styles.subcatTags}>
+                    {cat.subcategories.slice(0, 3).map((sub, i) => (
+                      <span key={i} style={styles.subcatTag}>{sub}</span>
+                    ))}
+                    {cat.subcategories.length > 3 && (
+                      <span style={styles.subcatTag}>+{cat.subcategories.length - 3}</span>
+                    )}
+                  </div>
+                )}
                 <span style={styles.editHint}>{t('categories.editHint', lang)}</span>
               </div>
             ))}
@@ -198,7 +257,7 @@ export default function CategoryManager({
           <div className="drawer-overlay" onClick={() => setShowAddModal(false)} />
           <div className="bottom-drawer" style={styles.modal}>
             <div style={styles.modalHeader}>
-              <h3 style={styles.modalTitle}>{editingCategory ? t('categories.newCategory', lang) : t('categories.newCategory', lang)}</h3>
+              <h3 style={styles.modalTitle}>{editingCategory ? t('categories.editCategory', lang) : t('categories.newCategory', lang)}</h3>
               <button className="neo-btn neo-btn-round" style={styles.closeModalBtn} onClick={() => setShowAddModal(false)}>
                 <X size={16} />
               </button>
@@ -294,6 +353,44 @@ export default function CategoryManager({
                 </div>
               </div>
 
+                {/* Subcategories Section */}
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>{t('categories.subcategories', lang)}</label>
+                <div style={styles.subcatInputRow}>
+                  <input
+                    type="text"
+                    placeholder={t('categories.subcategoryPlaceholder', lang)}
+                    value={subcategoryInput}
+                    onChange={(e) => setSubcategoryInput(e.target.value)}
+                    onKeyDown={handleSubcategoryKeyDown}
+                    className="neo-input"
+                    style={styles.subcatInput}
+                  />
+                  <button
+                    onClick={handleAddSubcategory}
+                    className="neo-btn neo-btn-primary"
+                    style={styles.subcatAddBtn}
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+                {subcategories.length > 0 && (
+                  <div style={styles.subcatChips}>
+                    {subcategories.map((sub, i) => (
+                      <span key={i} className="neo-pressed-sm" style={styles.subcatChip}>
+                        {sub}
+                        <button
+                          onClick={() => handleRemoveSubcategory(i)}
+                          style={styles.subcatChipRemove}
+                        >
+                          <X size={10} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <button className="neo-btn neo-btn-primary" style={styles.saveFormBtn} onClick={handleSave}>
                 {editingCategory ? t('categories.saveCategory', lang) : t('categories.saveCategory', lang)}
               </button>
@@ -305,6 +402,16 @@ export default function CategoryManager({
     </div>
   );
 }
+
+CategoryManager.defaultProps = {
+  categories: [],
+  transactions: [],
+  onAddCategory: () => {},
+  onUpdateCategory: () => {},
+  onDeleteCategory: () => {},
+  onNavigate: () => {},
+  lang: 'en',
+};
 
 CategoryManager.propTypes = {
   categories: PropTypes.array,
@@ -384,13 +491,27 @@ const styles = {
     padding: '14px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px',
+    gap: '8px',
     borderRadius: '18px',
+    cursor: 'pointer',
   },
   cardTop: {
     display: 'flex',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  cardActions: {
+    display: 'flex',
     alignItems: 'center',
+    gap: '6px',
+  },
+  defaultBadge: {
+    fontSize: '7px',
+    fontWeight: '700',
+    padding: '2px 6px',
+    borderRadius: '6px',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase',
   },
   iconWrapper: {
     width: '36px',
@@ -401,12 +522,27 @@ const styles = {
     justifyContent: 'center',
   },
   deleteCardBtn: {
-    width: '26px',
-    height: '26px',
+    width: '24px',
+    height: '24px',
     borderRadius: '8px',
     padding: 0,
     border: '1px solid var(--color-expense)',
     color: 'var(--color-expense)',
+    flexShrink: 0,
+  },
+  subcatTags: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '4px',
+  },
+  subcatTag: {
+    fontSize: '8px',
+    fontWeight: '500',
+    color: 'var(--text-secondary)',
+    backgroundColor: 'var(--bg-color)',
+    padding: '1px 6px',
+    borderRadius: '4px',
+    lineHeight: '16px',
   },
   catName: {
     fontSize: '13px',
@@ -521,6 +657,46 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 0,
+  },
+  subcatInputRow: {
+    display: 'flex',
+    gap: '8px',
+  },
+  subcatInput: {
+    flex: 1,
+  },
+  subcatAddBtn: {
+    width: '36px',
+    height: '36px',
+    borderRadius: '10px',
+    padding: 0,
+    flexShrink: 0,
+  },
+  subcatChips: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '6px',
+    marginTop: '4px',
+  },
+  subcatChip: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    fontSize: '11px',
+    fontWeight: '600',
+    color: 'var(--text-primary)',
+    padding: '4px 8px',
+    borderRadius: '8px',
+    backgroundColor: 'var(--bg-color)',
+  },
+  subcatChipRemove: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--color-expense)',
+    cursor: 'pointer',
+    padding: 0,
+    display: 'flex',
+    alignItems: 'center',
   },
   saveFormBtn: {
     height: '42px',

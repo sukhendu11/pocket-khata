@@ -94,7 +94,9 @@ export default function TransactionItem({
     if (variant === 'calendar') {
       return acc?.name || t('common.localWallet');
     }
-    return `${acc?.name || t('common.local')} • ${cat?.name || t('common.general')}`;
+    const categoryPart = cat?.name || t('common.general');
+    const subcatPart = tx.subcategory ? ` › ${tx.subcategory}` : '';
+    return `${acc?.name || t('common.local')} • ${categoryPart}${subcatPart}`;
   };
 
   const renderNotes = () => {

@@ -134,6 +134,39 @@ export default function TransactionHistory({
         </button>
       </div>
 
+      {/* Segmented control: All | Income | Expense */}
+      <div className="neo-pressed-sm" style={styles.segmentContainer}>
+        {[
+          { value: 'all', label: t('txHistory.allTransactions', lang) },
+          { value: 'income', label: t('income', lang) },
+          { value: 'expense', label: t('expense', lang) },
+        ].map(seg => {
+          const isActive = typeFilter === seg.value;
+          return (
+            <button
+              key={seg.value}
+              onClick={() => setTypeFilter(seg.value)}
+              style={{
+                ...styles.segmentBtn,
+                boxShadow: isActive ? 'var(--neomorphic-raised-sm)' : 'none',
+                backgroundColor: isActive ? 'var(--bg-color)' : 'transparent',
+                borderColor: isActive ? 'rgba(255,255,255,0.4)' : 'transparent',
+                color: isActive 
+                  ? seg.value === 'income' 
+                    ? 'var(--color-income)' 
+                    : seg.value === 'expense' 
+                      ? 'var(--color-expense)' 
+                      : 'var(--accent-color)'
+                  : 'var(--text-secondary)',
+                fontWeight: isActive ? '700' : '500',
+              }}
+            >
+              {seg.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Search Input Inset */}
       <div style={styles.searchWrapper}>
         <Search size={16} style={styles.searchIcon} />
@@ -314,6 +347,16 @@ TransactionHistory.propTypes = {
   filterType: PropTypes.string,
 };
 
+TransactionHistory.defaultProps = {
+  transactions: [],
+  accounts: [],
+  categories: [],
+  onNavigate: () => {},
+  onEditTransaction: () => {},
+  lang: 'en',
+  filterType: 'all',
+};
+
 const styles = {
   container: {
     flex: 1,
@@ -344,6 +387,23 @@ const styles = {
     fontSize: '18px',
     fontWeight: '700',
     color: 'var(--text-primary)',
+  },
+  segmentContainer: {
+    display: 'flex',
+    padding: '4px',
+    borderRadius: '16px',
+    marginBottom: '12px',
+    backgroundColor: 'var(--bg-color)',
+  },
+  segmentBtn: {
+    flex: 1,
+    padding: '8px 0',
+    fontSize: '11px',
+    borderRadius: '12px',
+    backgroundColor: 'transparent',
+    border: '1px solid transparent',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
   },
   searchWrapper: {
     position: 'relative',

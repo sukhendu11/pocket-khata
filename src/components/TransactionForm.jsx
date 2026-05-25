@@ -19,6 +19,7 @@ export default function TransactionForm({
   const [accountId, setAccountId] = useState('');
   const [transferToId, setTransferToId] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [subcategory, setSubcategory] = useState('');
   const [notes, setNotes] = useState('');
   const [validationError, setValidationError] = useState('');
 
@@ -31,6 +32,7 @@ export default function TransactionForm({
       setAccountId(transaction.accountId);
       setTransferToId(transaction.transferToId || '');
       setCategoryId(transaction.categoryId || '');
+      setSubcategory(transaction.subcategory || '');
       setNotes(transaction.notes || '');
     } else {
       // Default to first account and first category
@@ -47,8 +49,10 @@ export default function TransactionForm({
       const filteredCats = categories.filter(c => c.type === type);
       if (filteredCats.length > 0) {
         setCategoryId(filteredCats[0].id);
+        setSubcategory('');
       } else {
         setCategoryId('');
+        setSubcategory('');
       }
     }
   }, [type, categories, transaction]);
@@ -90,6 +94,7 @@ export default function TransactionForm({
       accountId,
       transferToId: type === 'transfer' ? transferToId : null,
       categoryId: type === 'transfer' ? '' : categoryId,
+      subcategory: type === 'transfer' ? '' : subcategory,
       notes: notes.trim(),
     };
 
@@ -100,6 +105,9 @@ export default function TransactionForm({
     onSave(payload);
   };
 
+  // Find selected category for subcategory options
+  const selectedCategory = categories.find(c => c.id === categoryId);
+  const subcategoryOptions = selectedCategory?.subcategories || [];
   const filteredCategories = categories.filter(c => c.type === type);
 
   return (
@@ -118,28 +126,29 @@ export default function TransactionForm({
         </div>
 
         {/* 1. Transaction Type Segment Toggle */}
-        <div className="neo-pressed-sm" style={styles.segmentContainer}>            {['expense', 'income', 'transfer'].map(t => (
-            <button
-              key={t}
-              onClick={() => setType(t)}
-              className="neo-btn"
-              style={{
-                ...styles.segmentBtn,
-                boxShadow: type === t ? 'var(--neomorphic-raised-sm)' : 'none',
-                color: type === t 
-                  ? t === 'income' 
-                    ? 'var(--color-income)' 
-                    : t === 'expense' 
-                      ? 'var(--color-expense)' 
-                      : 'var(--color-transfer)'
-                  : 'var(--text-secondary)',
-                fontWeight: type === t ? '700' : '500',
-                border: type === t ? '1px solid rgba(255,255,255,0.4)' : '1px solid transparent',
-              }}
-            >
-              {t(t === 'expense' ? 'expense' : t === 'income' ? 'income' : 'transfer', lang).toUpperCase()}
-            </button>
-          ))}
+        <div className="neo-pressed-sm" style={styles.segmentContainer}>
+        {['expense', 'income', 'transfer'].map(txType => (
+          <button
+            key={txType}
+            onClick={() => setType(txType)}
+            className="neo-btn"
+            style={{
+              ...styles.segmentBtn,
+              boxShadow: type === txType ? 'var(--neomorphic-raised-sm)' : 'none',
+              color: type === txType 
+                ? txType === 'income' 
+                  ? 'var(--color-income)' 
+                  : txType === 'expense' 
+                    ? 'var(--color-expense)' 
+                    : 'var(--color-transfer)'
+                : 'var(--text-secondary)',
+              fontWeight: type === txType ? '700' : '500',
+              border: type === txType ? '1px solid rgba(255,255,255,0.4)' : '1px solid transparent',
+            }}
+          >
+            {t(txType === 'expense' ? 'expense' : txType === 'income' ? 'income' : 'transfer', lang).toUpperCase()}
+          </button>
+        ))}
         </div>
 
         {/* Form Fields */}
@@ -231,7 +240,7 @@ export default function TransactionForm({
               <label style={styles.label}>{t('txForm.category', lang)}</label>
               <select
                 value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
+                onChange={(e) => { setCategoryId(e.target.value); setSubcategory(''); }}
                 className="neo-input"
                 style={styles.select}
               >
@@ -245,6 +254,23 @@ export default function TransactionForm({
                   ))
                 )}
               </select>
+
+              {/* Subcategory dropdown (only when category has subcategories) */}
+              {subcategoryOptions.length > 0 && (
+                <select
+                  value={subcategory}
+                  onChange={(e) => setSubcategory(e.target.value)}
+                  className="neo-input"
+                  style={{ ...styles.select, marginTop: '8px' }}
+                >
+                  <option value="" style={styles.option}>—</option>
+                  {subcategoryOptions.map((sub, i) => (
+                    <option key={i} value={sub} style={styles.option}>
+                      {sub}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           )}
 

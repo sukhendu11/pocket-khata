@@ -28,8 +28,8 @@ export default function AccountManager({
   const colors = ['#4a90e2', '#3cd070', '#ff5a79', '#ff8a00', '#8e44ad', '#00c9db', '#ff7b54', '#718096'];
 
   // 1. Account Icons Resolver
-  const getAccountIcon = (type) => {
-    switch (type) {
+  const getAccountIcon = (accountType) => {
+    switch (accountType) {
       case 'Bank': return <Landmark size={20} />;
       case 'Bkash': 
       case 'Nagad': return <CreditCard size={20} />;
@@ -37,12 +37,24 @@ export default function AccountManager({
     }
   };
 
+  // Localize seed account names for Bengali
+  const getLocalizedAccName = (acc) => {
+    if (lang !== 'bn') return acc.name;
+    const nameMap = {
+      'Cash': t('accounts.name.cash', lang),
+      'Bank Account': t('accounts.name.bankAccount', lang),
+      'bKash Wallet': t('accounts.name.bkashWallet', lang),
+      'Nagad Wallet': t('accounts.name.nagadWallet', lang),
+    };
+    return nameMap[acc.name] || acc.name;
+  };
+
   // 2. Filter transactions by selected account
   const accountTransactions = useMemo(() => {
     if (!selectedAccount) return [];
-    return transactions.filter(t => 
-      t.accountId === selectedAccount.id || 
-      (t.type === 'transfer' && t.transferToId === selectedAccount.id)
+    return transactions.filter(tx => 
+      tx.accountId === selectedAccount.id || 
+      (tx.type === 'transfer' && tx.transferToId === selectedAccount.id)
     ).sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [transactions, selectedAccount]);
 
@@ -78,7 +90,7 @@ export default function AccountManager({
 
   // 4. Delete selected account
   const handleDelete = (id) => {
-    const hasTxs = transactions.some(t => t.accountId === id || t.transferToId === id);
+    const hasTxs = transactions.some(tx => tx.accountId === id || tx.transferToId === id);
     if (hasTxs) {
       const confirmDelete = window.confirm(
         t('accounts.deleteWarning', lang)
@@ -121,7 +133,7 @@ export default function AccountManager({
                 {getAccountIcon(acc.type)}
               </span>
               <div>
-                <h4 style={styles.accName}>{acc.name}</h4>
+                <h4 style={styles.accName}>{getLocalizedAccName(acc)}</h4>
                 <span style={styles.accType}>{acc.type}</span>
               </div>
             </div>
@@ -144,7 +156,7 @@ export default function AccountManager({
                   {getAccountIcon(selectedAccount.type)}
                 </span>
                 <div>
-                  <h3 style={styles.drawerTitle}>{selectedAccount.name}</h3>
+                  <h3 style={styles.drawerTitle}>{getLocalizedAccName(selectedAccount)}</h3>
                   <span style={styles.drawerSubtitle}>{selectedAccount.type} {t('accounts.accountType', lang)}</span>
                 </div>
               </div>
@@ -295,6 +307,15 @@ AccountManager.propTypes = {
   onDeleteAccount: PropTypes.func,
   onNavigate: PropTypes.func,
   lang: PropTypes.string,
+};
+
+AccountManager.defaultProps = {
+  accounts: [],
+  transactions: [],
+  onAddAccount: () => {},
+  onDeleteAccount: () => {},
+  onNavigate: () => {},
+  lang: 'en',
 };
 
 const styles = {

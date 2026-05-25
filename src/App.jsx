@@ -16,9 +16,29 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 import BudgetManager from './components/BudgetManager';
 import SavingsTracker from './components/SavingsTracker';
-import GlobalSearch from './components/GlobalSearch';
 
 import { t } from './i18n';
+
+const globalLangStyles = {
+  pill: {
+    display: 'flex',
+    padding: '2px',
+    borderRadius: '10px',
+    gap: '2px',
+    backgroundColor: 'var(--bg-color)',
+    alignItems: 'center',
+  },
+  opt: {
+    background: 'none',
+    border: 'none',
+    fontSize: '9px',
+    fontWeight: '600',
+    padding: '3px 6px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+};
 
 const bottomNavStyles = {
   container: {
@@ -109,7 +129,6 @@ export default function App() {
   const [theme, setTheme] = useState('light');
   const [currentTime, setCurrentTime] = useState('');
   // Lock screen removed (direct entry)
-  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
 
   // 5. Initial Load
   useEffect(() => {
@@ -164,7 +183,7 @@ export default function App() {
   // -- Transactions
   const handleSaveTransaction = (tx) => {
     if (tx.id) {
-      const oldTx = transactions.find(t => t.id === tx.id);
+      const oldTx = transactions.find(oldTxRef => oldTxRef.id === tx.id);
       db.updateTransaction(tx, oldTx);
     } else {
       db.addTransaction(tx);
@@ -306,15 +325,9 @@ export default function App() {
     setShowTransactionForm(true);
   }, []);
 
-  const navigateToFilteredTransactions = (filterType) => {
-    setTransactionFilter(filterType);
-    setCurrentScreen('transactions');
-  };
-
   const handleNavigate = (screen) => {
     setTransactionFilter(null);
     setCurrentScreen(screen);
-    setShowGlobalSearch(false);
   };
 
   // 11. Lock screen is removed — app starts directly in the dashboard
@@ -336,7 +349,6 @@ export default function App() {
             onToggleTheme={handleToggleTheme}
             lang={lang}
             onSetLang={handleSetLang}
-            onOpenSearch={() => setShowGlobalSearch(true)}
           />
         );
       case 'analytics':
@@ -448,7 +460,21 @@ export default function App() {
           />
         );
       default:
-        return <div>Screen not found</div>;
+        // Unknown screen — redirect to dashboard
+        setTimeout(() => handleNavigate('dashboard'), 0);
+        return <Dashboard
+            accounts={accounts}
+            transactions={transactions}
+            categories={categories}
+            reminders={reminders}
+            budgets={budgets}
+            savingsGoals={savingsGoals}
+            onNavigate={handleNavigate}
+            theme={theme}
+            onToggleTheme={handleToggleTheme}
+            lang={lang}
+            onSetLang={handleSetLang}
+          />;
     }
   };
 
@@ -478,39 +504,57 @@ export default function App() {
       </div>
 
       {/* B. App Context Content Container */}
-      <div className="app-container">
+      <div className="app-container" style={{ position: 'relative' }}>
+        {/* Global Language Toggle — top-right corner, visible on all pages */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+          <div className="neo-pressed-sm" style={globalLangStyles.pill}>
+            <button
+              onClick={() => handleSetLang('en')}
+              style={{
+                ...globalLangStyles.opt,
+                color: lang === 'en' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                fontWeight: lang === 'en' ? '700' : '500',
+                backgroundColor: lang === 'en' ? 'var(--bg-color)' : 'transparent',
+                boxShadow: lang === 'en' ? 'var(--neomorphic-raised-sm)' : 'none',
+              }}
+            >
+              EN
+            </button>
+            <button
+              onClick={() => handleSetLang('bn')}
+              style={{
+                ...globalLangStyles.opt,
+                color: lang === 'bn' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                fontWeight: lang === 'bn' ? '700' : '500',
+                backgroundColor: lang === 'bn' ? 'var(--bg-color)' : 'transparent',
+                boxShadow: lang === 'bn' ? 'var(--neomorphic-raised-sm)' : 'none',
+              }}
+            >
+              বাংলা
+            </button>
+          </div>
+        </div>
         <ErrorBoundary>
           {renderScreen()}
-          <GlobalSearch
-            isOpen={showGlobalSearch}
-            onClose={() => setShowGlobalSearch(false)}
-            transactions={transactions}
-            accounts={accounts}
-            categories={categories}
-            reminders={reminders}
-            budgets={budgets}
-            savingsGoals={savingsGoals}
-            onEditTransaction={handleEditTransactionClick}
-            onNavigate={handleNavigate}
-            lang={lang}
-          />
         </ErrorBoundary>
       </div>
 
       {/* C. Floating Transaction Add/Edit Form Overlay */}
       {showTransactionForm && (
-        <TransactionForm
-          transaction={editingTransaction}
-          accounts={accounts}
-          categories={categories}
-          onSave={handleSaveTransaction}
-          onDelete={handleDeleteTransaction}
-          onClose={() => {
-            setShowTransactionForm(false);
-            setEditingTransaction(null);
-          }}
-          lang={lang}
-        />
+        <ErrorBoundary>
+          <TransactionForm
+            transaction={editingTransaction}
+            accounts={accounts}
+            categories={categories}
+            onSave={handleSaveTransaction}
+            onDelete={handleDeleteTransaction}
+            onClose={() => {
+              setShowTransactionForm(false);
+              setEditingTransaction(null);
+            }}
+            lang={lang}
+          />
+        </ErrorBoundary>
       )}
 
       {/* D. Bottom Navigation Bar */}
@@ -532,19 +576,20 @@ export default function App() {
           <span style={bottomNavStyles.label}>{t('analytics.title', lang)}</span>
         </button>
 
-        {/* Income */}
+        {/* Income & Expense (unified) */}
         <button
           style={{
             ...bottomNavStyles.btn,
-            color: currentScreen === 'transactions' && transactionFilter === 'income' ? 'var(--color-income)' : 'var(--text-secondary)',
+            color: currentScreen === 'transactions' ? 'var(--accent-color)' : 'var(--text-secondary)',
           }}
-          onClick={() => navigateToFilteredTransactions('income')}
+          onClick={() => handleNavigate('transactions')}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="19" x2="12" y2="5" />
             <polyline points="5 12 12 5 19 12" />
+            <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          <span style={bottomNavStyles.label}>{t('income', lang)}</span>
+          <span style={bottomNavStyles.label}>{t('nav.incomeExpense', lang)}</span>
         </button>
 
         {/* Center + Button */}
@@ -572,19 +617,21 @@ export default function App() {
           </svg>
         </button>
 
-        {/* Expense */}
+        {/* Categories */}
         <button
           style={{
             ...bottomNavStyles.btn,
-            color: currentScreen === 'transactions' && transactionFilter === 'expense' ? 'var(--color-expense)' : 'var(--text-secondary)',
+            color: currentScreen === 'categories' ? 'var(--accent-color)' : 'var(--text-secondary)',
           }}
-          onClick={() => navigateToFilteredTransactions('expense')}
+          onClick={() => handleNavigate('categories')}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <polyline points="19 12 12 19 5 12" />
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
           </svg>
-          <span style={bottomNavStyles.label}>{t('expense', lang)}</span>
+          <span style={bottomNavStyles.label}>{t('nav.categories', lang)}</span>
         </button>
 
         {/* Calendar */}

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { ArrowLeft, Plus, X, AlertCircle, Target, Wallet, Trash2, Edit3, TrendingUp } from 'lucide-react';
 import PropTypes from 'prop-types';
+import { t } from '../i18n';
 import { formatNumber, formatPercent } from '../utils';
 
 const COLORS = ['#22C55E', '#54a0ff', '#ff5a79', '#f7b731', '#8e44ad', '#00c9db', '#ff7b54', '#16a085'];
@@ -69,9 +70,8 @@ export default function SavingsTracker({
 
   const handleSave = () => {
     setFormError('');
-    if (!name.trim()) { setFormError('Please enter a goal name'); return; }
-    const parsed = Number(targetAmount);
-    if (!targetAmount || isNaN(parsed) || parsed <= 0) { setFormError('Please enter a valid target amount'); return; }
+    if (!name.trim()) {      setFormError(t('savings.errName', lang)); return; }
+    const parsed = Number(targetAmount);      if (!targetAmount || isNaN(parsed) || parsed <= 0) { setFormError(t('savings.errAmount', lang)); return; }
 
     const payload = { name: name.trim(), targetAmount: parsed, deadline, color };
     if (editing) {
@@ -87,11 +87,11 @@ export default function SavingsTracker({
     if (!showContribute) return;
     const parsed = Number(contributeAmount);
     if (!contributeAmount || isNaN(parsed) || parsed <= 0) {
-      setFormError('Enter a valid contribution amount');
+      setFormError(t('savings.errContribution', lang));
       return;
     }
     if (!contributeAccountId) {
-      setFormError('Select an account');
+      setFormError(t('savings.errAccount', lang));
       return;
     }
     onContributeToSavingsGoal(showContribute.id, parsed, contributeAccountId);
@@ -108,7 +108,7 @@ export default function SavingsTracker({
         <button className="neo-btn neo-btn-round" style={styles.backBtn} onClick={() => onNavigate('dashboard')}>
           <ArrowLeft size={18} />
         </button>
-        <h2 style={styles.title}>Savings Goals</h2>
+        <h2 style={styles.title}>{t('savings.title', lang)}</h2>
         <button className="neo-btn neo-btn-round" style={styles.addBtn} onClick={openNew}>
           <Plus size={18} />
         </button>
@@ -118,19 +118,19 @@ export default function SavingsTracker({
       {savingsGoals.length > 0 && (
         <div className="neo-raised" style={styles.summaryCard}>
           <div style={styles.summaryTop}>
-            <span style={styles.summaryLabel}>Total Saved</span>
+            <span style={styles.summaryLabel}>{t('savings.totalSaved', lang)}</span>
             <span style={styles.summaryValue}>৳{formatNumber(totalStats.totalCurrent, lang)}</span>
           </div>
           <div style={styles.progressTrack}>
             <div style={{ ...styles.progressFill, width: `${totalStats.totalPct}%` }} />
           </div>
           <div style={styles.summaryBottom}>
-            <span style={styles.summarySub}>Target: ৳{formatNumber(totalStats.totalTarget, lang)}</span>
+            <span style={styles.summarySub}>{t('savings.target', lang)}: ৳{formatNumber(totalStats.totalTarget, lang)}</span>
             <span style={styles.summarySub}>{formatPercent(totalStats.totalPct, lang)}</span>
           </div>
           {totalStats.completedCount > 0 && (
             <span style={styles.completedBadge}>
-              {totalStats.completedCount} of {totalStats.goalCount} goals completed
+              {formatNumber(totalStats.completedCount, lang)} {t('savings.ofGoalsCompleted', lang)} ({formatNumber(totalStats.goalCount, lang)})
             </span>
           )}
         </div>
@@ -141,8 +141,8 @@ export default function SavingsTracker({
         {goalsWithProgress.length === 0 ? (
           <div className="neo-pressed-sm" style={styles.emptyState}>
             <Target size={28} style={{ color: 'var(--text-secondary)', opacity: 0.5, marginBottom: '8px' }} />
-            <p>No savings goals yet</p>
-            <p style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>Start saving towards something big!</p>
+            <p>{t('savings.noGoals', lang)}</p>
+            <p style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>{t('savings.noGoalsDesc', lang)}</p>
           </div>
         ) : (
           goalsWithProgress.map(g => (
@@ -154,7 +154,7 @@ export default function SavingsTracker({
               <div style={styles.cardTop}>
                 <div style={styles.cardLeft}>
                   <span style={styles.goalName}>{g.name}</span>
-                  {g.deadline && <span style={styles.goalDeadline}>by {g.deadline}</span>}
+                  {g.deadline && <span style={styles.goalDeadline}>{t('savings.byDeadline', lang)} {g.deadline}</span>}
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <span style={styles.goalCurrent}>৳{formatNumber(g.currentAmount, lang)}</span>
@@ -172,7 +172,7 @@ export default function SavingsTracker({
 
               <div style={styles.cardBottom}>
                 <span style={styles.remainingText}>
-                  {g.isCompleted ? 'Goal achieved! 🎉' : `৳${formatNumber(g.remaining, lang)} remaining`}
+                  {g.isCompleted ? t('savings.goalAchieved', lang) : `৳${formatNumber(g.remaining, lang)} ${t('savings.remaining', lang)}`}
                 </span>
                 <span style={styles.pctText}>{formatPercent(g.percentage, lang)}</span>
               </div>
@@ -181,11 +181,11 @@ export default function SavingsTracker({
                 {!g.isCompleted && (
                   <button className="neo-btn neo-btn-primary" style={styles.contributeBtn}
                     onClick={() => { setShowContribute(g); setContributeAmount(''); setContributeAccountId(''); setFormError(''); }}>
-                    <TrendingUp size={12} /> Contribute
+                    <TrendingUp size={12} /> {t('savings.contribute', lang)}
                   </button>
                 )}
                 <button className="neo-btn" style={styles.editBtn} onClick={() => openEdit(g)}>
-                  <Edit3 size={10} /> Edit
+                  <Edit3 size={10} /> {t('budget.edit', lang)}
                 </button>
                 <button className="neo-btn" style={styles.deleteBtn} onClick={() => onDeleteSavingsGoal(g.id)}>
                   <Trash2 size={10} />
@@ -202,7 +202,7 @@ export default function SavingsTracker({
           <div className="drawer-overlay" onClick={() => setShowForm(false)} />
           <div className="bottom-drawer" style={styles.formDrawer}>
             <div style={styles.formHeader}>
-              <h3 style={styles.formTitle}>{editing ? 'Edit Goal' : 'New Savings Goal'}</h3>
+              <h3 style={styles.formTitle}>{editing ? t('savings.editGoal', lang) : t('savings.newGoal', lang)}</h3>
               <button className="neo-btn neo-btn-round" style={styles.closeFormBtn} onClick={() => setShowForm(false)}>
                 <X size={16} />
               </button>
@@ -212,19 +212,19 @@ export default function SavingsTracker({
             )}
             <div style={styles.formBody}>
               <div style={styles.formGroup}>
-                <label style={styles.formLabel}>GOAL NAME</label>
-                <input type="text" placeholder="e.g. New Laptop" value={name} onChange={(e) => setName(e.target.value)} className="neo-input" />
+                <label style={styles.formLabel}>{t('savings.goalName', lang)}</label>
+                <input type="text" placeholder={t('savings.goalNamePlaceholder', lang)} value={name} onChange={(e) => setName(e.target.value)} className="neo-input" />
               </div>
               <div style={styles.formGroup}>
-                <label style={styles.formLabel}>TARGET AMOUNT (৳)</label>
-                <input type="number" placeholder="e.g. 50000" value={targetAmount} onChange={(e) => setTargetAmount(e.target.value)} className="neo-input" />
+                <label style={styles.formLabel}>{t('savings.targetAmount', lang)}</label>
+                <input type="number" placeholder={t('savings.targetPlaceholder', lang)} value={targetAmount} onChange={(e) => setTargetAmount(e.target.value)} className="neo-input" />
               </div>
               <div style={styles.formGroup}>
-                <label style={styles.formLabel}>DEADLINE (optional)</label>
+                <label style={styles.formLabel}>{t('savings.deadline', lang)}</label>
                 <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="neo-input" />
               </div>
               <div style={styles.formGroup}>
-                <label style={styles.formLabel}>THEME COLOR</label>
+                <label style={styles.formLabel}>{t('savings.themeColor', lang)}</label>
                 <div style={styles.colorRow}>
                   {COLORS.map(c => (
                     <button key={c} onClick={() => setColor(c)}
@@ -234,7 +234,7 @@ export default function SavingsTracker({
                 </div>
               </div>
               <button className="neo-btn neo-btn-primary" style={styles.saveBtn} onClick={handleSave}>
-                {editing ? 'Save Changes' : 'Create Goal'}
+                {editing ? t('budget.saveChanges', lang) : t('savings.createGoal', lang)}
               </button>
             </div>
           </div>
@@ -247,7 +247,7 @@ export default function SavingsTracker({
           <div className="drawer-overlay" onClick={() => setShowContribute(null)} />
           <div className="bottom-drawer" style={styles.formDrawer}>
             <div style={styles.formHeader}>
-              <h3 style={styles.formTitle}>Contribute to {showContribute.name}</h3>
+              <h3 style={styles.formTitle}>{t('savings.contributeTo', lang)} {showContribute.name}</h3>
               <button className="neo-btn neo-btn-round" style={styles.closeFormBtn} onClick={() => setShowContribute(null)}><X size={16} /></button>
             </div>
             {formError && (
@@ -255,24 +255,24 @@ export default function SavingsTracker({
             )}
             <div style={styles.formBody}>
               <div className="neo-pressed-sm" style={styles.currentProgress}>
-                <span>Progress: ৳{formatNumber(showContribute.currentAmount, lang)} / ৳{formatNumber(showContribute.targetAmount, lang)}</span>
+                <span>{t('savings.progress', lang)} ৳{formatNumber(showContribute.currentAmount, lang)} / ৳{formatNumber(showContribute.targetAmount, lang)}</span>
                 <span style={{ fontWeight: 700 }}>{formatPercent(showContribute.targetAmount > 0 ? Math.min((showContribute.currentAmount / showContribute.targetAmount) * 100, 100) : 0, lang)}</span>
               </div>
               <div style={styles.formGroup}>
-                <label style={styles.formLabel}>AMOUNT (৳)</label>
-                <input type="number" placeholder="e.g. 5000" value={contributeAmount} onChange={(e) => setContributeAmount(e.target.value)} className="neo-input" />
+                <label style={styles.formLabel}>{t('savings.contributionAmount', lang)}</label>
+                <input type="number" placeholder={t('savings.targetPlaceholder', lang)} value={contributeAmount} onChange={(e) => setContributeAmount(e.target.value)} className="neo-input" />
               </div>
               <div style={styles.formGroup}>
-                <label style={styles.formLabel}>FROM ACCOUNT</label>
+                <label style={styles.formLabel}>{t('savings.fromAccount', lang)}</label>
                 <select value={contributeAccountId} onChange={(e) => setContributeAccountId(e.target.value)} className="neo-input" style={styles.formSelect}>
-                  <option value="" disabled>Select Account</option>
+                  <option value="" disabled>{t('savings.selectAccount', lang)}</option>
                   {accounts.map(a => (
                     <option key={a.id} value={a.id}>{a.name} (৳{formatNumber(a.balance, lang)})</option>
                   ))}
                 </select>
               </div>
               <button className="neo-btn neo-btn-primary" style={styles.saveBtn} onClick={handleContribute}>
-                <Wallet size={14} /> Add Contribution
+                <Wallet size={14} /> {t('savings.addContribution', lang)}
               </button>
             </div>
           </div>
@@ -291,6 +291,17 @@ SavingsTracker.propTypes = {
   onContributeToSavingsGoal: PropTypes.func,
   onNavigate: PropTypes.func,
   lang: PropTypes.string,
+};
+
+SavingsTracker.defaultProps = {
+  savingsGoals: [],
+  accounts: [],
+  onAddSavingsGoal: () => {},
+  onUpdateSavingsGoal: () => {},
+  onDeleteSavingsGoal: () => {},
+  onContributeToSavingsGoal: () => {},
+  onNavigate: () => {},
+  lang: 'en',
 };
 
 const styles = {

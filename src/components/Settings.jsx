@@ -1,13 +1,14 @@
 import { useState, useRef } from 'react';
 import { 
-  ArrowLeft, CloudLightning, FileSpreadsheet, 
+  ArrowLeft, FileSpreadsheet, 
   RotateCcw, RefreshCw, ShieldAlert, CheckCircle,
-  Download, Upload, FileText
+  Download, Upload, FileText, History as HistoryIcon
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber } from '../utils';
+import { db } from '../db';
 
 export default function Settings({
   onResetDatabase,
@@ -19,66 +20,18 @@ export default function Settings({
   onNavigate,
   lang
 }) {
-  // Backup Sync States
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncSuccess, setSyncSuccess] = useState(false);
-  const [syncError, setSyncError] = useState(false);
-
   // Reset State
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  // Auto-Backup State
+  const [backupRestoreMsg, setBackupRestoreMsg] = useState('');
+  const [showClearBackupsConfirm, setShowClearBackupsConfirm] = useState(false);
 
   // PDF Report State
   const [reportPeriod, setReportPeriod] = useState('thisMonth');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
-  // 1. Mock Cloud Sync
-  const handleCloudSync = () => {
-    if (isSyncing) return;
-    setIsSyncing(true);
-    setSyncSuccess(false);
-    setSyncError(false);
-
-    // Simulate Network Latency
-    setTimeout(() => {
-      try {
-        const serialized = onExportDatabase(); // gets full JSON string
-        localStorage.setItem('pocket_khata_cloud_backup', serialized);
-        setIsSyncing(false);
-        setSyncSuccess(true);
-        setTimeout(() => setSyncSuccess(false), 2000);
-      } catch (e) {
-        setIsSyncing(false);
-        setSyncError(true);
-      }
-    }, 2000);
-  };
-
-  // 4. Restore from Cloud
-  const handleCloudRestore = () => {
-    if (isSyncing) return;
-    const backup = localStorage.getItem('pocket_khata_cloud_backup');
-    if (!backup) {
-      alert(t('settings.noBackupFound', lang));
-      return;
-    }
-
-    setIsSyncing(true);
-    setSyncSuccess(false);
-    
-    setTimeout(() => {
-      const success = onImportDatabase(backup);
-      setIsSyncing(false);
-      if (success) {
-        setSyncSuccess(true);
-        alert(t('settings.restoreSuccess', lang));
-        setTimeout(() => setSyncSuccess(false), 2000);
-      } else {
-        setSyncError(true);
-      }
-    }, 1500);
-  };
-
-  // 5. JSON Export download
+  // 4. JSON Export download
   const handleExportJSON = () => {
     const jsonStr = onExportDatabase();
     const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
@@ -115,7 +68,7 @@ export default function Settings({
     e.target.value = ''; // reset so same file can be re-imported
   };
 
-  // 7. CSV Export download (Pure JS)
+  // 6. CSV Export download (Pure JS)
   const handleExportCSV = () => {
     if (transactions.length === 0) {
       alert(t('settings.noTransactions', lang));
@@ -303,6 +256,49 @@ export default function Settings({
     }, 500);
   };
 
+  // Auto-Backup Handlers
+  const backups = db.getAutoBackups();
+
+  const handleRestoreBackup = (index) => {
+    const success = db.restoreFromAutoBackup(index);
+    if (success) {
+      setBackupRestoreMsg(t('autobackup.restoreSuccess', lang));
+      setTimeout(() => setBackupRestoreMsg(''), 3000);
+    } else {
+      setBackupRestoreMsg(t('autobackup.restoreError', lang));
+      setTimeout(() => setBackupRestoreMsg(''), 3000);
+    }
+  };
+
+  const handleClearBackups = () => {
+    db.clearAutoBackups();
+    setShowClearBackupsConfirm(false);
+  };
+
+  const formatBackupTime = (timestamp) => {
+    const d = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - d;
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return `${diffSec}s ago`;
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getItemCount = (snapshot) => {
+    if (!snapshot) return { accounts: 0, categories: 0, transactions: 0, budgets: 0, goals: 0 };
+    return {
+      accounts: snapshot.accounts?.length || 0,
+      categories: snapshot.categories?.length || 0,
+      transactions: snapshot.transactions?.length || 0,
+      budgets: snapshot.budgets?.length || 0,
+      goals: snapshot.savingsGoals?.length || 0,
+    };
+  };
+
   const handleReset = () => {
     onResetDatabase();
     setShowResetConfirm(false);
@@ -324,59 +320,7 @@ export default function Settings({
 
       <div style={styles.content}>
         
-        {/* SECTION 1: Cloud Sync & Backup */}
-        <div className="neo-raised" style={styles.card}>
-          <div style={styles.cardHeader}>
-            <CloudLightning size={16} style={{ color: 'var(--accent-color)' }} />
-            <h3 style={styles.cardTitle}>{t('settings.cloudBackups', lang)}</h3>
-          </div>
-
-          <p style={styles.cardDesc}>
-            {t('settings.cloudDesc', lang)}
-          </p>
-
-          <div style={styles.syncBtnRow}>
-            <button 
-              className="neo-btn neo-btn-primary" 
-              style={styles.syncBtn} 
-              onClick={handleCloudSync}
-              disabled={isSyncing}
-            >
-              {isSyncing ? (
-                <RefreshCw size={14} className="spin-anim" style={{ animation: 'spin 2s linear infinite' }} />
-              ) : (
-                <RefreshCw size={14} />
-              )}
-              {t('settings.backupSync', lang)}
-            </button>
-
-            <button 
-              className="neo-btn" 
-              style={styles.restoreBtn} 
-              onClick={handleCloudRestore}
-              disabled={isSyncing}
-            >
-              {t('settings.cloudRestore', lang)}
-            </button>
-          </div>
-
-          {/* Sync Success States */}
-          {syncSuccess && (
-            <div style={styles.syncSuccess}>
-              <CheckCircle size={14} style={{ color: 'var(--color-income)' }} />
-              <span>{t('settings.syncSuccess', lang)}</span>
-            </div>
-          )}
-
-          {syncError && (
-            <div style={styles.syncError}>
-              <ShieldAlert size={14} style={{ color: 'var(--color-expense)' }} />
-              <span>{t('settings.syncError', lang)}</span>
-            </div>
-          )}
-        </div>
-
-        {/* SECTION 2: Export & Import Data */}
+        {/* SECTION 1: Export & Import Data */}
         <div className="neo-raised" style={styles.card}>
           <div style={styles.cardHeader}>
             <FileSpreadsheet size={16} style={{ color: 'var(--accent-color)' }} />
@@ -418,6 +362,115 @@ export default function Settings({
             style={{ display: 'none' }}
             onChange={handleFileChange}
           />
+        </div>
+
+        {/* SECTION 2: Auto-Backups */}
+        <div className="neo-raised" style={styles.card}>
+          <div style={styles.cardHeader}>
+            <HistoryIcon size={16} style={{ color: 'var(--accent-color)' }} />
+            <h3 style={styles.cardTitle}>{t('autobackup.title', lang)}</h3>
+          </div>
+
+          <p style={styles.cardDesc}>
+            {t('autobackup.desc', lang)}
+          </p>
+
+          {backupRestoreMsg && (
+            <div style={{
+              ...styles.syncSuccess,
+              color: backupRestoreMsg.includes('restored') ? 'var(--color-income)' : 'var(--color-expense)',
+            }}>
+              <CheckCircle size={14} />
+              <span>{backupRestoreMsg}</span>
+            </div>
+          )}
+
+          {backups.length === 0 ? (
+            <p style={{ ...styles.cardDesc, textAlign: 'center', padding: '16px 0', opacity: 0.5 }}>
+              {t('autobackup.noBackups', lang)}
+            </p>
+          ) : (
+            <>
+              <p style={{ fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: '600' }}>
+                {backups.length} {t('autobackup.count', lang)}
+              </p>
+
+              {backups.map((snap, idx) => {
+                const counts = getItemCount(snap);
+                return (
+                  <div key={idx} className="neo-pressed-sm" style={{
+                    ...styles.snapshotCard,
+                    borderLeft: `3px solid ${idx === 0 ? 'var(--color-income)' : idx === 1 ? 'var(--accent-color)' : 'var(--text-secondary)'}`,
+                  }}>
+                    <div style={styles.snapshotHeader}>
+                      <span style={styles.snapshotLabel}>
+                        {t('autobackup.snapshot', lang)} #{idx + 1}
+                      </span>
+                      <span style={styles.snapshotTime}>
+                        {formatBackupTime(snap.timestamp)}
+                      </span>
+                    </div>
+
+                    <div style={styles.snapshotStats}>
+                      <span style={styles.snapshotStat}>
+                        <span style={{ fontWeight: '700' }}>{counts.accounts}</span> {t('autobackup.accounts', lang)}
+                      </span>
+                      <span style={styles.snapshotStat}>
+                        <span style={{ fontWeight: '700' }}>{counts.categories}</span> {t('autobackup.categories', lang)}
+                      </span>
+                      <span style={styles.snapshotStat}>
+                        <span style={{ fontWeight: '700' }}>{counts.transactions}</span> {t('autobackup.transactions', lang)}
+                      </span>
+                      <span style={styles.snapshotStat}>
+                        <span style={{ fontWeight: '700' }}>{counts.budgets}</span> {t('autobackup.budgets', lang)}
+                      </span>
+                      <span style={styles.snapshotStat}>
+                        <span style={{ fontWeight: '700' }}>{counts.goals}</span> {t('autobackup.goals', lang)}
+                      </span>
+                    </div>
+
+                    <button
+                      className="neo-btn"
+                      style={styles.restoreSnapshotBtn}
+                      onClick={() => handleRestoreBackup(idx)}
+                    >
+                      <RotateCcw size={12} /> {t('autobackup.restore', lang)}
+                    </button>
+                  </div>
+                );
+              })}
+
+              <button
+                className="neo-btn"
+                style={{
+                  ...styles.resetBtn,
+                  marginTop: '10px',
+                  fontSize: '11px',
+                  height: '34px',
+                }}
+                onClick={() => setShowClearBackupsConfirm(true)}
+              >
+                {t('autobackup.clearAll', lang)}
+              </button>
+
+              {showClearBackupsConfirm && (
+                <div className="neo-pressed-sm" style={{
+                  ...styles.resetConfirmPanel,
+                  marginTop: '8px',
+                }}>
+                  <p style={styles.resetConfirmText}>{t('settings.irreversible', lang)}</p>
+                  <div style={styles.resetBtnGroup}>
+                    <button className="neo-btn" style={styles.resetYesBtn} onClick={handleClearBackups}>
+                      {t('settings.yesFormat', lang)}
+                    </button>
+                    <button className="neo-btn" onClick={() => setShowClearBackupsConfirm(false)}>
+                      {t('cancel', lang)}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* SECTION 3: PDF Financial Reports */}
@@ -495,8 +548,8 @@ export default function Settings({
 
         {/* Footer info */}
         <div style={styles.footer}>
-          <p>{t('settings.version', lang)}</p>
-          <p style={{ marginTop: '2px' }}>{t('settings.dbInfo', lang)}</p>
+          <p>{t('settings.version', lang)} (v{db.getAppVersion()})</p>
+          <p style={{ marginTop: '2px' }}>{t('settings.dbInfo', lang)} — Schema v{db.getStoredSchemaVersion()}</p>
         </div>
 
       </div>
@@ -646,6 +699,53 @@ const styles = {
     justifyContent: 'center',
     border: '1px solid var(--color-expense)',
     color: 'var(--color-expense)',
+  },
+  snapshotCard: {
+    padding: '10px 12px',
+    borderRadius: '10px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    marginBottom: '8px',
+  },
+  snapshotHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  snapshotLabel: {
+    fontSize: '11px',
+    fontWeight: '700',
+    color: 'var(--text-primary)',
+  },
+  snapshotTime: {
+    fontSize: '9px',
+    color: 'var(--text-secondary)',
+    fontWeight: '500',
+  },
+  snapshotStats: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '4px 10px',
+  },
+  snapshotStat: {
+    fontSize: '9px',
+    color: 'var(--text-secondary)',
+    fontWeight: '500',
+  },
+  restoreSnapshotBtn: {
+    alignSelf: 'flex-end',
+    fontSize: '10px',
+    height: '26px',
+    padding: '0 10px',
+    borderRadius: '8px',
+    backgroundColor: 'var(--accent-color)',
+    color: '#fff',
+    border: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    cursor: 'pointer',
   },
   resetConfirmPanel: {
     padding: '12px',

@@ -38,7 +38,7 @@ export default class ErrorBoundary extends React.Component {
           justifyContent: 'center',
           height: '100%',
           padding: '40px 20px',
-          backgroundColor: '#f0f2f5',
+          backgroundColor: 'var(--bg-color)',
         }}>
           <div style={{
             display: 'flex',
@@ -49,15 +49,15 @@ export default class ErrorBoundary extends React.Component {
             maxWidth: '300px',
             width: '100%',
             borderRadius: '20px',
-            backgroundColor: '#f0f2f5',
-            boxShadow: '8px 8px 16px #d1d3d6, -8px -8px 16px #ffffff',
+            backgroundColor: 'var(--bg-color)',
+            boxShadow: 'var(--neomorphic-raised)',
           }}>
             <svg
               width="48"
               height="48"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#EF4444"
+              stroke="var(--color-expense)"
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -70,13 +70,13 @@ export default class ErrorBoundary extends React.Component {
             <h2 style={{
               fontSize: '18px',
               fontWeight: '700',
-              color: '#2c3e50',
+              color: 'var(--text-primary)',
               marginBottom: '8px',
               fontFamily: 'Outfit, -apple-system, sans-serif',
             }}>Something went wrong</h2>
             <p style={{
               fontSize: '12px',
-              color: '#7f8c8d',
+              color: 'var(--text-secondary)',
               fontWeight: '500',
               lineHeight: '1.4',
               marginBottom: '20px',
@@ -90,13 +90,13 @@ export default class ErrorBoundary extends React.Component {
                 padding: '10px 24px',
                 fontSize: '13px',
                 fontWeight: '700',
-                backgroundColor: '#f0f2f5',
-                border: '2px solid #3867d6',
-                color: '#3867d6',
+                backgroundColor: 'var(--bg-color)',
+                border: '2px solid var(--accent-color)',
+                color: 'var(--accent-color)',
                 borderRadius: '12px',
                 cursor: 'pointer',
                 fontFamily: 'Outfit, -apple-system, sans-serif',
-                boxShadow: '4px 4px 8px #d1d3d6, -4px -4px 8px #ffffff',
+                boxShadow: 'var(--neomorphic-raised-sm)',
               }}
             >
               Try Again

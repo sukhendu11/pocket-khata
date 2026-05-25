@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { ArrowLeft, Plus, X, AlertCircle, Bell, Trash2, Edit3 } from 'lucide-react';
 import PropTypes from 'prop-types';
+import { t } from '../i18n';
 import { formatNumber, formatPercent } from '../utils';
 
 export default function BudgetManager({
@@ -84,12 +85,12 @@ export default function BudgetManager({
   const handleSave = () => {
     setFormError('');
     if (!categoryId) {
-      setFormError('Please select a category');
+      setFormError(t('budget.errCategory', lang));
       return;
     }
     const parsedLimit = Number(limit);
     if (!limit || isNaN(parsedLimit) || parsedLimit <= 0) {
-      setFormError('Please enter a valid budget limit');
+      setFormError(t('budget.errLimit', lang));
       return;
     }
 
@@ -117,7 +118,7 @@ export default function BudgetManager({
         <button className="neo-btn neo-btn-round" style={styles.backBtn} onClick={() => onNavigate('dashboard')}>
           <ArrowLeft size={18} />
         </button>
-        <h2 style={styles.title}>Budget Planner</h2>
+        <h2 style={styles.title}>{t('budget.title', lang)}</h2>
         <button className="neo-btn neo-btn-round" style={styles.addBtn} onClick={openNew}>
           <Plus size={18} />
         </button>
@@ -128,15 +129,15 @@ export default function BudgetManager({
         <div className="neo-raised" style={styles.summaryCard}>
           <div style={styles.summaryRow}>
             <div style={styles.summaryItem}>
-              <span style={styles.summaryLabel}>Total Budget</span>
+              <span style={styles.summaryLabel}>{t('budget.totalBudget', lang)}</span>
               <span style={styles.summaryValue}>৳{formatNumber(totalStats.totalLimit, lang)}</span>
             </div>
             <div style={styles.summaryItem}>
-              <span style={styles.summaryLabel}>Spent</span>
+              <span style={styles.summaryLabel}>{t('budget.spent', lang)}</span>
               <span style={{ ...styles.summaryValue, color: 'var(--color-expense)' }}>৳{formatNumber(totalStats.totalSpent, lang)}</span>
             </div>
             <div style={styles.summaryItem}>
-              <span style={styles.summaryLabel}>Remaining</span>
+              <span style={styles.summaryLabel}>{t('budget.remaining', lang)}</span>
               <span style={{
                 ...styles.summaryValue,
                 color: totalStats.totalRemaining >= 0 ? 'var(--color-income)' : 'var(--color-expense)'
@@ -151,7 +152,7 @@ export default function BudgetManager({
               backgroundColor: totalStats.totalPct >= 100 ? 'var(--color-expense)' : 'var(--accent-color)',
             }} />
           </div>
-          <span style={styles.summaryPct}>{formatPercent(totalStats.totalPct, lang)} of budget used</span>
+          <span style={styles.summaryPct}>{formatPercent(totalStats.totalPct, lang)} {t('budget.ofBudgetUsed', lang)}</span>
         </div>
       )}
 
@@ -160,8 +161,8 @@ export default function BudgetManager({
         {budgetsWithSpending.length === 0 ? (
           <div className="neo-pressed-sm" style={styles.emptyState}>
             <Bell size={28} style={{ color: 'var(--text-secondary)', opacity: 0.5, marginBottom: '8px' }} />
-            <p>No budgets set yet</p>
-            <p style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>Create a budget to track your spending</p>
+            <p>{t('budget.noBudgets', lang)}</p>
+            <p style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>{t('budget.noBudgetsDesc', lang)}</p>
           </div>
         ) : (
           budgetsWithSpending.map(b => (
@@ -172,7 +173,7 @@ export default function BudgetManager({
               <div style={styles.cardTop}>
                 <div style={styles.cardLeft}>
                   <span style={styles.catName}>{b.categoryName}</span>
-                  <span style={styles.catLimit}>Limit: ৳{formatNumber(b.limit, lang)}</span>
+                  <span style={styles.catLimit}>{t('budget.limit', lang)} ৳{formatNumber(b.limit, lang)}</span>
                 </div>
                 <div style={styles.cardRight}>
                   <span style={{
@@ -201,8 +202,8 @@ export default function BudgetManager({
               <div style={styles.cardBottom}>
                 <span style={styles.remainingText}>
                   {b.isOverBudget
-                    ? `Over by ৳${formatNumber(Math.abs(b.remaining), lang)}`
-                    : `${formatNumber(b.remaining, lang)} remaining`
+                    ? `${t('budget.overByAmount', lang)} ৳${formatNumber(Math.abs(b.remaining), lang)}`
+                    : `${formatNumber(b.remaining, lang)} ${t('budget.remainingAmount', lang)}`
                   }
                 </span>
                 <span style={styles.pctText}>{formatPercent(b.percentage, lang)}</span>
@@ -212,16 +213,16 @@ export default function BudgetManager({
               <div style={styles.badgeRow}>
                 {b.isOverBudget && (
                   <span style={styles.overBadge}>
-                    <AlertCircle size={10} /> Over Budget
+                    <AlertCircle size={10} /> {t('budget.overBudget', lang)}
                   </span>
                 )}
                 {b.isNearLimit && !b.isOverBudget && (
                   <span style={styles.nearBadge}>
-                    <Bell size={10} /> Near Limit
+                    <Bell size={10} /> {t('budget.nearLimit', lang)}
                   </span>
                 )}
                 <button className="neo-btn" style={styles.editBadgeBtn} onClick={() => openEdit(b)}>
-                  <Edit3 size={10} /> Edit
+                  <Edit3 size={10} /> {t('budget.edit', lang)}
                 </button>
                 <button className="neo-btn" style={styles.deleteBadgeBtn} onClick={() => onDeleteBudget(b.id)}>
                   <Trash2 size={10} />
@@ -238,7 +239,7 @@ export default function BudgetManager({
           <div className="drawer-overlay" onClick={() => setShowForm(false)} />
           <div className="bottom-drawer" style={styles.formDrawer}>
             <div style={styles.formHeader}>
-              <h3 style={styles.formTitle}>{editing ? 'Edit Budget' : 'New Budget'}</h3>
+              <h3 style={styles.formTitle}>{editing ? t('budget.editBudget', lang) : t('budget.newBudget', lang)}</h3>
               <button className="neo-btn neo-btn-round" style={styles.closeFormBtn} onClick={() => setShowForm(false)}>
                 <X size={16} />
               </button>
@@ -253,14 +254,14 @@ export default function BudgetManager({
 
             <div style={styles.formBody}>
               <div style={styles.formGroup}>
-                <label style={styles.formLabel}>CATEGORY</label>
+                <label style={styles.formLabel}>{t('budget.category', lang)}</label>
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
                   className="neo-input"
                   style={styles.formSelect}
                 >
-                  <option value="" disabled>Select Category</option>
+                  <option value="" disabled>{t('budget.selectCategory', lang)}</option>
                   {expenseCats.map(cat => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
@@ -268,10 +269,10 @@ export default function BudgetManager({
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.formLabel}>MONTHLY LIMIT (৳)</label>
+                <label style={styles.formLabel}>{t('budget.monthlyLimit', lang)}</label>
                 <input
                   type="number"
-                  placeholder="e.g. 5000"
+                  placeholder={t('budget.limitPlaceholder', lang)}
                   value={limit}
                   onChange={(e) => setLimit(e.target.value)}
                   className="neo-input"
@@ -279,12 +280,11 @@ export default function BudgetManager({
               </div>
 
               <p style={styles.formHint}>
-                Budget for {['January', 'February', 'March', 'April', 'May', 'June',
-                  'July', 'August', 'September', 'October', 'November', 'December'][currentMonth]} {currentYear}
+                {t('budget.budgetFor', lang)} {t('calendar.months', lang)[currentMonth]} {formatNumber(currentYear, lang)}
               </p>
 
               <button className="neo-btn neo-btn-primary" style={styles.saveBtn} onClick={handleSave}>
-                {editing ? 'Save Changes' : 'Create Budget'}
+                {editing ? t('budget.saveChanges', lang) : t('budget.createBudget', lang)}
               </button>
             </div>
           </div>
@@ -303,6 +303,17 @@ BudgetManager.propTypes = {
   onDeleteBudget: PropTypes.func,
   onNavigate: PropTypes.func,
   lang: PropTypes.string,
+};
+
+BudgetManager.defaultProps = {
+  budgets: [],
+  categories: [],
+  transactions: [],
+  onAddBudget: () => {},
+  onUpdateBudget: () => {},
+  onDeleteBudget: () => {},
+  onNavigate: () => {},
+  lang: 'en',
 };
 
 const styles = {

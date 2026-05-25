@@ -25,11 +25,9 @@ const translations = {
   'dashboard.expenseMonth': { en: 'Expense (Month)', bn: 'ব্যয় (মাসিক)' },
   'dashboard.myAccounts': { en: 'My Accounts', bn: 'আমার একাউন্ট' },
   'dashboard.manage': { en: 'Manage', bn: 'ম্যানেজ' },
-  'dashboard.expenseBreakdown': { en: 'Expense Breakdown', bn: 'ব্যয় বিশ্লেষণ' },
-  'dashboard.noExpenses': { en: 'No monthly expenses tracked yet', bn: 'এখনো কোনো মাসিক ব্যয় রেকর্ড হয়নি' },
-  'dashboard.ofTotalExpenses': { en: 'of total expenses', bn: 'মোট ব্যয়ের' },
-  'dashboard.clearSelection': { en: 'Clear selection', bn: 'সিলেকশন মুছুন' },
-  'dashboard.otherCategories': { en: 'other categories', bn: 'অন্যান্য ক্যাটাগরি' },
+  'dashboard.overview': { en: 'Overview', bn: 'সারসংক্ষেপ' },
+  'dashboard.net': { en: 'Net', bn: 'নেট' },
+  'dashboard.savingsRate': { en: 'Savings Rate', bn: 'সঞ্চয়ের হার' },
   'dashboard.financialTrends': { en: 'Financial Trends', bn: 'আর্থিক প্রবণতা' },
   'dashboard.tapGraphNodes': { en: 'Tap graph nodes to view specific monthly totals', bn: 'মাসিক মোট দেখতে গ্রাফ নোডে ট্যাপ করুন' },
   'dashboard.trend': { en: 'Trend', bn: 'প্রবণতা' },
@@ -157,6 +155,7 @@ const translations = {
   'categories.noCustom': { en: 'No custom', bn: 'কোনো কাস্টম' },
   'categories.categoriesFound': { en: 'categories found.', bn: 'ক্যাটাগরি পাওয়া যায়নি।' },
   'categories.newCategory': { en: 'New Category', bn: 'নতুন ক্যাটাগরি' },
+  'categories.editCategory': { en: 'Edit Category', bn: 'ক্যাটাগরি সম্পাদনা' },
   'categories.visualPreview': { en: 'Visual Preview', bn: 'ভিজুয়াল প্রিভিউ' },
   'categories.categoryName': { en: 'CATEGORY NAME', bn: 'ক্যাটাগরির নাম' },
   'categories.categoryNamePlaceholder': { en: 'E.g., Groceries, Gifts, Travel', bn: 'যেমন, বাজার, উপহার, ভ্রমণ' },
@@ -165,6 +164,11 @@ const translations = {
   'categories.incomeInflow': { en: 'Income (Inflow)', bn: 'আয় (অন্তর্গামী)' },
   'categories.themeColor': { en: 'THEME COLOR', bn: 'থিম কালার' },
   'categories.selectIcon': { en: 'SELECT ICON', bn: 'আইকন নির্বাচন' },
+  'categories.subcategories': { en: 'SUBCATEGORIES', bn: 'উপ-ক্যাটাগরি' },
+  'categories.subcategoryPlaceholder': { en: 'Type a subcategory and press Enter', bn: 'উপ-ক্যাটাগরি লিখে এন্টার চাপুন' },
+  'categories.subcategoryAdd': { en: 'Add', bn: 'যোগ করুন' },
+  'categories.systemDefault': { en: 'Default', bn: 'ডিফল্ট' },
+  'categories.customCategory': { en: 'Custom', bn: 'কাস্টম' },
   'categories.saveCategory': { en: 'Save Category', bn: 'ক্যাটাগরি সেভ করুন' },
   'categories.editHint': { en: 'Tap to edit', bn: 'সম্পাদনা করতে ট্যাপ করুন' },
   'categories.errName': { en: 'Please enter a category name.', bn: 'অনুগ্রহ করে ক্যাটাগরির নাম লিখুন।' },
@@ -173,6 +177,110 @@ const translations = {
     bn: 'সতর্কতা: এই ক্যাটাগরিতে বিদ্যমান লেনদেন আছে। ক্যাটাগরি মুছলে লেনদেন থাকবে কিন্তু শ্রেণীবিহীন হবে। চালিয়ে যেতে চান?'
   },
 
+  // ===== DEFAULT CATEGORY NAMES (with Bengali) =====
+  'cat.name.salary': { en: 'Salary', bn: 'বেতন' },
+  'cat.name.business': { en: 'Business', bn: 'ব্যবসা' },
+  'cat.name.freelance': { en: 'Freelance', bn: 'ফ্রিল্যান্স' },
+  'cat.name.bonus': { en: 'Bonus', bn: 'বোনাস' },
+  'cat.name.food': { en: 'Food & Dining', bn: 'খাদ্য ও পানীয়' },
+  'cat.name.transport': { en: 'Transport', bn: 'পরিবহন' },
+  'cat.name.utilities': { en: 'Bills & Utilities', bn: 'বিল ও ইউটিলিটি' },
+  'cat.name.rent': { en: 'Rent / Housing', bn: 'ভাড়া / আবাসন' },
+  'cat.name.shopping': { en: 'Shopping', bn: 'শপিং' },
+  'cat.name.medical': { en: 'Health & Medical', bn: 'স্বাস্থ্য ও চিকিৎসা' },
+  'cat.name.education': { en: 'Education', bn: 'শিক্ষা' },
+  'cat.name.entertainment': { en: 'Entertainment', bn: 'বিনোদন' },
+  'cat.name.travel': { en: 'Travel', bn: 'ভ্রমণ' },
+  'cat.name.savings': { en: 'Savings / Investment', bn: 'সঞ্চয় / বিনিয়োগ' },
+  'cat.name.debt': { en: 'Debt / Loan', bn: 'ঋণ / লোন' },
+  'cat.name.family': { en: 'Family / Personal', bn: 'পরিবার / ব্যক্তিগত' },
+  'cat.name.misc': { en: 'Miscellaneous', bn: 'বিবিধ' },
+
+  // ===== DEFAULT SUBCATEGORIES (with Bengali) =====
+  // Salary
+  'cat.sub.monthlySalary': { en: 'Monthly Salary', bn: 'মাসিক বেতন' },
+  'cat.sub.overtime': { en: 'Overtime', bn: 'ওভারটাইম' },
+  'cat.sub.commission': { en: 'Commission', bn: 'কমিশন' },
+  'cat.sub.bonus': { en: 'Bonus', bn: 'বোনাস' },
+  // Business
+  'cat.sub.sales': { en: 'Sales', bn: 'বিক্রয়' },
+  'cat.sub.service': { en: 'Service', bn: 'সেবা' },
+  'cat.sub.consulting': { en: 'Consulting', bn: 'পরামর্শ' },
+  // Freelance
+  'cat.sub.webDev': { en: 'Web Dev', bn: 'ওয়েব ডেভ' },
+  'cat.sub.design': { en: 'Design', bn: 'ডিজাইন' },
+  'cat.sub.writing': { en: 'Writing', bn: 'লেখালেখি' },
+  'cat.sub.other': { en: 'Other', bn: 'অন্যান্য' },
+  // Bonus
+  'cat.sub.perfBonus': { en: 'Performance Bonus', bn: 'পারফরম্যান্স বোনাস' },
+  'cat.sub.festivalBonus': { en: 'Festival Bonus', bn: 'উৎসব বোনাস' },
+  'cat.sub.annualBonus': { en: 'Annual Bonus', bn: 'বার্ষিক বোনাস' },
+  // Food
+  'cat.sub.groceries': { en: 'Groceries', bn: 'বাজার' },
+  'cat.sub.restaurants': { en: 'Restaurants', bn: 'রেস্টুরেন্ট' },
+  'cat.sub.cafe': { en: 'Cafe', bn: 'ক্যাফে' },
+  'cat.sub.foodDelivery': { en: 'Food Delivery', bn: 'ফুড ডেলিভারি' },
+  // Transport
+  'cat.sub.fuel': { en: 'Fuel', bn: 'জ্বালানি' },
+  'cat.sub.publicTransport': { en: 'Public Transport', bn: 'পাবলিক ট্রান্সপোর্ট' },
+  'cat.sub.rideShare': { en: 'Ride Share', bn: 'রাইড শেয়ার' },
+  'cat.sub.maintenance': { en: 'Maintenance', bn: 'রক্ষণাবেক্ষণ' },
+  // Bills & Utilities
+  'cat.sub.electricity': { en: 'Electricity', bn: 'বিদ্যুৎ' },
+  'cat.sub.water': { en: 'Water', bn: 'পানি' },
+  'cat.sub.gas': { en: 'Gas', bn: 'গ্যাস' },
+  'cat.sub.internet': { en: 'Internet', bn: 'ইন্টারনেট' },
+  'cat.sub.phone': { en: 'Phone', bn: 'ফোন' },
+  // Housing
+  'cat.sub.rent': { en: 'Rent', bn: 'ভাড়া' },
+  'cat.sub.housingMaintenance': { en: 'Maintenance', bn: 'মেইনটেন্যান্স' },
+  'cat.sub.furniture': { en: 'Furniture', bn: 'আসবাবপত্র' },
+  'cat.sub.insurance': { en: 'Insurance', bn: 'ইনশুরেন্স' },
+  // Shopping
+  'cat.sub.clothing': { en: 'Clothing', bn: 'পোশাক' },
+  'cat.sub.electronics': { en: 'Electronics', bn: 'ইলেকট্রনিক্স' },
+  'cat.sub.homeDecor': { en: 'Home Decor', bn: 'হোম ডেকর' },
+  'cat.sub.personalCare': { en: 'Personal Care', bn: 'ব্যক্তিগত যত্ন' },
+  // Health
+  'cat.sub.doctor': { en: 'Doctor', bn: 'ডাক্তার' },
+  'cat.sub.medicine': { en: 'Medicine', bn: 'ঔষধ' },
+  'cat.sub.gym': { en: 'Gym', bn: 'জিম' },
+  'cat.sub.healthInsurance': { en: 'Insurance', bn: 'ইনশুরেন্স' },
+  // Education
+  'cat.sub.tuition': { en: 'Tuition', bn: 'টিউশন' },
+  'cat.sub.books': { en: 'Books', bn: 'বই' },
+  'cat.sub.courses': { en: 'Courses', bn: 'কোর্স' },
+  'cat.sub.stationery': { en: 'Stationery', bn: 'স্টেশনারী' },
+  // Entertainment
+  'cat.sub.movies': { en: 'Movies', bn: 'সিনেমা' },
+  'cat.sub.music': { en: 'Music', bn: 'গান' },
+  'cat.sub.games': { en: 'Games', bn: 'গেমস' },
+  'cat.sub.events': { en: 'Events', bn: 'ইভেন্ট' },
+  // Travel
+  'cat.sub.flight': { en: 'Flight', bn: 'ফ্লাইট' },
+  'cat.sub.hotel': { en: 'Hotel', bn: 'হোটেল' },
+  'cat.sub.localTravel': { en: 'Local Travel', bn: 'স্থানীয় ভ্রমণ' },
+  'cat.sub.travelFood': { en: 'Food', bn: 'খাবার' },
+  // Savings
+  'cat.sub.savingsAccount': { en: 'Savings Account', bn: 'সঞ্চয় একাউন্ট' },
+  'cat.sub.stocks': { en: 'Stocks', bn: 'শেয়ার' },
+  'cat.sub.mutualFunds': { en: 'Mutual Funds', bn: 'মিউচুয়াল ফান্ড' },
+  'cat.sub.retirement': { en: 'Retirement', bn: 'অবসর' },
+  // Debt
+  'cat.sub.creditCard': { en: 'Credit Card', bn: 'ক্রেডিট কার্ড' },
+  'cat.sub.personalLoan': { en: 'Personal Loan', bn: 'পার্সোনাল লোন' },
+  'cat.sub.studentLoan': { en: 'Student Loan', bn: 'স্টুডেন্ট লোন' },
+  'cat.sub.mortgage': { en: 'Mortgage', bn: 'মর্টগেজ' },
+  // Family
+  'cat.sub.family': { en: 'Family', bn: 'পরিবার' },
+  'cat.sub.gifts': { en: 'Gifts', bn: 'উপহার' },
+  'cat.sub.donation': { en: 'Donation', bn: 'দান' },
+  'cat.sub.personal': { en: 'Personal', bn: 'ব্যক্তিগত' },
+  // Miscellaneous
+  'cat.sub.miscOther': { en: 'Other', bn: 'অন্যান্য' },
+  'cat.sub.emergency': { en: 'Emergency', bn: 'জরুরি' },
+  'cat.sub.misc': { en: 'Misc', bn: 'বিবিধ' },
+
   // ===== SETTINGS =====
   'settings.title': { en: 'App Settings', bn: 'অ্যাপ সেটিংস' },
   'settings.language': { en: 'Language', bn: 'ভাষা' },
@@ -180,12 +288,12 @@ const translations = {
   'settings.languageDesc': { en: 'Switch between English and Bangla', bn: 'ইংরেজি ও বাংলার মধ্যে পরিবর্তন করুন' },
   'settings.english': { en: 'English', bn: 'ইংরেজি' },
   'settings.bangla': { en: 'বাংলা', bn: 'বাংলা' },
-  'settings.cloudBackups': { en: 'Cloud Backups', bn: 'ক্লাউড ব্যাকআপ' },
-  'settings.cloudDesc': { en: 'Synchronize database settings and all ledger transactions securely.', bn: 'ডাটাবেজ সেটিংস ও সমস্ত লেজার লেনদেন নিরাপদে সিঙ্ক করুন।' },
-  'settings.backupSync': { en: 'Backup Sync', bn: 'ব্যাকআপ সিঙ্ক' },
-  'settings.cloudRestore': { en: 'Cloud Restore', bn: 'ক্লাউড রিস্টোর' },
-  'settings.syncSuccess': { en: 'Vault synced successfully!', bn: 'ভল্ট সফলভাবে সিঙ্ক হয়েছে!' },
-  'settings.syncError': { en: 'Sync timeout. Retry in a minute.', bn: 'সিঙ্ক টাইমআউট। এক মিনিট পর আবার চেষ্টা করুন।' },
+  'settings.localBackups': { en: 'Local Backup', bn: 'স্থানীয় ব্যাকআপ' },
+  'settings.localDesc': { en: 'Save a full database snapshot locally. Restore anytime from your last saved backup.', bn: 'সম্পূর্ণ ডাটাবেজের স্থানীয় ব্যাকআপ নিন। যেকোনো সময় পুনরুদ্ধার করুন।' },
+  'settings.backupNow': { en: 'Backup Now', bn: 'ব্যাকআপ নিন' },
+  'settings.restoreBackup': { en: 'Restore', bn: 'পুনরুদ্ধার' },
+  'settings.backupSuccess': { en: 'Backup saved successfully!', bn: 'ব্যাকআপ সফলভাবে সংরক্ষিত!' },
+  'settings.backupError': { en: 'Backup failed. Please try again.', bn: 'ব্যাকআপ ব্যর্থ। আবার চেষ্টা করুন।' },
   'settings.dataPortability': { en: 'Data Portability', bn: 'ডাটা পোর্টেবিলিটি' },
   'settings.exportDesc': { en: 'Export your entire transaction ledger to an Excel-friendly CSV sheet.', bn: 'সম্পূর্ণ লেনদেন লেজার এক্সেল-ফ্রেন্ডলি CSV এ এক্সপোর্ট করুন।' },
   'settings.exportCSV': { en: 'Export Transactions (CSV)', bn: 'লেনদেন এক্সপোর্ট (CSV)' },
@@ -194,10 +302,10 @@ const translations = {
   'settings.formatApp': { en: 'Format Application Data', bn: 'অ্যাপ ডাটা ফরম্যাট করুন' },
   'settings.irreversible': { en: 'This action is irreversible. Proceed?', bn: 'এই পদক্ষেপ ফিরিয়ে আনা যাবে না। চালিয়ে যেতে চান?' },
   'settings.yesFormat': { en: 'Yes, Format App', bn: 'হ্যাঁ, ফরম্যাট করুন' },
-  'settings.version': { en: 'Pocket Khata Vault v1.0.0', bn: 'পকেট খাতা ভল্ট v1.0.0' },
-  'settings.dbInfo': { en: 'Local Indexed DB Secured', bn: 'লোকাল ইনডেক্সড ডিবি সুরক্ষিত' },
-  'settings.noBackupFound': { en: 'No cloud backup found on server storage! Run backup first.', bn: 'সার্ভারে কোনো ক্লাউড ব্যাকআপ পাওয়া যায়নি! আগে ব্যাকআপ চালান।' },
-  'settings.restoreSuccess': { en: 'Database successfully restored from cloud sync!', bn: 'ক্লাউড সিঙ্ক থেকে ডাটাবেজ সফলভাবে রিস্টোর হয়েছে!' },
+  'settings.version': { en: 'Pocket Khata Vault v2.2.0', bn: 'পকেট খাতা ভল্ট v2.2.0' },
+  'settings.dbInfo': { en: 'Local Storage Secured', bn: 'লোকাল স্টোরেজ সুরক্ষিত' },
+  'settings.noBackupFound': { en: 'No backup found. Run Backup first.', bn: 'কোনো ব্যাকআপ পাওয়া যায়নি! আগে ব্যাকআপ নিন।' },
+  'settings.restoreSuccess': { en: 'Database successfully restored from backup!', bn: 'ব্যাকআপ থেকে ডাটাবেজ সফলভাবে পুনরুদ্ধার হয়েছে!' },
   'settings.exportJSON': { en: 'Export Full Database (JSON)', bn: 'সম্পূর্ণ ডাটাবেজ এক্সপোর্ট (JSON)' },
   'settings.exportDescJSON': { en: 'Export all accounts, categories, transactions, and reminders as a JSON file for backup.', bn: 'ব্যাকআপের জন্য সমস্ত একাউন্ট, ক্যাটাগরি, লেনদেন ও রিমাইন্ডার JSON ফাইল হিসেবে এক্সপোর্ট করুন।' },
   'settings.importJSON': { en: 'Import Database (JSON)', bn: 'ডাটাবেজ ইম্পোর্ট (JSON)' },
@@ -248,7 +356,6 @@ const translations = {
 
   // ===== TREND TOOLTIP =====
   'dashboard.trendLabel': { en: 'Trend:', bn: 'প্রবণতা:' },
-  'dashboard.ofTotalExpensesFull': { en: 'of total expenses', bn: 'মোট ব্যয়ের' },
 
   // ===== BUDGET =====
   'budget.title': { en: 'Budget Planner', bn: 'বাজেট প্ল্যানার' },
@@ -259,14 +366,21 @@ const translations = {
   'budget.nearLimit': { en: 'Near Limit', bn: 'সীমার কাছাকাছি' },
   'budget.overBudget': { en: 'Over Budget', bn: 'বাজেট অতিক্রম' },
   'budget.noBudgets': { en: 'No budgets set yet', bn: 'এখনো কোনো বাজেট সেট করা হয়নি' },
+  'budget.noBudgetsDesc': { en: 'Create a budget to track your spending', bn: 'আপনার ব্যয় ট্র্যাক করতে একটি বাজেট তৈরি করুন' },
   'budget.newBudget': { en: 'New Budget', bn: 'নতুন বাজেট' },
   'budget.editBudget': { en: 'Edit Budget', bn: 'বাজেট সম্পাদনা' },
   'budget.category': { en: 'CATEGORY', bn: 'ক্যাটাগরি' },
+  'budget.selectCategory': { en: 'Select Category', bn: 'ক্যাটাগরি নির্বাচন' },
   'budget.monthlyLimit': { en: 'MONTHLY LIMIT (৳)', bn: 'মাসিক সীমা (৳)' },
+  'budget.limitPlaceholder': { en: 'e.g. 5000', bn: 'যেমন ৫০০০' },
   'budget.createBudget': { en: 'Create Budget', bn: 'বাজেট তৈরি করুন' },
   'budget.saveChanges': { en: 'Save Changes', bn: 'পরিবর্তন সেভ করুন' },
   'budget.ofBudgetUsed': { en: 'of budget used', bn: 'বাজেট ব্যবহৃত' },
   'budget.budgetFor': { en: 'Budget for', bn: 'বাজেট' },
+  'budget.limit': { en: 'Limit:', bn: 'সীমা:' },
+  'budget.overByAmount': { en: 'Over by', bn: 'বেশি হয়েছে' },
+  'budget.remainingAmount': { en: 'remaining', bn: 'অবশিষ্ট' },
+  'budget.edit': { en: 'Edit', bn: 'সম্পাদনা' },
   'budget.errCategory': { en: 'Please select a category', bn: 'অনুগ্রহ করে ক্যাটাগরি নির্বাচন করুন' },
   'budget.errLimit': { en: 'Please enter a valid budget limit', bn: 'অনুগ্রহ করে সঠিক বাজেট সীমা লিখুন' },
 
@@ -277,10 +391,13 @@ const translations = {
   'savings.remaining': { en: 'remaining', bn: 'অবশিষ্ট' },
   'savings.goalAchieved': { en: 'Goal achieved! 🎉', bn: 'লক্ষ্য অর্জিত! 🎉' },
   'savings.noGoals': { en: 'No savings goals yet', bn: 'এখনো কোনো সঞ্চয় লক্ষ্য নেই' },
+  'savings.noGoalsDesc': { en: 'Start saving towards something big!', bn: 'বড় কিছু অর্জনের জন্য সঞ্চয় শুরু করুন!' },
   'savings.newGoal': { en: 'New Savings Goal', bn: 'নতুন সঞ্চয় লক্ষ্য' },
   'savings.editGoal': { en: 'Edit Goal', bn: 'লক্ষ্য সম্পাদনা' },
   'savings.goalName': { en: 'GOAL NAME', bn: 'লক্ষ্যের নাম' },
+  'savings.goalNamePlaceholder': { en: 'e.g. New Laptop', bn: 'যেমন, নতুন ল্যাপটপ' },
   'savings.targetAmount': { en: 'TARGET AMOUNT (৳)', bn: 'লক্ষ্য পরিমাণ (৳)' },
+  'savings.targetPlaceholder': { en: 'e.g. 50000', bn: 'যেমন ৫০০০০' },
   'savings.deadline': { en: 'DEADLINE (optional)', bn: 'সময়সীমা (ঐচ্ছিক)' },
   'savings.themeColor': { en: 'THEME COLOR', bn: 'থিম কালার' },
   'savings.createGoal': { en: 'Create Goal', bn: 'লক্ষ্য তৈরি করুন' },
@@ -288,12 +405,19 @@ const translations = {
   'savings.contributeTo': { en: 'Contribute to', bn: 'অবদান' },
   'savings.contributionAmount': { en: 'AMOUNT (৳)', bn: 'পরিমাণ (৳)' },
   'savings.fromAccount': { en: 'FROM ACCOUNT', bn: 'হতে একাউন্ট' },
+  'savings.selectAccount': { en: 'Select Account', bn: 'একাউন্ট নির্বাচন' },
   'savings.addContribution': { en: 'Add Contribution', bn: 'অবদান যোগ করুন' },
   'savings.ofGoalsCompleted': { en: 'of goals completed', bn: 'লক্ষ্য অর্জিত' },
+  'savings.byDeadline': { en: 'by', bn: 'এর মধ্যে' },
+  'savings.progress': { en: 'Progress:', bn: 'অগ্রগতি:' },
   'savings.errName': { en: 'Please enter a goal name', bn: 'অনুগ্রহ করে লক্ষ্যের নাম লিখুন' },
   'savings.errAmount': { en: 'Please enter a valid target amount', bn: 'অনুগ্রহ করে সঠিক পরিমাণ লিখুন' },
   'savings.errContribution': { en: 'Enter a valid contribution amount', bn: 'সঠিক অবদান পরিমাণ লিখুন' },
   'savings.errAccount': { en: 'Select an account', bn: 'একাউন্ট নির্বাচন করুন' },
+
+  // ===== DASHBOARD ADDITIONAL =====
+  'dashboard.active': { en: 'active', bn: 'সক্রিয়' },
+  'dashboard.done': { en: 'done', bn: 'সম্পন্ন' },
 
   // ===== GLOBAL SEARCH =====
   'search.title': { en: 'Search', bn: 'অনুসন্ধান' },
@@ -311,6 +435,16 @@ const translations = {
   'reports.last6Months': { en: 'Last 6 Months', bn: 'গত ৬ মাস' },
   'reports.thisYear': { en: 'This Year', bn: 'এই বছর' },
 
+  // ===== NAVIGATION =====
+  'nav.incomeExpense': { en: 'Income & Expense', bn: 'আয় ও ব্যয়' },
+  'nav.categories': { en: 'Categories', bn: 'ক্যাটাগরি' },
+
+  // ===== SEED ACCOUNT NAMES (for Bengali translation) =====
+  'accounts.name.cash': { en: 'Cash', bn: 'ক্যাশ' },
+  'accounts.name.bankAccount': { en: 'Bank Account', bn: 'ব্যাংক একাউন্ট' },
+  'accounts.name.bkashWallet': { en: 'bKash Wallet', bn: 'বিকাশ ওয়ালেট' },
+  'accounts.name.nagadWallet': { en: 'Nagad Wallet', bn: 'নগদ ওয়ালেট' },
+
   // ===== COMMON LABELS =====
   'common.local': { en: 'Local', bn: 'স্থানীয়' },
   'common.general': { en: 'General', bn: 'সাধারণ' },
@@ -319,7 +453,25 @@ const translations = {
   'common.localWallet': { en: 'Local Wallet', bn: 'স্থানীয় ওয়ালেট' },
   'common.manualEntry': { en: 'Manual Entry', bn: 'ম্যানুয়াল এন্ট্রি' },
   'common.quickLedger': { en: 'Quick Ledger', bn: 'দ্রুত লেজার' },
+  'common.category': { en: 'category', bn: 'ক্যাটাগরি' },
   'common.manualLedger': { en: 'Manual Ledger', bn: 'ম্যানুয়াল লেজার' },
+
+  // ===== AUTO BACKUPS =====
+  'autobackup.title': { en: 'Auto-Backups', bn: 'অটো-ব্যাকআপ' },
+  'autobackup.desc': { en: 'Snapshots are automatically created before every save operation. The last 3 snapshots are retained.', bn: 'প্রতিটি সেভ অপারেশনের আগে স্বয়ংক্রিয়ভাবে স্ন্যাপশট তৈরি হয়। সর্বশেষ ৩টি স্ন্যাপশট সংরক্ষিত থাকে।' },
+  'autobackup.noBackups': { en: 'No auto-backups yet. Make any change to create one.', bn: 'এখনো কোনো অটো-ব্যাকআপ নেই। একটি পরিবর্তন করলেই তৈরি হবে।' },
+  'autobackup.snapshot': { en: 'Snapshot', bn: 'স্ন্যাপশট' },
+  'autobackup.restore': { en: 'Restore', bn: 'পুনরুদ্ধার' },
+  'autobackup.restoreSuccess': { en: 'Auto-backup restored successfully!', bn: 'অটো-ব্যাকআপ সফলভাবে পুনরুদ্ধার হয়েছে!' },
+  'autobackup.restoreError': { en: 'Failed to restore auto-backup.', bn: 'অটো-ব্যাকআপ পুনরুদ্ধার ব্যর্থ হয়েছে।' },
+  'autobackup.clearAll': { en: 'Clear All Backups', bn: 'সব ব্যাকআপ মুছুন' },
+  'autobackup.count': { en: 'auto-backups available', bn: 'টি অটো-ব্যাকআপ উপলব্ধ' },
+  'autobackup.accounts': { en: 'accounts', bn: 'একাউন্ট' },
+  'autobackup.categories': { en: 'categories', bn: 'ক্যাটাগরি' },
+  'autobackup.transactions': { en: 'transactions', bn: 'লেনদেন' },
+  'autobackup.budgets': { en: 'budgets', bn: 'বাজেট' },
+  'autobackup.goals': { en: 'goals', bn: 'লক্ষ্য' },
+
 };
 
 /**

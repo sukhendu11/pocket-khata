@@ -1,13 +1,12 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   Bell, Sun, Moon, ArrowUpRight, ArrowDownLeft,
-  TrendingUp, Wallet, Landmark, CreditCard, ChevronRight, HelpCircle,
-  Search, PieChart as PieChartIcon, Target,
+  Wallet, Landmark, CreditCard, ChevronRight, HelpCircle,
+  PieChart as PieChartIcon, Target,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber, formatPercent } from '../utils';
-import PieChart from './PieChart';
 import TransactionItem from './TransactionItem';
 
 export default function Dashboard({ 
@@ -21,10 +20,7 @@ export default function Dashboard({
   theme, 
   onToggleTheme,
   lang,
-  onSetLang,
-  onOpenSearch,
 }) {
-  const [activePieIndex, setActivePieIndex] = useState(null);
   const [activeLinePoint, setActiveLinePoint] = useState(null);
 
   // 1. Calculations: Total Net Balance
@@ -55,52 +51,7 @@ export default function Dashboard({
     return { income, expense };
   }, [transactions]);
 
-  // 3. Calculations: Category Breakdown (Pie Chart Data)
-  const categoryBreakdown = useMemo(() => {
-    const breakdown = {};
-    let totalExpense = 0;
-
-    transactions.forEach(tx => {
-      if (tx.type === 'expense') {
-        const cat = categories.find(c => c.id === tx.categoryId);
-        const catName = cat ? cat.name : 'Uncategorized';
-        const catColor = cat ? cat.color : '#bdc3c7';
-        
-        if (!breakdown[tx.categoryId]) {
-          breakdown[tx.categoryId] = {
-            id: tx.categoryId,
-            name: catName,
-            color: catColor,
-            amount: 0,
-          };
-        }
-        breakdown[tx.categoryId].amount += tx.amount;
-        totalExpense += tx.amount;
-      }
-    });
-
-    return Object.values(breakdown).map(item => ({
-      ...item,
-      percentage: totalExpense > 0 ? Math.round((item.amount / totalExpense) * 100) : 0
-    }))    .sort((a, b) => b.amount - a.amount);
-  }, [transactions, categories]);
-
-  // Safe pie item access — guard against out-of-bounds index
-  // NOTE: useEffect resets invalid indices; useMemo only computes value (no side effects!)
-  const selectedPieItem = useMemo(() => {
-    if (activePieIndex === null) return null;
-    if (activePieIndex < 0 || activePieIndex >= categoryBreakdown.length) return null;
-    return categoryBreakdown[activePieIndex];
-  }, [activePieIndex, categoryBreakdown]);
-
-  // Reset invalid pie index — uses useEffect, NEVER inside useMemo (which causes render-time crashes)
-  useEffect(() => {
-    if (activePieIndex !== null && (activePieIndex < 0 || activePieIndex >= categoryBreakdown.length)) {
-      setActivePieIndex(null);
-    }
-  }, [activePieIndex, categoryBreakdown.length]);
-
-  // 4. Calculations: Monthly Trend Data (Line Chart Data - last 6 months)
+  // 3. Calculations: Monthly Trend Data (Line Chart Data - last 6 months)
   const monthlyTrends = useMemo(() => {      const monthKeys = ['months.jan','months.feb','months.mar','months.apr','months.may','months.jun','months.jul','months.aug','months.sep','months.oct','months.nov','months.dec'];
       const trendData = [];
     const now = new Date();
@@ -145,6 +96,18 @@ export default function Dashboard({
     }
   };
 
+  // Account name localization for seed accounts
+  const getLocalizedAccName = (acc) => {
+    if (lang !== 'bn') return acc.name;
+    const nameMap = {
+      'Cash': t('accounts.name.cash', lang),
+      'Bank Account': t('accounts.name.bankAccount', lang),
+      'bKash Wallet': t('accounts.name.bkashWallet', lang),
+      'Nagad Wallet': t('accounts.name.nagadWallet', lang),
+    };
+    return nameMap[acc.name] || acc.name;
+  };
+
   // 6. Recent transactions (last 5)
   const recentTransactions = useMemo(() => {
     return [...transactions]
@@ -161,7 +124,7 @@ export default function Dashboard({
 
     // Find max income/expense for scaling
     const maxVal = Math.max(
-      ...monthlyTrends.map(t => Math.max(t.income, t.expense)),
+      ...monthlyTrends.map(m => Math.max(m.income, m.expense)),
       5000 // default min height
     ) * 1.15; // 15% padding top
 
@@ -172,8 +135,8 @@ export default function Dashboard({
     const getY = (val) => height - paddingY - (val / maxVal) * (height - paddingY * 2);
 
     // Calculate lines
-    const incomePoints = monthlyTrends.map((t, idx) => ({ x: getX(idx), y: getY(t.income), data: t }));
-    const expensePoints = monthlyTrends.map((t, idx) => ({ x: getX(idx), y: getY(t.expense), data: t }));
+    const incomePoints = monthlyTrends.map((m, idx) => ({ x: getX(idx), y: getY(m.income), data: m }));
+    const expensePoints = monthlyTrends.map((m, idx) => ({ x: getX(idx), y: getY(m.expense), data: m }));
 
     // Generate SVG Bézier curve commands
     const generateBezier = (points) => {
@@ -215,41 +178,7 @@ export default function Dashboard({
           <p style={styles.subtext}>{t('dashboard.subtitle', lang)}</p>
         </div>
         <div style={styles.actions}>
-          {/* Language Toggle Pill */}
-          <div className="neo-pressed-sm" style={styles.langPill}>
-            <button
-              onClick={() => onSetLang('en')}
-              style={{
-                ...styles.langOpt,
-                color: lang === 'en' ? 'var(--accent-color)' : 'var(--text-secondary)',
-                fontWeight: lang === 'en' ? '700' : '500',
-                backgroundColor: lang === 'en' ? 'var(--bg-color)' : 'transparent',
-                boxShadow: lang === 'en' ? 'var(--neomorphic-raised-sm)' : 'none',
-              }}
-            >
-              EN
-            </button>
-            <button
-              onClick={() => onSetLang('bn')}
-              style={{
-                ...styles.langOpt,
-                color: lang === 'bn' ? 'var(--accent-color)' : 'var(--text-secondary)',
-                fontWeight: lang === 'bn' ? '700' : '500',
-                backgroundColor: lang === 'bn' ? 'var(--bg-color)' : 'transparent',
-                boxShadow: lang === 'bn' ? 'var(--neomorphic-raised-sm)' : 'none',
-              }}
-            >
-              বাংলা
-            </button>
-          </div>
-
-          <button 
-            className="neo-btn neo-btn-round" 
-            style={styles.actionBtn}
-            onClick={onOpenSearch}
-          >
-            <Search size={18} style={{ color: 'var(--accent-color)' }} />
-          </button>
+          {/* Theme Toggle */}
           <button 
             className="neo-btn neo-btn-round" 
             style={styles.actionBtn}
@@ -317,19 +246,17 @@ export default function Dashboard({
         {accounts.map(acc => (
           <div 
             key={acc.id} 
-            className="neo-raised-sm" 
+            className="neo-raised-sm hover-lift press-scale" 
             style={{ 
               ...styles.accountCard, 
-              borderLeft: `4px solid ${acc.color || 'var(--accent-color)'}` 
+              borderLeft: `3px solid ${acc.color || 'var(--accent-color)'}` 
             }}
+            onClick={() => onNavigate('accounts')}
           >
-            <div style={styles.accCardHeader}>
-              <span style={{ ...styles.accCardIcon, backgroundColor: `${acc.color}22`, color: acc.color }}>
-                {getAccountIcon(acc.type)}
-              </span>
-              <span style={styles.accCardType}>{acc.type}</span>
-            </div>
-            <h4 style={styles.accCardName}>{acc.name}</h4>
+            <span style={{ ...styles.accCardIcon, backgroundColor: `${acc.color}22`, color: acc.color }}>
+              {getAccountIcon(acc.type)}
+            </span>
+            <h4 style={styles.accCardName}>{getLocalizedAccName(acc)}</h4>
             <p style={styles.accCardBalance}>৳ {formatNumber(acc.balance, lang)}</p>
           </div>
         ))}
@@ -342,80 +269,77 @@ export default function Dashboard({
             <div className="neo-raised-sm" style={styles.miniCard} onClick={() => onNavigate('budgets')}>
               <div style={styles.miniCardIcon}><PieChartIcon size={14} style={{ color: 'var(--accent-color)' }} /></div>
               <span style={styles.miniCardLabel}>{t('budget.title', lang)}</span>
-              <span style={styles.miniCardCount}>{budgets.length} active</span>
+              <span style={styles.miniCardCount}>{formatNumber(budgets.length, lang)} {t('dashboard.active', lang)}</span>
             </div>
           )}
           {savingsGoals?.length > 0 && (
             <div className="neo-raised-sm" style={styles.miniCard} onClick={() => onNavigate('savings')}>
               <div style={styles.miniCardIcon}><Target size={14} style={{ color: 'var(--color-income)' }} /></div>
               <span style={styles.miniCardLabel}>{t('savings.title', lang)}</span>
-              <span style={styles.miniCardCount}>{savingsGoals.filter(g => g.currentAmount >= g.targetAmount).length}/{savingsGoals.length} done</span>
+              <span style={styles.miniCardCount}>{formatNumber(savingsGoals.filter(g => g.currentAmount >= g.targetAmount).length, lang)}/{formatNumber(savingsGoals.length, lang)} {t('dashboard.done', lang)}</span>
             </div>
           )}
         </div>
       )}
 
-      {/* 5. Pie Chart - Expenses Category Breakdown */}
+      {/* 5. Overview — Income vs Expense Summary Card */}
       <div style={styles.sectionHeader}>
-        <h3 style={styles.sectionTitle}>{t('dashboard.expenseBreakdown', lang)}</h3>
+        <h3 style={styles.sectionTitle}>{t('dashboard.overview', lang)}</h3>
       </div>
 
       <div className="neo-raised" style={styles.chartContainer}>
-        {categoryBreakdown.length === 0 ? (
-          <div style={styles.emptyChart}>
-            <TrendingUp size={36} style={{ color: 'var(--text-secondary)', opacity: 0.5 }} />
-            <p style={styles.emptyChartText}>{t('dashboard.noExpenses', lang)}</p>
-          </div>
-        ) : (
-          <div style={styles.pieLayout}>
-            <PieChart
-              data={categoryBreakdown}
-              activeIndex={activePieIndex}
-              onSliceClick={(idx) => setActivePieIndex(activePieIndex === idx ? null : idx)}
-              centerText={selectedPieItem ? `${selectedPieItem.percentage}%` : t('pie.exp', lang)}
-              centerSubtext={selectedPieItem ? t('pie.share', lang) : t('pie.totals', lang)}
-            />
+        {(() => {
+          const { income, expense } = monthlyTotals;
+          const net = income - expense;
+          const maxVal = Math.max(income, expense, 1);
+          const incomePct = (income / maxVal) * 100;
+          const expensePct = (expense / maxVal) * 100;
+          const savingsRate = income > 0 ? ((net / income) * 100) : 0;
 
-            {/* Legend info panel */}
-            <div style={styles.pieLegend}>
-              {selectedPieItem ? (
-                <div style={styles.legendHighlight}>
-                  <div style={styles.legendDotRow}>
-                    <span style={{ ...styles.legendDot, backgroundColor: selectedPieItem.color }} />
-                    <span style={styles.legendTitleHighlight}>{selectedPieItem.name}</span>
-                  </div>
-                  <p style={styles.legendPriceHighlight}>
-                    ৳ {formatNumber(selectedPieItem.amount, lang)}
-                  </p>
-                  <p style={styles.legendDescHighlight}>
-                    {formatPercent(selectedPieItem.percentage, lang)} {t('dashboard.ofTotalExpensesFull', lang)}
-                  </p>
-                  <button 
-                    style={styles.legendResetBtn} 
-                    onClick={() => setActivePieIndex(null)}
-                  >
-                    {t('dashboard.clearSelection', lang)}
-                  </button>
+          return (
+            <div style={styles.overviewBody}>
+              {/* Income bar */}
+              <div style={styles.overviewRow}>
+                <span style={styles.overviewLabel}>{t('income', lang)}</span>
+                <div style={styles.overviewBarTrack}>
+                  <div style={{ ...styles.overviewBarFill, width: `${Math.max(incomePct, 2)}%`, backgroundColor: 'var(--color-income)' }} />
                 </div>
-              ) : (
-                <div style={styles.legendList}>
-                  {categoryBreakdown.slice(0, 3).map((item, idx) => (
-                    <div key={item.id} style={styles.legendRow} onClick={() => setActivePieIndex(idx)}>
-                      <span style={{ ...styles.legendDot, backgroundColor: item.color }} />
-                      <span style={styles.legendName}>{item.name === 'Uncategorized' ? t('common.uncategorized', lang) : item.name}</span>
-                      <span style={styles.legendVal}>{formatPercent(item.percentage, lang)}</span>
-                    </div>
-                  ))}
-                  {categoryBreakdown.length > 3 && (
-                    <p style={styles.legendMoreLink}>
-                      + {categoryBreakdown.length - 3} {t('dashboard.otherCategories', lang)}
-                    </p>
-                  )}
+                <span style={styles.overviewAmount}>৳{formatNumber(income, lang)}</span>
+              </div>
+
+              {/* Expense bar */}
+              <div style={styles.overviewRow}>
+                <span style={styles.overviewLabel}>{t('expense', lang)}</span>
+                <div style={styles.overviewBarTrack}>
+                  <div style={{ ...styles.overviewBarFill, width: `${Math.max(expensePct, 2)}%`, backgroundColor: 'var(--color-expense)' }} />
                 </div>
-              )}
+                <span style={styles.overviewAmount}>৳{formatNumber(expense, lang)}</span>
+              </div>
+
+              {/* Divider */}
+              <div style={styles.overviewDivider} />
+
+              {/* Net result */}
+              <div style={styles.overviewNetRow}>
+                <span style={styles.overviewNetLabel}>{t('dashboard.net', lang)}</span>
+                <span style={{ ...styles.overviewNetAmount, color: net >= 0 ? 'var(--color-income)' : 'var(--color-expense)' }}>
+                  {net >= 0 ? '+' : '-'}৳{formatNumber(Math.abs(net), lang)}
+                </span>
+              </div>
+
+              {/* Savings Rate */}
+              <div style={styles.overviewRateRow}>
+                <span style={styles.overviewRateLabel}>{t('dashboard.savingsRate', lang)}</span>
+                <span style={{
+                  ...styles.overviewRateValue,
+                  color: savingsRate >= 0 ? 'var(--color-income)' : 'var(--color-expense)',
+                }}>
+                  {savingsRate >= 0 ? '+' : ''}{formatPercent(Math.round(savingsRate), lang)}
+                </span>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* 6. Line Chart - Monthly income & expense trends */}
@@ -487,8 +411,8 @@ export default function Dashboard({
               />
             ))}
 
-            {/* X-Axis labels */}
-            {monthlyTrends.map((t, idx) => (
+          {/* X-Axis labels */}
+            {monthlyTrends.map((m, idx) => (
               <text
                 key={`lbl-${idx}`}
                 x={lineChartData.incomePoints[idx].x}
@@ -498,7 +422,7 @@ export default function Dashboard({
                 fontWeight="600"
                 fill="var(--text-secondary)"
               >
-                {t.label}
+                {m.label}
               </text>
             ))}
           </svg>
@@ -578,8 +502,6 @@ Dashboard.propTypes = {
   theme: PropTypes.string,
   onToggleTheme: PropTypes.func,
   lang: PropTypes.string,
-  onSetLang: PropTypes.func,
-  onOpenSearch: PropTypes.func,
 };
 
 const styles = {
@@ -621,24 +543,6 @@ const styles = {
     borderRadius: '50%',
     padding: 0,
     position: 'relative',
-  },
-  langPill: {
-    display: 'flex',
-    padding: '3px',
-    borderRadius: '12px',
-    gap: '3px',
-    backgroundColor: 'var(--bg-color)',
-    alignItems: 'center',
-  },
-  langOpt: {
-    background: 'none',
-    border: 'none',
-    fontSize: '10px',
-    fontWeight: '600',
-    padding: '4px 8px',
-    borderRadius: '9px',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
   },
   badgeDot: {
     width: '8px',
@@ -754,47 +658,41 @@ const styles = {
   },
   accountCard: {
     flexShrink: 0,
-    width: '155px',
-    padding: '14px 12px',
-    borderRadius: '16px',
+    width: '120px',
+    padding: '10px',
+    borderRadius: '14px',
     backgroundColor: 'var(--bg-color)',
     maxWidth: '100%',
     minWidth: 0,
-  },
-  accCardHeader: {
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '10px',
+    flexDirection: 'column',
+    gap: '6px',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
   },
   accCardIcon: {
-    width: '28px',
-    height: '28px',
-    borderRadius: '8px',
+    width: '22px',
+    height: '22px',
+    borderRadius: '6px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  accCardType: {
-    fontSize: '9px',
-    fontWeight: '700',
-    color: 'var(--text-secondary)',
-    textTransform: 'uppercase',
+    fontSize: '12px',
   },
   accCardName: {
-    fontSize: '12px',
+    fontSize: '11px',
     fontWeight: '600',
     color: 'var(--text-primary)',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     maxWidth: '100%',
+    lineHeight: 1.2,
   },
   accCardBalance: {
-    fontSize: '13px',
+    fontSize: '12px',
     fontWeight: '700',
     color: 'var(--text-primary)',
-    marginTop: '4px',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -803,106 +701,81 @@ const styles = {
     padding: '16px',
     marginBottom: '22px',
   },
-  emptyChart: {
+
+  // Overview card styles
+  overviewBody: {
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    padding: '30px 0',
+    gap: '12px',
   },
-  emptyChartText: {
-    fontSize: '12px',
-    color: 'var(--text-secondary)',
-    marginTop: '8px',
-    fontWeight: '500',
-  },
-  pieLayout: {
+  overviewRow: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '10px',
-  },
-  pieLegend: {
-    flex: 1,
-    paddingLeft: '10px',
-  },
-  legendList: {
-    display: 'flex',
-    flexDirection: 'column',
     gap: '8px',
   },
-  legendRow: {
-    display: 'flex',
-    alignItems: 'center',
-    cursor: 'pointer',
+  overviewLabel: {
     fontSize: '11px',
     fontWeight: '600',
-    color: 'var(--text-primary)',
-    transition: 'opacity 0.2s',
-  },
-  legendDot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    marginRight: '6px',
+    color: 'var(--text-secondary)',
+    minWidth: '52px',
     flexShrink: 0,
   },
-  legendName: {
+  overviewBarTrack: {
     flex: 1,
-    whiteSpace: 'nowrap',
+    height: '18px',
+    borderRadius: '9px',
+    backgroundColor: 'var(--bg-color)',
     overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    marginRight: '4px',
+    boxShadow: 'var(--neomorphic-pressed-sm)',
   },
-  legendVal: {
-    color: 'var(--text-secondary)',
-    fontWeight: '700',
+  overviewBarFill: {
+    height: '100%',
+    borderRadius: '9px',
+    transition: 'width 0.5s ease',
+    minWidth: '4px',
   },
-  legendMoreLink: {
-    fontSize: '9px',
-    color: 'var(--text-secondary)',
-    fontWeight: '600',
-    fontStyle: 'italic',
-    marginTop: '2px',
-  },
-  legendHighlight: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  legendDotRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    marginBottom: '2px',
-  },
-  legendTitleHighlight: {
+  overviewAmount: {
     fontSize: '12px',
     fontWeight: '700',
     color: 'var(--text-primary)',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
+    minWidth: '80px',
+    textAlign: 'right',
+    flexShrink: 0,
   },
-  legendPriceHighlight: {
-    fontSize: '16px',
-    fontWeight: '800',
-    color: 'var(--color-expense)',
+  overviewDivider: {
+    height: '1px',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    margin: '4px 0',
   },
-  legendDescHighlight: {
-    fontSize: '9px',
-    color: 'var(--text-secondary)',
-    marginTop: '2px',
+  overviewNetRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  legendResetBtn: {
-    marginTop: '8px',
-    background: 'none',
-    border: 'none',
-    color: 'var(--accent-color)',
-    fontSize: '10px',
+  overviewNetLabel: {
+    fontSize: '12px',
     fontWeight: '700',
-    cursor: 'pointer',
-    textAlign: 'left',
-    padding: 0,
+    color: 'var(--text-primary)',
   },
+  overviewNetAmount: {
+    fontSize: '18px',
+    fontWeight: '800',
+  },
+  overviewRateRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  overviewRateLabel: {
+    fontSize: '10px',
+    fontWeight: '600',
+    color: 'var(--text-secondary)',
+  },
+  overviewRateValue: {
+    fontSize: '13px',
+    fontWeight: '700',
+  },
+
   lineChartWrapper: {
     display: 'flex',
     flexDirection: 'column',

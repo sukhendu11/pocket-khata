@@ -371,6 +371,13 @@ AnalyticsView.propTypes = {
   lang: PropTypes.string,
 };
 
+AnalyticsView.defaultProps = {
+  transactions: [],
+  categories: [],
+  onNavigate: () => {},
+  lang: 'en',
+};
+
 const styles = {
   container: {
     flex: 1,

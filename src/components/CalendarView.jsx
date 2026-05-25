@@ -14,7 +14,8 @@ export default function CalendarView({
   lang
 }) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDateStr, setSelectedDateStr] = useState(new Date().toISOString().split('T')[0]);
+  const getLocalDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const [selectedDateStr, setSelectedDateStr] = useState(getLocalDateStr(new Date()));
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -74,13 +75,13 @@ export default function CalendarView({
 
   // 4. Selected date transactions and summary
   const selectedDateDetails = useMemo(() => {
-    const dayTxs = transactions.filter(t => t.date === selectedDateStr);
+    const dayTxs = transactions.filter(tx => tx.date === selectedDateStr);
     
     let income = 0;
     let expense = 0;
-    dayTxs.forEach(t => {
-      if (t.type === 'income') income += t.amount;
-      if (t.type === 'expense') expense += t.amount;
+    dayTxs.forEach(tx => {
+      if (tx.type === 'income') income += tx.amount;
+      if (tx.type === 'expense') expense += tx.amount;
     });
 
     return {
@@ -120,7 +121,7 @@ export default function CalendarView({
         <button className="neo-btn neo-btn-round" style={styles.arrowBtn} onClick={handlePrevMonth}>
           <ChevronLeft size={16} />
         </button>
-        <span style={styles.monthLabel}>{monthNames[month]} {year}</span>
+        <span style={styles.monthLabel}>{monthNames[month]} {formatNumber(year, lang)}</span>
         <button className="neo-btn neo-btn-round" style={styles.arrowBtn} onClick={handleNextMonth}>
           <ChevronRight size={16} />
         </button>
