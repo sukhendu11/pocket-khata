@@ -907,6 +907,9 @@ export const db = {
   },
 
   // ---- Security ----
+  getSecurity() {
+    return getOrSeed(KEYS.SECURITY, DEFAULT_SECURITY);
+  },
   getSecuritySettings() {
     return getOrSeed(KEYS.SECURITY, DEFAULT_SECURITY);
   },

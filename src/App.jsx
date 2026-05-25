@@ -1,21 +1,37 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { db } from './db';
 
-// Import Screen Components
-
+// Dashboard is the default screen — eager import eliminates the initial loading spinner
 import Dashboard from './components/Dashboard';
-import TransactionForm from './components/TransactionForm';
-import TransactionHistory from './components/TransactionHistory';
-import AnalyticsView from './components/AnalyticsView';
-import CalendarView from './components/CalendarView';
-import ReminderManager from './components/ReminderManager';
-import Settings from './components/Settings';
-import AccountManager from './components/AccountManager';
-import CategoryManager from './components/CategoryManager';
-import ErrorBoundary from './components/ErrorBoundary';
 
-import BudgetManager from './components/BudgetManager';
-import SavingsTracker from './components/SavingsTracker';
+// Security: Import LockScreen (not lazy - needed immediately if lock is enabled)
+import LockScreen from './components/LockScreen';
+
+// Lazy-loaded screen components (code-split into separate chunks)
+const TransactionForm = lazy(() => import('./components/TransactionForm'));
+const TransactionHistory = lazy(() => import('./components/TransactionHistory'));
+
+// Preload TransactionHistory chunk immediately after mount (second most-used screen)
+// so it's ready before the user navigates there — eliminating the spinner on first visit
+let preloadedTransactionHistory = false;
+function preloadTransactionHistory() {
+  if (!preloadedTransactionHistory) {
+    preloadedTransactionHistory = true;
+    import('./components/TransactionHistory');
+  }
+}
+const AnalyticsView = lazy(() => import('./components/AnalyticsView'));
+const CalendarView = lazy(() => import('./components/CalendarView'));
+const ReminderManager = lazy(() => import('./components/ReminderManager'));
+const Settings = lazy(() => import('./components/Settings'));
+const AccountManager = lazy(() => import('./components/AccountManager'));
+const CategoryManager = lazy(() => import('./components/CategoryManager'));
+const BudgetManager = lazy(() => import('./components/BudgetManager'));
+const SavingsTracker = lazy(() => import('./components/SavingsTracker'));
+
+// ErrorBoundary is kept as a static import since it wraps the entire app
+// and must always be available to catch errors
+import ErrorBoundary from './components/ErrorBoundary';
 
 import { t } from './i18n';
 
@@ -39,6 +55,30 @@ const globalLangStyles = {
     transition: 'all 0.2s',
   },
 };
+
+// Loading fallback shown while lazy chunks are fetched
+const LoadingFallback = () => (
+  <div style={{
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '60px 20px',
+    gap: '12px',
+  }}>
+    <div className="spinner" style={{
+      width: '28px',
+      height: '28px',
+      border: '3px solid var(--text-secondary)',
+      borderTopColor: 'var(--accent-color)',
+      borderRadius: '50%',
+      animation: 'spin 0.8s linear infinite',
+    }} />
+    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+      Loading…
+    </span>
+  </div>
+);
 
 const bottomNavStyles = {
   container: {
@@ -104,7 +144,10 @@ export default function App() {
   const [reminders, setReminders] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [savingsGoals, setSavingsGoals] = useState([]);
-  // Security (lock screen) removed
+
+  // Security: Lock screen state (Feature 1)
+  const [isLocked, setIsLocked] = useState(true);
+  const [securitySettings, setSecuritySettings] = useState(null);
 
   // 2. Language State
   const [lang, setLang] = useState(() => {
@@ -128,24 +171,31 @@ export default function App() {
   // 4. System States
   const [theme, setTheme] = useState('light');
   const [currentTime, setCurrentTime] = useState('');
-  // Lock screen removed (direct entry)
 
   // 5. Initial Load
   useEffect(() => {
+    // Load security settings (Feature 1: App Lock)
+    const savedSecurity = db.getSecurity();
+    setSecuritySettings(savedSecurity);
+    const isLockEnabled = savedSecurity?.isPINEnabled || false;
+    setIsLocked(isLockEnabled);
 
     // Load database
-    const loadedAccounts = db.getAccounts();
-    const loadedCategories = db.getCategories();
-    const loadedTransactions = db.getTransactions();
-    const loadedReminders = db.getReminders();
-    const loadedBudgets = db.getBudgets();
-    const loadedSavingsGoals = db.getSavingsGoals();
-    setAccounts(loadedAccounts);
-    setCategories(loadedCategories);
-    setTransactions(loadedTransactions);
-    setReminders(loadedReminders);
-    setBudgets(loadedBudgets);
-    setSavingsGoals(loadedSavingsGoals);
+    if (!isLockEnabled) {
+      // Only load if not locked
+      const loadedAccounts = db.getAccounts();
+      const loadedCategories = db.getCategories();
+      const loadedTransactions = db.getTransactions();
+      const loadedReminders = db.getReminders();
+      const loadedBudgets = db.getBudgets();
+      const loadedSavingsGoals = db.getSavingsGoals();
+      setAccounts(loadedAccounts);
+      setCategories(loadedCategories);
+      setTransactions(loadedTransactions);
+      setReminders(loadedReminders);
+      setBudgets(loadedBudgets);
+      setSavingsGoals(loadedSavingsGoals);
+    }
 
     // Set Theme
     const savedTheme = localStorage.getItem('pocket_khata_theme') || 'light';
@@ -168,8 +218,38 @@ export default function App() {
     };
     updateTime();
     const interval = setInterval(updateTime, 1000 * 60);
-    return () => clearInterval(interval);
-  }, []);
+
+    // Feature 1: Lock screen on tab visibility change (security)
+    const handleVisibilityChange = () => {
+      if (document.hidden && securitySettings?.isPINEnabled) {
+        setIsLocked(true);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [securitySettings]);
+
+  // Feature 1: Unlock handler
+  const handleUnlock = () => {
+    setIsLocked(false);
+    // Now load data after unlock
+    const loadedAccounts = db.getAccounts();
+    const loadedCategories = db.getCategories();
+    const loadedTransactions = db.getTransactions();
+    const loadedReminders = db.getReminders();
+    const loadedBudgets = db.getBudgets();
+    const loadedSavingsGoals = db.getSavingsGoals();
+    setAccounts(loadedAccounts);
+    setCategories(loadedCategories);
+    setTransactions(loadedTransactions);
+    setReminders(loadedReminders);
+    setBudgets(loadedBudgets);
+    setSavingsGoals(loadedSavingsGoals);
+  };
 
   // 6. Theme Toggle handler
   const handleToggleTheme = () => {
@@ -330,9 +410,14 @@ export default function App() {
     setCurrentScreen(screen);
   };
 
-  // 11. Lock screen is removed — app starts directly in the dashboard
+  // 11. Preload TransactionHistory after mount so it's ready for instant navigation
+  useEffect(() => {
+    preloadTransactionHistory();
+  }, []);
 
-  // 12. Render Screen Routing
+  // 12. Lock screen is removed — app starts directly in the dashboard
+
+  // 13. Render Screen Routing
   const renderScreen = () => {
     switch (currentScreen) {
       case 'dashboard':
@@ -481,30 +566,30 @@ export default function App() {
   return (
     <div className="phone-shell">
 
-      {/* A. Android Status Bar (Simulated) */}
-      <div className="android-status-bar">
-        <span>{currentTime}</span>
-        <div className="android-status-icons">
-          <svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor">
-            <rect x="0" y="9" width="2" height="3" rx="0.5" />
-            <rect x="3" y="7" width="2" height="5" rx="0.5" />
-            <rect x="6" y="5" width="2" height="7" rx="0.5" />
-            <rect x="9" y="3" width="2" height="9" rx="0.5" />
-            <rect x="12" y="0" width="2" height="12" rx="0.5" />
-          </svg>
-          <svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor">
-            <path d="M7 11.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm-3.5-4a5 5 0 017 0 .5.5 0 01-.7.7 4 4 0 00-5.6 0 .5.5 0 01-.7-.7zm-2.8-2.8a9 9 0 0112.6 0 .5.5 0 01-.7.7 8 8 0 00-11.2 0 .5.5 0 01-.7-.7z" />
-          </svg>
-          <svg width="22" height="12" viewBox="0 0 22 12" fill="currentColor">
-            <rect x="0" y="1" width="18" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1" />
-            <rect x="2" y="3" width="12" height="6" rx="1" />
-            <path d="M20 4v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        </div>
-      </div>
-
-      {/* B. App Context Content Container */}
+      {/* B. App Context Content Container - Hidden when locked */}
+      {!isLocked && (
       <div className="app-container" style={{ position: 'relative' }}>
+        {/* A. Android Status Bar (Simulated) */}
+        <div className="android-status-bar">
+          <span>{currentTime}</span>
+          <div className="android-status-icons">
+            <svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor">
+              <rect x="0" y="9" width="2" height="3" rx="0.5" />
+              <rect x="3" y="7" width="2" height="5" rx="0.5" />
+              <rect x="6" y="5" width="2" height="7" rx="0.5" />
+              <rect x="9" y="3" width="2" height="9" rx="0.5" />
+              <rect x="12" y="0" width="2" height="12" rx="0.5" />
+            </svg>
+            <svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor">
+              <path d="M7 11.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm-3.5-4a5 5 0 017 0 .5.5 0 01-.7.7 4 4 0 00-5.6 0 .5.5 0 01-.7-.7zm-2.8-2.8a9 9 0 0112.6 0 .5.5 0 01-.7.7 8 8 0 00-11.2 0 .5.5 0 01-.7-.7z" />
+            </svg>
+            <svg width="22" height="12" viewBox="0 0 22 12" fill="currentColor">
+              <rect x="0" y="1" width="18" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1" />
+              <rect x="2" y="3" width="12" height="6" rx="1" />
+              <path d="M20 4v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
         {/* Global Language Toggle — top-right corner, visible on all pages */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
           <div className="neo-pressed-sm" style={globalLangStyles.pill}>
@@ -535,25 +620,29 @@ export default function App() {
           </div>
         </div>
         <ErrorBoundary>
-          {renderScreen()}
+          <Suspense fallback={<LoadingFallback />}>
+            {renderScreen()}
+          </Suspense>
         </ErrorBoundary>
       </div>
 
       {/* C. Floating Transaction Add/Edit Form Overlay */}
       {showTransactionForm && (
         <ErrorBoundary>
-          <TransactionForm
-            transaction={editingTransaction}
-            accounts={accounts}
-            categories={categories}
-            onSave={handleSaveTransaction}
-            onDelete={handleDeleteTransaction}
-            onClose={() => {
-              setShowTransactionForm(false);
-              setEditingTransaction(null);
-            }}
-            lang={lang}
-          />
+          <Suspense fallback={null}>
+            <TransactionForm
+              transaction={editingTransaction}
+              accounts={accounts}
+              categories={categories}
+              onSave={handleSaveTransaction}
+              onDelete={handleDeleteTransaction}
+              onClose={() => {
+                setShowTransactionForm(false);
+                setEditingTransaction(null);
+              }}
+              lang={lang}
+            />
+          </Suspense>
         </ErrorBoundary>
       )}
 
@@ -626,8 +715,6 @@ export default function App() {
           onClick={() => handleNavigate('categories')}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1" />
-            <rect x="14" y="3" width="7" height="7" rx="1" />
             <rect x="3" y="14" width="7" height="7" rx="1" />
             <rect x="14" y="14" width="7" height="7" rx="1" />
           </svg>
@@ -651,6 +738,9 @@ export default function App() {
           <span style={bottomNavStyles.label}>{t('calendar.title', lang)}</span>
         </button>
       </div>
+
+      </div>
+      )}
 
     </div>
   );

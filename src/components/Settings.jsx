@@ -473,6 +473,33 @@ export default function Settings({
           )}
         </div>
 
+        {/* SECTION 3: Security & PIN Lock (Feature 1) */}
+        <div className="neo-raised" style={styles.card}>
+          <div style={styles.cardHeader}>
+            <ShieldAlert size={16} style={{ color: 'var(--accent-color)' }} />
+            <h3 style={styles.cardTitle}>App Lock Security</h3>
+          </div>
+
+          <p style={styles.cardDesc}>
+            Protect your financial data with a 4-digit PIN lock. App will lock when you switch away from the browser tab.
+          </p>
+
+          <div style={styles.formGroup}>
+            <label style={styles.formLabel}>
+              <input 
+                type="checkbox" 
+                checked={!true}
+                disabled
+                style={{ marginRight: '8px' }}
+              />
+              Enable PIN Lock
+            </label>
+            <p style={{ ...styles.cardDesc, fontSize: '10px', marginTop: '4px' }}>
+              Coming soon: PIN configuration available in next update
+            </p>
+          </div>
+        </div>
+
         {/* SECTION 3: PDF Financial Reports */}
         <div className="neo-raised" style={styles.card}>
           <div style={styles.cardHeader}>

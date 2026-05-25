@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Fingerprint, Delete, Lock, Unlock } from 'lucide-react';
+import { verifyPIN } from '../security';
 
 export default function LockScreen({ onUnlock, securitySettings }) {
   const [pin, setPin] = useState('');
@@ -9,7 +10,7 @@ export default function LockScreen({ onUnlock, securitySettings }) {
   const [scanSuccess, setScanSuccess] = useState(false);
   const [shake, setShake] = useState(false);
 
-  const targetPin = securitySettings?.pin || '1234';
+  const targetPinHash = securitySettings?.pinHash || '';
 
   const handleNumberPress = (num) => {
     if (pin.length < 4) {
@@ -32,7 +33,7 @@ export default function LockScreen({ onUnlock, securitySettings }) {
   };
 
   const verifyPin = (enteredPin) => {
-    if (enteredPin === targetPin) {
+    if (verifyPIN(enteredPin, targetPinHash)) {
       setTimeout(() => {
         onUnlock();
       }, 300);
