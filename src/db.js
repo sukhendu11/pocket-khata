@@ -6,6 +6,8 @@ const KEYS = {
   TRANSACTIONS: 'pocket_khata_transactions',
   REMINDERS: 'pocket_khata_reminders',
   SECURITY: 'pocket_khata_security',
+  BUDGETS: 'pocket_khata_budgets',
+  SAVINGS_GOALS: 'pocket_khata_savings_goals',
 };
 
 // Seed Data
@@ -111,6 +113,10 @@ const DEFAULT_SECURITY = {
   isBiometricEnabled: true,
 };
 
+const DEFAULT_BUDGETS = [];
+
+const DEFAULT_SAVINGS_GOALS = [];
+
 // Helper: load from localStorage or seed
 function getOrSeed(key, defaultValue) {
   const data = localStorage.getItem(key);
@@ -122,7 +128,7 @@ function getOrSeed(key, defaultValue) {
     }
   }
   localStorage.setItem(key, JSON.stringify(defaultValue));
-  return defaultValue;
+  return JSON.parse(JSON.stringify(defaultValue)); // Return a deep copy to prevent mutation of the original
 }
 
 function save(key, data) {
@@ -356,7 +362,111 @@ export const db = {
     return this.addTransaction(newTx);
   },
 
-  // Security Settings
+  // ========== BUDGETS ==========
+  getBudgets() {
+    return getOrSeed(KEYS.BUDGETS, DEFAULT_BUDGETS);
+  },
+  saveBudgets(budgets) {
+    save(KEYS.BUDGETS, budgets);
+  },
+  addBudget(budget) {
+    const budgets = this.getBudgets();
+    const newBudget = {
+      ...budget,
+      id: `budget_${Date.now()}`,
+      limit: Number(budget.limit),
+    };
+    budgets.push(newBudget);
+    this.saveBudgets(budgets);
+    return newBudget;
+  },
+  updateBudget(updatedBudget) {
+    const budgets = this.getBudgets();
+    const idx = budgets.findIndex(b => b.id === updatedBudget.id);
+    if (idx !== -1) {
+      budgets[idx] = { ...updatedBudget, limit: Number(updatedBudget.limit) };
+      this.saveBudgets(budgets);
+    }
+  },
+  deleteBudget(id) {
+    const budgets = this.getBudgets();
+    this.saveBudgets(budgets.filter(b => b.id !== id));
+  },
+  /** Calculate spending for a category in a given month/year */
+  getBudgetSpending(categoryId, month, year) {
+    const transactions = this.getTransactions();
+    return transactions
+      .filter(tx => {
+        if (tx.type !== 'expense') return false;
+        if (tx.categoryId !== categoryId) return false;
+        const d = new Date(tx.date);
+        return d.getMonth() === month && d.getFullYear() === year;
+      })
+      .reduce((sum, tx) => sum + tx.amount, 0);
+  },
+
+  // ========== SAVINGS GOALS ==========
+  getSavingsGoals() {
+    return getOrSeed(KEYS.SAVINGS_GOALS, DEFAULT_SAVINGS_GOALS);
+  },
+  saveSavingsGoals(goals) {
+    save(KEYS.SAVINGS_GOALS, goals);
+  },
+  addSavingsGoal(goal) {
+    const goals = this.getSavingsGoals();
+    const newGoal = {
+      ...goal,
+      id: `goal_${Date.now()}`,
+      targetAmount: Number(goal.targetAmount),
+      currentAmount: Number(goal.currentAmount || 0),
+    };
+    goals.push(newGoal);
+    this.saveSavingsGoals(goals);
+    return newGoal;
+  },
+  updateSavingsGoal(updatedGoal) {
+    const goals = this.getSavingsGoals();
+    const idx = goals.findIndex(g => g.id === updatedGoal.id);
+    if (idx !== -1) {
+      goals[idx] = {
+        ...updatedGoal,
+        targetAmount: Number(updatedGoal.targetAmount),
+        currentAmount: Number(updatedGoal.currentAmount),
+      };
+      this.saveSavingsGoals(goals);
+    }
+  },
+  deleteSavingsGoal(id) {
+    const goals = this.getSavingsGoals();
+    this.saveSavingsGoals(goals.filter(g => g.id !== id));
+  },
+  /** Contribute to a savings goal: deduct from account, create transfer transaction, increase goal amount */
+  contributeToSavingsGoal(goalId, amount, sourceAccountId) {
+    const goals = this.getSavingsGoals();
+    const goalIdx = goals.findIndex(g => g.id === goalId);
+    if (goalIdx === -1) return null;
+
+    const contributedAmount = Number(amount);
+    if (contributedAmount <= 0) return null;
+
+    // Update goal amount
+    goals[goalIdx].currentAmount += contributedAmount;
+    this.saveSavingsGoals(goals);
+
+    // Create a transaction (transfer from account to a virtual savings account)
+    const newTx = {
+      type: 'transfer',
+      amount: contributedAmount,
+      date: new Date().toISOString().split('T')[0],
+      accountId: sourceAccountId,
+      transferToId: `goal_${goalId}`, // Virtual savings target
+      categoryId: '',
+      notes: `Savings contribution: ${goals[goalIdx].name}`,
+    };
+    return this.addTransaction(newTx);
+  },
+
+  // ========== SECURITY ==========
   getSecuritySettings() {
     return getOrSeed(KEYS.SECURITY, DEFAULT_SECURITY);
   },
@@ -364,13 +474,15 @@ export const db = {
     save(KEYS.SECURITY, settings);
   },
 
-  // Database Reset and Backups
+  // ========== DATABASE RESET & BACKUPS ==========
   resetDatabase() {
     localStorage.removeItem(KEYS.ACCOUNTS);
     localStorage.removeItem(KEYS.CATEGORIES);
     localStorage.removeItem(KEYS.TRANSACTIONS);
     localStorage.removeItem(KEYS.REMINDERS);
     localStorage.removeItem(KEYS.SECURITY);
+    localStorage.removeItem(KEYS.BUDGETS);
+    localStorage.removeItem(KEYS.SAVINGS_GOALS);
     return {
       accounts: this.getAccounts(),
       categories: this.getCategories(),
@@ -386,6 +498,8 @@ export const db = {
       transactions: this.getTransactions(),
       reminders: this.getReminders(),
       security: this.getSecuritySettings(),
+      budgets: this.getBudgets(),
+      savingsGoals: this.getSavingsGoals(),
       exportedAt: new Date().toISOString(),
     };
     return JSON.stringify(data, null, 2);
@@ -398,6 +512,8 @@ export const db = {
       if (data.transactions) save(KEYS.TRANSACTIONS, data.transactions);
       if (data.reminders) save(KEYS.REMINDERS, data.reminders);
       if (data.security) save(KEYS.SECURITY, data.security);
+      if (data.budgets) save(KEYS.BUDGETS, data.budgets);
+      if (data.savingsGoals) save(KEYS.SAVINGS_GOALS, data.savingsGoals);
       return true;
     } catch (e) {
       console.error('Error importing JSON database:', e);

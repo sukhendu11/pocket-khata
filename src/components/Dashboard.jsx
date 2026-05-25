@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { 
   Bell, Sun, Moon, ArrowUpRight, ArrowDownLeft,
   TrendingUp, Wallet, Landmark, CreditCard, ChevronRight, HelpCircle,
+  Search, PieChart as PieChartIcon, Target,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
@@ -14,11 +15,14 @@ export default function Dashboard({
   transactions, 
   categories, 
   reminders,
+  budgets,
+  savingsGoals,
   onNavigate, 
   theme, 
   onToggleTheme,
   lang,
   onSetLang,
+  onOpenSearch,
 }) {
   const [activePieIndex, setActivePieIndex] = useState(null);
   const [activeLinePoint, setActiveLinePoint] = useState(null);
@@ -242,6 +246,13 @@ export default function Dashboard({
           <button 
             className="neo-btn neo-btn-round" 
             style={styles.actionBtn}
+            onClick={onOpenSearch}
+          >
+            <Search size={18} style={{ color: 'var(--accent-color)' }} />
+          </button>
+          <button 
+            className="neo-btn neo-btn-round" 
+            style={styles.actionBtn}
             onClick={() => onNavigate('reminders')}
           >
             <Bell size={18} style={{ color: hasOverdueReminders ? 'var(--color-expense)' : 'var(--text-secondary)' }} />
@@ -323,6 +334,26 @@ export default function Dashboard({
           </div>
         ))}
       </div>
+
+      {/* 4.5 Budget & Savings Mini Cards */}
+      {(budgets?.length > 0 || savingsGoals?.length > 0) && (
+        <div style={styles.miniCardsRow}>
+          {budgets?.length > 0 && (
+            <div className="neo-raised-sm" style={styles.miniCard} onClick={() => onNavigate('budgets')}>
+              <div style={styles.miniCardIcon}><PieChartIcon size={14} style={{ color: 'var(--accent-color)' }} /></div>
+              <span style={styles.miniCardLabel}>{t('budget.title', lang)}</span>
+              <span style={styles.miniCardCount}>{budgets.length} active</span>
+            </div>
+          )}
+          {savingsGoals?.length > 0 && (
+            <div className="neo-raised-sm" style={styles.miniCard} onClick={() => onNavigate('savings')}>
+              <div style={styles.miniCardIcon}><Target size={14} style={{ color: 'var(--color-income)' }} /></div>
+              <span style={styles.miniCardLabel}>{t('savings.title', lang)}</span>
+              <span style={styles.miniCardCount}>{savingsGoals.filter(g => g.currentAmount >= g.targetAmount).length}/{savingsGoals.length} done</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 5. Pie Chart - Expenses Category Breakdown */}
       <div style={styles.sectionHeader}>
@@ -541,11 +572,14 @@ Dashboard.propTypes = {
   transactions: PropTypes.array,
   categories: PropTypes.array,
   reminders: PropTypes.array,
+  budgets: PropTypes.array,
+  savingsGoals: PropTypes.array,
   onNavigate: PropTypes.func,
   theme: PropTypes.string,
   onToggleTheme: PropTypes.func,
   lang: PropTypes.string,
   onSetLang: PropTypes.func,
+  onOpenSearch: PropTypes.func,
 };
 
 const styles = {
@@ -875,6 +909,43 @@ const styles = {
   },
   lineChartSvg: {
     overflow: 'visible',
+  },
+  miniCardsRow: {
+    display: 'flex',
+    gap: '12px',
+    marginBottom: '16px',
+    marginTop: '-8px',
+  },
+  miniCard: {
+    flex: 1,
+    padding: '12px',
+    borderRadius: '14px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+  },
+  miniCardIcon: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'var(--bg-color)',
+    boxShadow: 'var(--neomorphic-pressed-sm)',
+    marginBottom: '6px',
+  },
+  miniCardLabel: {
+    fontSize: '11px',
+    fontWeight: '700',
+    color: 'var(--text-primary)',
+  },
+  miniCardCount: {
+    fontSize: '9px',
+    fontWeight: '600',
+    color: 'var(--text-secondary)',
   },
   lineChartTooltipContainer: {
     height: '32px',

@@ -2,10 +2,12 @@ import { useState, useRef } from 'react';
 import { 
   ArrowLeft, CloudLightning, FileSpreadsheet, 
   RotateCcw, RefreshCw, ShieldAlert, CheckCircle,
-  Download, Upload
+  Download, Upload, FileText
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
+import { formatNumber } from '../utils';
 
 export default function Settings({
   onResetDatabase,
@@ -24,6 +26,10 @@ export default function Settings({
 
   // Reset State
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  // PDF Report State
+  const [reportPeriod, setReportPeriod] = useState('thisMonth');
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   // 1. Mock Cloud Sync
   const handleCloudSync = () => {
@@ -148,6 +154,155 @@ export default function Settings({
     document.body.removeChild(link);
   };
 
+  // PDF Report Generation
+  const handleExportPDF = () => {
+    if (transactions.length === 0) {
+      alert('No transactions to export.');
+      return;
+    }
+    setIsGeneratingPDF(true);
+
+    setTimeout(() => {
+      try {
+        // Determine date range
+        const now = new Date();
+        let startDate, endDate;
+        
+        switch (reportPeriod) {
+          case 'thisMonth':
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            break;
+          case 'lastMonth':
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+            break;
+          case 'last3Months':
+            startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            break;
+          case 'last6Months':
+            startDate = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            break;
+          case 'thisYear':
+            startDate = new Date(now.getFullYear(), 0, 1);
+            endDate = new Date(now.getFullYear(), 11, 31);
+            break;
+          default:
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        }
+
+        const filtered = transactions.filter(tx => {
+          const d = new Date(tx.date);
+          return d >= startDate && d <= endDate;
+        });
+
+        const totalIncome = filtered.filter(tx => tx.type === 'income').reduce((s, tx) => s + tx.amount, 0);
+        const totalExpense = filtered.filter(tx => tx.type === 'expense').reduce((s, tx) => s + tx.amount, 0);
+        const net = totalIncome - totalExpense;
+
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        const pageW = 210;
+        let y = 20;
+
+        // Title
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Pocket Khata', pageW / 2, y, { align: 'center' });
+        y += 8;
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Financial Report', pageW / 2, y, { align: 'center' });
+        y += 10;
+
+        // Period
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        const periodLabel = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+          ' - ' + endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        doc.text(`Period: ${periodLabel}`, pageW / 2, y, { align: 'center' });
+        doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, pageW / 2, y + 4, { align: 'center' });
+        y += 14;
+
+        // Divider
+        doc.setDrawColor(200);
+        doc.line(20, y, pageW - 20, y);
+        y += 8;
+
+        // Summary
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(40);
+        doc.text('Summary', 20, y);
+        y += 8;
+
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(34, 197, 94);
+        doc.text(`Total Income: ৳${formatNumber(totalIncome, 'en')}`, 25, y);
+        y += 7;
+        doc.setTextColor(239, 68, 68);
+        doc.text(`Total Expense: ৳${formatNumber(totalExpense, 'en')}`, 25, y);
+        y += 7;
+        doc.setTextColor(net >= 0 ? 34 : 239, net >= 0 ? 197 : 68, net >= 0 ? 94 : 68);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Net ${net >= 0 ? 'Savings' : 'Loss'}: ৳${formatNumber(Math.abs(net), 'en')}`, 25, y);
+        y += 12;
+
+        // Divider
+        doc.setDrawColor(200);
+        doc.line(20, y, pageW - 20, y);
+        y += 8;
+
+        // Transactions
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(40);
+        doc.text(`Transactions (${filtered.length})`, 20, y);
+        y += 8;
+
+        doc.setFontSize(8);
+        doc.setTextColor(120);
+        doc.text('Date', 20, y);
+        doc.text('Type', 50, y);
+        doc.text('Category', 70, y);
+        doc.text('Account', 105, y);
+        doc.text('Amount', pageW - 25, y, { align: 'right' });
+        y += 5;
+        doc.setDrawColor(200);
+        doc.line(20, y, pageW - 20, y);
+        y += 4;
+
+        doc.setFontSize(9);
+        doc.setTextColor(60);
+
+        const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
+        sorted.forEach((tx) => {
+          if (y > 270) {
+            doc.addPage();
+            y = 20;
+          }
+          const cat = categories.find(c => c.id === tx.categoryId);
+          const acc = accounts.find(a => a.id === tx.accountId);
+          doc.text(tx.date || '-', 20, y);
+          doc.text(tx.type, 50, y);
+          doc.text(cat?.name || '-', 70, y);
+          doc.text(acc?.name || '-', 105, y);
+          doc.text(`৳${formatNumber(tx.amount, 'en')}`, pageW - 25, y, { align: 'right' });
+          y += 5;
+        });
+
+        doc.save(`Pocket_Khata_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+      } catch (e) {
+        console.error('PDF generation error:', e);
+        alert('Failed to generate PDF. Check console for details.');
+      }
+      setIsGeneratingPDF(false);
+    }, 500);
+  };
+
   const handleReset = () => {
     onResetDatabase();
     setShowResetConfirm(false);
@@ -265,7 +420,49 @@ export default function Settings({
           />
         </div>
 
-        {/* SECTION 3: Application Reset */}
+        {/* SECTION 3: PDF Financial Reports */}
+        <div className="neo-raised" style={styles.card}>
+          <div style={styles.cardHeader}>
+            <FileText size={16} style={{ color: 'var(--accent-color)' }} />
+            <h3 style={styles.cardTitle}>{t('reports.title', lang)}</h3>
+          </div>
+
+          <p style={styles.cardDesc}>
+            {t('reports.exportDesc', lang)}
+          </p>
+
+          <div style={styles.formGroup}>
+            <label style={styles.formLabel}>{t('reports.selectPeriod', lang)}</label>
+            <select
+              value={reportPeriod}
+              onChange={(e) => setReportPeriod(e.target.value)}
+              className="neo-input"
+              style={styles.formSelect}
+            >
+              <option value="thisMonth">{t('reports.thisMonth', lang)}</option>
+              <option value="lastMonth">{t('reports.lastMonth', lang)}</option>
+              <option value="last3Months">{t('reports.last3Months', lang)}</option>
+              <option value="last6Months">{t('reports.last6Months', lang)}</option>
+              <option value="thisYear">{t('reports.thisYear', lang)}</option>
+            </select>
+          </div>
+
+          <button 
+            className="neo-btn neo-btn-primary" 
+            style={styles.pdfBtn}
+            onClick={handleExportPDF}
+            disabled={isGeneratingPDF}
+          >
+            {isGeneratingPDF ? (
+              <RefreshCw size={14} className="spin-anim" />
+            ) : (
+              <FileText size={14} />
+            )}
+            {t('reports.exportPDF', lang)}
+          </button>
+        </div>
+
+        {/* SECTION 4: Application Reset */}
         <div className="neo-raised" style={styles.card}>
           <div style={styles.cardHeader}>
             <RotateCcw size={16} style={{ color: 'var(--color-expense)' }} />
@@ -409,6 +606,34 @@ const styles = {
     paddingLeft: '4px',
   },
   exportBtn: {
+    width: '100%',
+    height: '38px',
+    fontSize: '12px',
+    justifyContent: 'center',
+  },
+  formGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    marginBottom: '10px',
+  },
+  formLabel: {
+    fontSize: '9px',
+    fontWeight: '700',
+    color: 'var(--text-secondary)',
+    letterSpacing: '0.5px',
+    marginBottom: '2px',
+  },
+  formSelect: {
+    appearance: 'none',
+    cursor: 'pointer',
+    backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%237f8c8d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 16px center',
+    backgroundSize: '16px',
+    paddingRight: '40px',
+  },
+  pdfBtn: {
     width: '100%',
     height: '38px',
     fontSize: '12px',

@@ -14,6 +14,9 @@ import AccountManager from './components/AccountManager';
 import CategoryManager from './components/CategoryManager';
 import ErrorBoundary from './components/ErrorBoundary';
 import LockScreen from './components/LockScreen';
+import BudgetManager from './components/BudgetManager';
+import SavingsTracker from './components/SavingsTracker';
+import GlobalSearch from './components/GlobalSearch';
 
 import { t } from './i18n';
 
@@ -79,6 +82,8 @@ export default function App() {
   const [categories, setCategories] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [reminders, setReminders] = useState([]);
+  const [budgets, setBudgets] = useState([]);
+  const [savingsGoals, setSavingsGoals] = useState([]);
   const [securitySettings, setSecuritySettings] = useState(null);
 
   // 2. Language State
@@ -104,6 +109,7 @@ export default function App() {
   const [theme, setTheme] = useState('light');
   const [currentTime, setCurrentTime] = useState('');
   const [isLocked, setIsLocked] = useState(false);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
 
   // 5. Initial Load
   useEffect(() => {
@@ -117,10 +123,14 @@ export default function App() {
     const loadedCategories = db.getCategories();
     const loadedTransactions = db.getTransactions();
     const loadedReminders = db.getReminders();
+    const loadedBudgets = db.getBudgets();
+    const loadedSavingsGoals = db.getSavingsGoals();
     setAccounts(loadedAccounts);
     setCategories(loadedCategories);
     setTransactions(loadedTransactions);
     setReminders(loadedReminders);
+    setBudgets(loadedBudgets);
+    setSavingsGoals(loadedSavingsGoals);
 
     // Set Theme
     const savedTheme = localStorage.getItem('pocket_khata_theme') || 'light';
@@ -260,7 +270,41 @@ export default function App() {
     return db.exportDatabaseJSON();
   };
 
-  // 8. Navigation helpers
+  // 8. Budget handlers
+  const handleAddBudget = (budget) => {
+    db.addBudget(budget);
+    setBudgets(db.getBudgets());
+  };
+  const handleUpdateBudget = (budget) => {
+    db.updateBudget(budget);
+    setBudgets(db.getBudgets());
+  };
+  const handleDeleteBudget = (id) => {
+    db.deleteBudget(id);
+    setBudgets(db.getBudgets());
+  };
+
+  // 9. Savings Goal handlers
+  const handleAddSavingsGoal = (goal) => {
+    db.addSavingsGoal(goal);
+    setSavingsGoals(db.getSavingsGoals());
+  };
+  const handleUpdateSavingsGoal = (goal) => {
+    db.updateSavingsGoal(goal);
+    setSavingsGoals(db.getSavingsGoals());
+  };
+  const handleDeleteSavingsGoal = (id) => {
+    db.deleteSavingsGoal(id);
+    setSavingsGoals(db.getSavingsGoals());
+  };
+  const handleContributeToSavingsGoal = (goalId, amount, sourceAccountId) => {
+    db.contributeToSavingsGoal(goalId, amount, sourceAccountId);
+    setSavingsGoals(db.getSavingsGoals());
+    setTransactions(db.getTransactions());
+    setAccounts(db.getAccounts());
+  };
+
+  // 10. Navigation helpers
   const handleAddTransactionClick = useCallback(() => {
     setIsCenterBtnPressed(true);
     setTimeout(() => setIsCenterBtnPressed(false), 300);
@@ -276,9 +320,10 @@ export default function App() {
   const handleNavigate = (screen) => {
     setTransactionFilter(null);
     setCurrentScreen(screen);
+    setShowGlobalSearch(false);
   };
 
-  // 9. If app is locked, show LockScreen instead
+  // 11. If app is locked, show LockScreen instead
   const handleAppUnlock = useCallback(() => {
     setIsLocked(false);
   }, []);
@@ -313,7 +358,7 @@ export default function App() {
     );
   }
 
-  // 10. Render Screen Routing
+  // 12. Render Screen Routing
   const renderScreen = () => {
     switch (currentScreen) {
       case 'dashboard':
@@ -323,11 +368,14 @@ export default function App() {
             transactions={transactions}
             categories={categories}
             reminders={reminders}
+            budgets={budgets}
+            savingsGoals={savingsGoals}
             onNavigate={handleNavigate}
             theme={theme}
             onToggleTheme={handleToggleTheme}
             lang={lang}
             onSetLang={handleSetLang}
+            onOpenSearch={() => setShowGlobalSearch(true)}
           />
         );
       case 'analytics':
@@ -399,6 +447,32 @@ export default function App() {
             lang={lang}
           />
         );
+      case 'budgets':
+        return (
+          <BudgetManager
+            budgets={budgets}
+            categories={categories}
+            transactions={transactions}
+            onAddBudget={handleAddBudget}
+            onUpdateBudget={handleUpdateBudget}
+            onDeleteBudget={handleDeleteBudget}
+            onNavigate={handleNavigate}
+            lang={lang}
+          />
+        );
+      case 'savings':
+        return (
+          <SavingsTracker
+            savingsGoals={savingsGoals}
+            accounts={accounts}
+            onAddSavingsGoal={handleAddSavingsGoal}
+            onUpdateSavingsGoal={handleUpdateSavingsGoal}
+            onDeleteSavingsGoal={handleDeleteSavingsGoal}
+            onContributeToSavingsGoal={handleContributeToSavingsGoal}
+            onNavigate={handleNavigate}
+            lang={lang}
+          />
+        );
       case 'settings':
         return (
           <Settings
@@ -446,6 +520,19 @@ export default function App() {
       <div className="app-container">
         <ErrorBoundary>
           {renderScreen()}
+          <GlobalSearch
+            isOpen={showGlobalSearch}
+            onClose={() => setShowGlobalSearch(false)}
+            transactions={transactions}
+            accounts={accounts}
+            categories={categories}
+            reminders={reminders}
+            budgets={budgets}
+            savingsGoals={savingsGoals}
+            onEditTransaction={handleEditTransactionClick}
+            onNavigate={handleNavigate}
+            lang={lang}
+          />
         </ErrorBoundary>
       </div>
 
