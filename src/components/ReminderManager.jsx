@@ -1,11 +1,17 @@
 import { useState, useMemo, useEffect } from 'react';
 import { 
-  ArrowLeft, Plus, Calendar, BellRing, DollarSign, 
+  ArrowLeft, Plus, Calendar, BellRing, Bell, BellOff, DollarSign, 
   CheckCircle, AlertCircle, Trash2, X, CreditCard 
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber } from '../utils';
+import { 
+  getNotificationPermission, 
+  requestNotificationPermission, 
+  isNotificationSupported,
+  isServiceWorkerActive 
+} from '../notifications';
 
 export default function ReminderManager({
   reminders,
@@ -31,7 +37,26 @@ export default function ReminderManager({
   const [categoryId, setCategoryId] = useState('');
   const [formError, setFormError] = useState('');
 
-  // 1. Filtered lists
+  // 1. Notification permission state
+  const [notifState, setNotifState] = useState({
+    permission: getNotificationPermission(),
+    supported: isNotificationSupported(),
+    swActive: false,
+  });
+
+  useEffect(() => {
+    // Check service worker status asynchronously
+    isServiceWorkerActive().then((active) => {
+      setNotifState((prev) => ({ ...prev, swActive: active }));
+    });
+  }, []);
+
+  const handleRequestNotificationPermission = async () => {
+    const result = await requestNotificationPermission();
+    setNotifState((prev) => ({ ...prev, permission: result }));
+  };
+
+  // 2. Filtered lists
   const today = new Date().toISOString().split('T')[0];
 
   const processedReminders = useMemo(() => {
@@ -163,6 +188,46 @@ export default function ReminderManager({
           <Plus size={18} />
         </button>
       </div>
+
+      {/* Notification Permission Banner */}
+      {notifState.supported && notifState.permission !== 'granted' && (
+        <div className="neo-raised-sm" style={styles.notifBanner}>
+          <div style={styles.notifBannerContent}>
+            <Bell size={16} style={{ color: 'var(--accent-color)', flexShrink: 0 }} />
+            <div style={styles.notifBannerText}>
+              <span style={styles.notifBannerTitle}>{t('notif.title', lang)}</span>
+              <span style={styles.notifBannerDesc}>{t('notif.desc', lang)}</span>
+            </div>
+          </div>
+          {notifState.permission === 'denied' ? (
+            <span style={styles.notifDeniedText}>{t('notif.permissionDenied', lang)}</span>
+          ) : (
+            <button
+              className="neo-btn neo-btn-primary"
+              style={styles.notifEnableBtn}
+              onClick={handleRequestNotificationPermission}
+            >
+              <Bell size={12} /> {t('notif.enable', lang)}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Permission granted banner */}
+      {notifState.supported && notifState.permission === 'granted' && (
+        <div className="neo-pressed-sm" style={styles.notifBannerGranted}>
+          <Bell size={12} style={{ color: 'var(--color-income)' }} />
+          <span style={styles.notifGrantedText}>{t('notif.enabled', lang)}</span>
+        </div>
+      )}
+
+      {/* Unsupported browser warning */}
+      {!notifState.supported && (
+        <div className="neo-pressed-sm" style={styles.notifBannerDenied}>
+          <BellOff size={12} style={{ color: 'var(--color-expense)' }} />
+          <span style={styles.notifDeniedText}>{t('notif.permissionUnsupported', lang)}</span>
+        </div>
+      )}
 
       {/* Tabs segment controller */}
       <div className="neo-pressed-sm" style={styles.segmentContainer}>          {['unpaid', 'paid', 'all'].map(tab => (
@@ -620,6 +685,71 @@ const styles = {
   },
   paySelectModal: {
     paddingBottom: '30px',
+  },
+  // Notification banner styles
+  notifBanner: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    padding: '12px',
+    borderRadius: '14px',
+    marginBottom: '12px',
+    backgroundColor: 'var(--bg-color)',
+  },
+  notifBannerContent: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '10px',
+  },
+  notifBannerText: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+  },
+  notifBannerTitle: {
+    fontSize: '12px',
+    fontWeight: '700',
+    color: 'var(--text-primary)',
+  },
+  notifBannerDesc: {
+    fontSize: '10px',
+    fontWeight: '400',
+    color: 'var(--text-secondary)',
+    lineHeight: '1.35',
+  },
+  notifEnableBtn: {
+    fontSize: '10px',
+    padding: '6px 12px',
+    borderRadius: '8px',
+    alignSelf: 'flex-start',
+  },
+  notifBannerGranted: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '8px 12px',
+    borderRadius: '10px',
+    marginBottom: '12px',
+    backgroundColor: 'var(--bg-color)',
+  },
+  notifBannerDenied: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '8px 12px',
+    borderRadius: '10px',
+    marginBottom: '12px',
+    backgroundColor: 'var(--bg-color)',
+  },
+  notifGrantedText: {
+    fontSize: '10px',
+    fontWeight: '600',
+    color: 'var(--color-income)',
+  },
+  notifDeniedText: {
+    fontSize: '10px',
+    fontWeight: '600',
+    color: 'var(--color-expense)',
   },
   payPromptText: {
     fontSize: '12px',

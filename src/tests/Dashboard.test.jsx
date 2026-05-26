@@ -195,11 +195,14 @@ describe('Dashboard — Budget & Savings Mini Cards', () => {
     expect(screen.getByText(/0\/1 done/)).toBeTruthy();
   });
 
-  it('hides mini cards when both are empty', () => {
+  it('shows mini cards with "Create first" text when both are empty', () => {
     useFixedDate();
     render(<Dashboard {...defaultProps} budgets={[]} savingsGoals={[]} />);
-    expect(screen.queryByText('Budget Planner')).toBeNull();
-    expect(screen.queryByText('Savings Goals')).toBeNull();
+    // Cards always show now — empty state shows "Create first"
+    expect(screen.getByText('Budget Planner')).toBeTruthy();
+    expect(screen.getByText('Savings Goals')).toBeTruthy();
+    const createFirstTexts = screen.getAllByText('Create first');
+    expect(createFirstTexts.length).toBe(2);
   });
 
   it('navigates to budgets when clicking Budget card', () => {
@@ -554,9 +557,11 @@ describe('Dashboard — Edge Cases', () => {
       />
     );
     expect(screen.getByText('Pocket Khata')).toBeTruthy();
-    // Mini cards should not render (budgets & savingsGoals are undefined)
-    expect(screen.queryByText('Budget Planner')).toBeNull();
-    expect(screen.queryByText('Savings Goals')).toBeNull();
+    // Mini cards always show — "Create first" when undefined/empty
+    expect(screen.getByText('Budget Planner')).toBeTruthy();
+    expect(screen.getByText('Savings Goals')).toBeTruthy();
+    const createFirstTexts = screen.getAllByText('Create first');
+    expect(createFirstTexts.length).toBe(2);
   });
 });
 

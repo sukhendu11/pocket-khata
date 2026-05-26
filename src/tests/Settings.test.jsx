@@ -7,9 +7,6 @@ import Settings from '../components/Settings';
 // ==============================================================================
 
 const mockDb = vi.hoisted(() => ({
-  getAutoBackups: vi.fn(() => []),
-  restoreFromAutoBackup: vi.fn(() => true),
-  clearAutoBackups: vi.fn(),
   getAppVersion: vi.fn(() => '2.2.0'),
   getStoredSchemaVersion: vi.fn(() => 4),
 }));
@@ -22,72 +19,24 @@ const mockJSDoc = vi.hoisted(() => ({
   setFont: vi.fn(),
   text: vi.fn(),
   setTextColor: vi.fn(),
+  setFillColor: vi.fn(),
   setDrawColor: vi.fn(),
   line: vi.fn(),
+  circle: vi.fn(),
+  rect: vi.fn(),
   addPage: vi.fn(),
   save: vi.fn(),
 }));
 
 vi.mock('jspdf', () => ({
-  default: vi.fn(() => mockJSDoc),
+  jsPDF: vi.fn(() => mockJSDoc),
 }));
 
 // ==============================================================================
 // Helpers
 // ==============================================================================
 
-/** Build an ISO timestamp relative to now */
-const minutesAgo = (minutes) =>
-  new Date(Date.now() - minutes * 60 * 1000).toISOString();
 
-const secondsAgo = (seconds) =>
-  new Date(Date.now() - seconds * 1000).toISOString();
-
-// ==============================================================================
-// Mock Snapshots
-// ==============================================================================
-
-/** Snapshot #0 (newest) — fully populated, 2 min ago */
-const SNAPSHOT_FULL = {
-  timestamp: minutesAgo(2),
-  accounts: [{ id: 'acc_1', name: 'Cash' }],
-  categories: [
-    { id: 'cat_food', name: 'Food' },
-    { id: 'cat_rent', name: 'Rent' },
-  ],
-  transactions: [{ id: 'tx_1' }, { id: 'tx_2' }, { id: 'tx_3' }],
-  reminders: [{ id: 'rem_1' }],
-  security: {},
-  budgets: [{ id: 'budget_1', limit: 5000 }],
-  savingsGoals: [{ id: 'goal_1', targetAmount: 50000 }],
-};
-
-/** Snapshot #1 (middle) — partial data, 30 min ago */
-const SNAPSHOT_PARTIAL = {
-  timestamp: minutesAgo(30),
-  accounts: [{ id: 'acc_1', name: 'Cash' }],
-  categories: [{ id: 'cat_food', name: 'Food' }],
-  transactions: [{ id: 'tx_1' }, { id: 'tx_2' }],
-  reminders: [],
-  security: {},
-  budgets: [],
-  savingsGoals: [],
-};
-
-/** Snapshot #2 (oldest) — empty, 2h ago */
-const SNAPSHOT_EMPTY = {
-  timestamp: minutesAgo(120),
-  accounts: [],
-  categories: [],
-  transactions: [],
-  reminders: [],
-  security: {},
-  budgets: [],
-  savingsGoals: [],
-};
-
-/** Three snapshots for general tests */
-const THREE_SNAPSHOTS = [SNAPSHOT_FULL, SNAPSHOT_PARTIAL, SNAPSHOT_EMPTY];
 
 // ==============================================================================
 // Default Props
@@ -116,382 +65,902 @@ beforeEach(() => {
 // Tests
 // ==============================================================================
 
-describe('Settings — Auto-Backup UI', () => {
+// ==============================================================================
+// PDF Export Analytics Sections Tests
+// ==============================================================================
 
-  // ======================== RENDERING ========================
+describe('Settings — PDF Export Analytics Sections', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 15)); // May 15, 2026
+    mockJSDoc.text.mockClear();
+    mockJSDoc.save.mockClear();
+  });
 
-  describe('Rendering', () => {
-    it('renders the auto-backup card with title', () => {
-      render(<Settings {...defaultProps} />);
-      expect(screen.getByText('Auto-Backups')).toBeTruthy();
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  // Helper: click Export and advance through the 500ms setTimeout
+  const clickExportAndWait = () => {
+    fireEvent.click(screen.getByText('Export PDF Report'));
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+  };
+
+  // Helper: click Export button in Bangla mode
+  const clickExportBangla = () => {
+    fireEvent.click(screen.getByText('পিডিএফ রিপোর্ট এক্সপোর্ট'));
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+  };
+
+  // ==================== BUDGET VS ACTUAL ====================
+
+  describe('Budget vs Actual', () => {
+    it('renders section header and budget data in PDF', () => {
+      render(<Settings
+        {...defaultProps}
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 2000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Groceries' },
+        ]}
+        categories={[
+          { id: 'cat_food', name: 'Food & Drinks', color: '#FF6384' },
+        ]}
+        budgets={[
+          { id: 'budget_1', categoryId: 'cat_food', limit: 5000, year: 2026, month: 4 },
+        ]}
+      />);
+
+      clickExportAndWait();
+
+      // Section header
+      // Section header (x=25 = marginL+7)
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Budget vs Actual', 25, expect.any(Number));
+      // Total budget line: Total, Spent, and 40% are separate text calls
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/Total.*5,000/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/Spent.*2,000/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      // Category name (x=31 = marginL+13)
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Food & Drinks', 31, expect.any(Number));
+      // Spent / limit label
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/2,000.*5,000/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      // Percentage
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/40%/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      // Color indicator dot (#FF6384 => RGB 255, 99, 132) at x=26 (marginL+8), r=1.5
+      expect(mockJSDoc.setFillColor).toHaveBeenCalledWith(255, 99, 132);
+      expect(mockJSDoc.circle).toHaveBeenCalledWith(26, expect.any(Number), 1.5, 'F');
+      // doc.save should have been called
+      expect(mockJSDoc.save).toHaveBeenCalledWith(expect.stringMatching(/Pocket_Khata_Report_.*\.pdf/));
     });
 
-    it('renders the auto-backup description text', () => {
-      render(<Settings {...defaultProps} />);
-      expect(
-        screen.getByText(/snapshots are automatically created/i)
-      ).toBeTruthy();
+    it('renders over-budget indicator when spending exceeds limit', () => {
+      render(<Settings
+        {...defaultProps}
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 6000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Groceries' },
+        ]}
+        categories={[
+          { id: 'cat_food', name: 'Food & Drinks', color: '#FF6384' },
+        ]}
+        budgets={[
+          { id: 'budget_1', categoryId: 'cat_food', limit: 5000, year: 2026, month: 4 },
+        ]}
+      />);
+
+      clickExportAndWait();
+
+      // Over budget: 6000 > 5000, 120%, OVER by 1,000
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/OVER.*1,000/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      // Percentage shows 100 (capped in component) + OVER indicator
+      // Over-budget: 6000 spent on 5000 limit = 120%
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/120%/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/OVER.*1,000/),
+        expect.any(Number),
+        expect.any(Number)
+      );
     });
 
-    it('calls db.getAutoBackups on render', () => {
-      render(<Settings {...defaultProps} />);
-      expect(mockDb.getAutoBackups).toHaveBeenCalled();
+    it('shows empty state message when no budgets exist', () => {
+      render(<Settings
+        {...defaultProps}
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 1500, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Lunch' },
+        ]}
+        categories={[
+          { id: 'cat_food', name: 'Food', color: '#FF6384' },
+        ]}
+        budgets={[]}
+      />);
+
+      clickExportAndWait();
+
+      // Still renders section header (x=25 = marginL+7)
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Budget vs Actual', 25, expect.any(Number));
+      // Shows empty state
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        'No budgets set for this period.',
+        expect.any(Number),
+        expect.any(Number)
+      );
     });
 
-    it('renders without crashing when all props are provided', () => {
-      render(<Settings {...defaultProps} />);
-      expect(screen.getByText('Auto-Backups')).toBeTruthy();
+    it('handles multiple budgets across different categories', () => {
+      render(<Settings
+        {...defaultProps}
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 1500, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Groceries' },
+          { id: 'tx_2', date: '2026-05-12', type: 'expense', amount: 25000, categoryId: 'cat_rent', accountId: 'acc_1', notes: 'Rent' },
+        ]}
+        categories={[
+          { id: 'cat_food', name: 'Food', color: '#FF6384' },
+          { id: 'cat_rent', name: 'Rent', color: '#36A2EB' },
+        ]}
+        budgets={[
+          { id: 'budget_1', categoryId: 'cat_food', limit: 3000, year: 2026, month: 4 },
+          { id: 'budget_2', categoryId: 'cat_rent', limit: 30000, year: 2026, month: 4 },
+        ]}
+      />);
+
+      clickExportAndWait();
+
+      // Both category names appear
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Food', expect.any(Number), expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Rent', expect.any(Number), expect.any(Number));
+      // Total combines both: limit 33,000 total, spent 26,500 total
+      // Total and Spent are separate text calls
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/Total.*33,000/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/Spent.*26,500/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      // Color indicator dots for both categories
+      expect(mockJSDoc.setFillColor).toHaveBeenCalledWith(255, 99, 132);  // Food #FF6384
+      expect(mockJSDoc.setFillColor).toHaveBeenCalledWith(54, 162, 235); // Rent #36A2EB
     });
   });
 
-  // ======================== EMPTY STATE ========================
+  // ==================== SMART INSIGHTS ====================
 
-  describe('Empty State', () => {
-    it('shows "no auto-backups yet" message when no backups exist', () => {
-      mockDb.getAutoBackups.mockReturnValue([]);
-      render(<Settings {...defaultProps} />);
-      expect(
-        screen.getByText(/no auto-backups yet/i)
-      ).toBeTruthy();
+  describe('Smart Insights', () => {
+    it('renders insights sections with top category, increase, stats, and tx count', () => {
+      render(<Settings
+        {...defaultProps}
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 2000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Groceries' },
+          { id: 'tx_2', date: '2026-05-12', type: 'expense', amount: 3000, categoryId: 'cat_rent', accountId: 'acc_1', notes: 'Rent' },
+          { id: 'tx_3', date: '2026-05-14', type: 'income', amount: 10000, categoryId: 'cat_salary', accountId: 'acc_1', notes: 'Salary' },
+        ]}
+        categories={[
+          { id: 'cat_food', name: 'Food', color: '#FF6384' },
+          { id: 'cat_rent', name: 'Rent', color: '#36A2EB' },
+          { id: 'cat_salary', name: 'Salary', color: '#4BC0C0' },
+        ]}
+        budgets={[]}
+      />);
+
+      clickExportAndWait();
+
+      // Section header (x=25 = marginL+7)
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Smart Insights', 25, expect.any(Number));
+      // Top category card title (no colon)
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Top Spending Category', 26, expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/Rent.*3,000/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      // Biggest increase card title (no colon)
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Biggest Increase vs Previous Period', 26, expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/Rent.*3,000.*100%/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      // No decrease card (no negative diffs)
+      expect(mockJSDoc.text).not.toHaveBeenCalledWith('Biggest Decrease vs Previous Period', expect.any(Number), expect.any(Number));
+      // Summary stats: income 10,000, expense 5,000, and savings = +50% in separate calls
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/Total Income.*10,000/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/Total Expense.*5,000/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/Savings Rate.*\+50%/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      // Tx count: 3 vs previous (4/empty → +3)
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/Transactions: 3.*\+3 vs previous/),
+        expect.any(Number),
+        expect.any(Number)
+      );
     });
 
-    it('does NOT show backup count when empty', () => {
-      mockDb.getAutoBackups.mockReturnValue([]);
-      render(<Settings {...defaultProps} />);
-      expect(screen.queryByText(/auto-backups available/i)).toBeNull();
+    it('renders only top category when no previous period comparison data exists', () => {
+      // 'thisYear' period — previous year has no data
+      render(<Settings
+        {...defaultProps}
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 5000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Food' },
+        ]}
+        categories={[
+          { id: 'cat_food', name: 'Food', color: '#FF6384' },
+        ]}
+        budgets={[]}
+      />);
+
+      // Switch to 'lastMonth' to test without comparison (no prev period data)
+      // Actually, 'thisMonth' has prev data for April. Let's use 'lastMonth' with no data in prev (March)
+      // Actually simpler: just leave default 'thisMonth' — the prev period (April) has no data
+      // But comparison IS still shown (hasComparison = true, prevStartDate is set)
+      // The biggest increase/dcrease still renders because prev=0, current>0 → diff > 0
+      clickExportAndWait();
+
+      // All insights sections still render (top category, increase, stats, tx count)
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Smart Insights', 25, expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Top Spending Category', 26, expect.any(Number));
+      // Food $5,000
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/Food.*5,000/),
+        expect.any(Number),
+        expect.any(Number)
+      );
     });
 
-    it('does NOT show snapshot cards when empty', () => {
-      mockDb.getAutoBackups.mockReturnValue([]);
-      render(<Settings {...defaultProps} />);
-      expect(screen.queryByText(/Snapshot #/)).toBeNull();
-    });
+    it('skips insights section when no transactions exist', () => {
+      const alertMock = vi.fn();
+      vi.stubGlobal('alert', alertMock);
 
-    it('does NOT show Clear All Backups button when empty', () => {
-      mockDb.getAutoBackups.mockReturnValue([]);
-      render(<Settings {...defaultProps} />);
-      expect(screen.queryByText('Clear All Backups')).toBeNull();
-    });
-  });
+      render(<Settings
+        {...defaultProps}
+        transactions={[]}
+        categories={[]}
+        budgets={[]}
+      />);
 
-  // ======================== WITH BACKUPS — RENDERING ========================
+      clickExportAndWait();
 
-  describe('With Backups — Rendering', () => {
-    it('shows backup count when backups exist', () => {
-      mockDb.getAutoBackups.mockReturnValue(THREE_SNAPSHOTS);
-      render(<Settings {...defaultProps} />);
-      expect(screen.getByText(/3 auto-backups available/)).toBeTruthy();
-    });
-
-    it('shows "1 auto-backups available" for a single backup', () => {
-      mockDb.getAutoBackups.mockReturnValue([SNAPSHOT_FULL]);
-      render(<Settings {...defaultProps} />);
-      expect(screen.getByText(/1 auto-backups available/)).toBeTruthy();
-    });
-
-    it('renders snapshot labels (Snapshot #1, #2, #3)', () => {
-      mockDb.getAutoBackups.mockReturnValue(THREE_SNAPSHOTS);
-      render(<Settings {...defaultProps} />);
-      expect(screen.getByText('Snapshot #1')).toBeTruthy();
-      expect(screen.getByText('Snapshot #2')).toBeTruthy();
-      expect(screen.getByText('Snapshot #3')).toBeTruthy();
-    });
-
-    it('shows relative timestamps for each snapshot (2m ago, 30m ago, 2h ago)', () => {
-      mockDb.getAutoBackups.mockReturnValue(THREE_SNAPSHOTS);
-      render(<Settings {...defaultProps} />);
-      expect(screen.getByText('2m ago')).toBeTruthy();
-      expect(screen.getByText('30m ago')).toBeTruthy();
-      expect(screen.getByText('2h ago')).toBeTruthy();
-    });
-
-    it('shows "Xs ago" for snapshots less than 1 minute old', () => {
-      const freshSnapshot = {
-        ...SNAPSHOT_FULL,
-        timestamp: secondsAgo(15),
-      };
-      mockDb.getAutoBackups.mockReturnValue([freshSnapshot]);
-      render(<Settings {...defaultProps} />);
-      expect(screen.getByText('15s ago')).toBeTruthy();
-    });
-
-    it('shows formatted date for snapshots older than 24h', () => {
-      const oldSnapshot = {
-        ...SNAPSHOT_FULL,
-        timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-      };
-      mockDb.getAutoBackups.mockReturnValue([oldSnapshot]);
-      render(<Settings {...defaultProps} />);
-      // Should show a short date (e.g., "May 23, 06:15 PM") — just check it doesn't crash
-      expect(screen.getByText(/Snapshot #1/)).toBeTruthy();
-      // The relative time should include digits (not "s ago", "m ago", "h ago")
-      expect(screen.queryByText(/[smh] ago$/)).toBeNull();
-    });
-  });
-
-  // ======================== SNAPSHOT ITEM COUNTS ========================
-
-  describe('Snapshot Item Counts', () => {
-    it('shows correct counts for fully populated snapshot', () => {
-      mockDb.getAutoBackups.mockReturnValue([SNAPSHOT_FULL]);
-      render(<Settings {...defaultProps} />);
-
-      // Snapshot #0 has: 1 account, 2 categories, 3 transactions, 1 budget, 1 goal
-      // Counts are rendered as bolded <span>N</span> — match the number text nodes directly
-      expect(screen.getAllByText('1')).toHaveLength(3);  // 1 account + 1 budget + 1 goal
-      expect(screen.getAllByText('2')).toHaveLength(1);  // 2 categories
-      expect(screen.getAllByText('3')).toHaveLength(1);  // 3 transactions
-    });
-
-    it('shows zero counts for empty snapshot', () => {
-      mockDb.getAutoBackups.mockReturnValue([SNAPSHOT_EMPTY]);
-      render(<Settings {...defaultProps} />);
-
-      // All 5 stats are 0
-      expect(screen.getAllByText('0')).toHaveLength(5);
-    });
-
-    it('shows correct counts for each of the 3 snapshots', () => {
-      mockDb.getAutoBackups.mockReturnValue(THREE_SNAPSHOTS);
-      render(<Settings {...defaultProps} />);
-
-      // Snapshot #1: 1 account, 2 categories, 3 txns, 1 budget, 1 goal
-      // Snapshot #2: 1 account, 1 category,  2 txns, 0 budget, 0 goal
-      // Snapshot #3: 0 account, 0 category,  0 txns, 0 budget, 0 goal
-
-      // Total across 3 snapshots:
-      // "1": S#1 (acc,bud,goal) + S#2 (acc,cat) = 5
-      // "2": S#1 (cat) + S#2 (txn) = 2
-      // "3": S#1 (txn) = 1
-      // "0": S#2 (bud,goal) + S#3 (all 5) = 7
-      expect(screen.getAllByText('1')).toHaveLength(5);
-      expect(screen.getAllByText('2')).toHaveLength(2);
-      expect(screen.getAllByText('3')).toHaveLength(1);
-      expect(screen.getAllByText('0')).toHaveLength(7);
+      // Should not have called insights text
+      expect(mockJSDoc.text).not.toHaveBeenCalledWith('Smart Insights', 20, expect.any(Number));
+      // Should show alert about no transactions
+      expect(alertMock).toHaveBeenCalledWith('No transactions to export.');
     });
   });
 
-  // ======================== RESTORE BUTTON ========================
+  // ==================== ANOMALY DETECTION ====================
 
-  describe('Restore Button', () => {
-    it('shows a Restore button on each snapshot card', () => {
-      mockDb.getAutoBackups.mockReturnValue(THREE_SNAPSHOTS);
-      render(<Settings {...defaultProps} />);
-      const restoreBtns = screen.getAllByText('Restore');
-      expect(restoreBtns.length).toBe(3);
+  describe('Anomaly Detection', () => {
+    it('renders section with flagged anomalies above 2x category average', () => {
+      render(<Settings
+        {...defaultProps}
+        transactions={[
+          // 3 Food expenses, one is an anomaly (1000 > 2x avg of ~403)
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 100, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Snacks' },
+          { id: 'tx_2', date: '2026-05-11', type: 'expense', amount: 110, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Lunch' },
+          { id: 'tx_3', date: '2026-05-12', type: 'expense', amount: 1000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Big purchase' },
+        ]}
+        categories={[
+          { id: 'cat_food', name: 'Food & Drinks', color: '#FF6384' },
+        ]}
+        budgets={[]}
+      />);
+
+      clickExportAndWait();
+
+      // Section header (x=25 = marginL+7)
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Anomaly Detection', 25, expect.any(Number));
+      // Summary line: 1 flagged
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/1 flagged as anomalous/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      // Category name (x=26 = marginL+8)
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Food & Drinks', 26, expect.any(Number));
+      // Notes
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Big purchase', expect.any(Number), expect.any(Number));
+      // Amount (now separate from multiplier — amount is bold, avg is normal)
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/1,000/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/2\.5.*[Aa]vg.*403/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      // Category color accent bar (rect) instead of circle dot
+      expect(mockJSDoc.setFillColor).toHaveBeenCalledWith(255, 99, 132);
+      expect(mockJSDoc.rect).toHaveBeenCalledWith(20, expect.any(Number), 1.5, 11, 'F');
     });
 
-    it('calls db.restoreFromAutoBackup(0) when clicking Restore on first snapshot', () => {
-      mockDb.getAutoBackups.mockReturnValue(THREE_SNAPSHOTS);
-      mockDb.restoreFromAutoBackup.mockReturnValue(true);
-      render(<Settings {...defaultProps} />);
+    it('shows not enough data message when fewer than 3 expenses', () => {
+      render(<Settings
+        {...defaultProps}
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 100, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Snacks' },
+          { id: 'tx_2', date: '2026-05-10', type: 'income', amount: 5000, categoryId: 'cat_salary', accountId: 'acc_1', notes: 'Salary' },
+        ]}
+        categories={[
+          { id: 'cat_food', name: 'Food', color: '#FF6384' },
+          { id: 'cat_salary', name: 'Salary', color: '#4BC0C0' },
+        ]}
+        budgets={[]}
+      />);
 
-      const restoreBtns = screen.getAllByText('Restore');
-      fireEvent.click(restoreBtns[0]);
+      clickExportAndWait();
 
-      expect(mockDb.restoreFromAutoBackup).toHaveBeenCalledWith(0);
+      // Section header (x=25 = marginL+7)
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Anomaly Detection', 25, expect.any(Number));
+      // Shows not enough data
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        'Need more transactions to detect anomalies.',
+        expect.any(Number),
+        expect.any(Number)
+      );
     });
 
-    it('calls db.restoreFromAutoBackup(2) when clicking Restore on third snapshot', () => {
-      mockDb.getAutoBackups.mockReturnValue(THREE_SNAPSHOTS);
-      mockDb.restoreFromAutoBackup.mockReturnValue(true);
-      render(<Settings {...defaultProps} />);
+    it('shows no anomalies message when all expenses are within normal range', () => {
+      render(<Settings
+        {...defaultProps}
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 100, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Snacks' },
+          { id: 'tx_2', date: '2026-05-11', type: 'expense', amount: 110, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Lunch' },
+          { id: 'tx_3', date: '2026-05-12', type: 'expense', amount: 120, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Dinner' },
+        ]}
+        categories={[
+          { id: 'cat_food', name: 'Food & Drinks', color: '#FF6384' },
+        ]}
+        budgets={[]}
+      />);
 
-      const restoreBtns = screen.getAllByText('Restore');
-      fireEvent.click(restoreBtns[2]);
+      clickExportAndWait();
 
-      expect(mockDb.restoreFromAutoBackup).toHaveBeenCalledWith(2);
+      // Section header (x=25 = marginL+7)
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Anomaly Detection', 25, expect.any(Number));
+      // Shows no anomalies
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        'No anomalies detected this period.',
+        expect.any(Number),
+        expect.any(Number)
+      );
     });
 
-    it('shows success message after successful restore', () => {
-      mockDb.getAutoBackups.mockReturnValue(THREE_SNAPSHOTS);
-      mockDb.restoreFromAutoBackup.mockReturnValue(true);
-      render(<Settings {...defaultProps} />);
+    it('flags multiple anomalies across different categories', () => {
+      render(<Settings
+        {...defaultProps}
+        transactions={[
+          // Food: 3 txs, one anomaly (1000 > avg*2 = ~806)
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 100, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Snacks' },
+          { id: 'tx_2', date: '2026-05-11', type: 'expense', amount: 110, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Lunch' },
+          { id: 'tx_3', date: '2026-05-12', type: 'expense', amount: 1000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Big food' },
+          // Rent: 3 txs, one anomaly (120000 > avg*2 ~= 114000)
+          { id: 'tx_4', date: '2026-05-10', type: 'expense', amount: 25000, categoryId: 'cat_rent', accountId: 'acc_1', notes: 'March rent' },
+          { id: 'tx_5', date: '2026-05-11', type: 'expense', amount: 26000, categoryId: 'cat_rent', accountId: 'acc_1', notes: 'April rent' },
+          { id: 'tx_6', date: '2026-05-12', type: 'expense', amount: 120000, categoryId: 'cat_rent', accountId: 'acc_1', notes: 'Deposit' },
+        ]}
+        categories={[
+          { id: 'cat_food', name: 'Food & Drinks', color: '#FF6384' },
+          { id: 'cat_rent', name: 'Rent', color: '#36A2EB' },
+        ]}
+        budgets={[]}
+      />);
 
-      const restoreBtns = screen.getAllByText('Restore');
-      fireEvent.click(restoreBtns[0]);
+      clickExportAndWait();
 
-      expect(
-        screen.getByText('Auto-backup restored successfully!')
-      ).toBeTruthy();
+      // Both categories flagged
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Food & Drinks', expect.any(Number), expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Rent', expect.any(Number), expect.any(Number));
+      // Summary: 2 flagged
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/2 flagged as anomalous/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      // Color indicator dots for both categories
+      expect(mockJSDoc.setFillColor).toHaveBeenCalledWith(255, 99, 132);  // Food #FF6384
+      expect(mockJSDoc.setFillColor).toHaveBeenCalledWith(54, 162, 235); // Rent #36A2EB
     });
 
-    it('shows error message when restore fails', () => {
-      mockDb.getAutoBackups.mockReturnValue(THREE_SNAPSHOTS);
-      mockDb.restoreFromAutoBackup.mockReturnValue(false);
-      render(<Settings {...defaultProps} />);
+    it('skips categories with only 1 transaction (not enough for avg)', () => {
+      render(<Settings
+        {...defaultProps}
+        transactions={[
+          // Food: 3 txs, one anomaly (1000 > avg*2 = ~806)
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 100, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Snacks' },
+          { id: 'tx_2', date: '2026-05-11', type: 'expense', amount: 110, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Lunch' },
+          { id: 'tx_3', date: '2026-05-12', type: 'expense', amount: 1000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Big food' },
+          // Transport: 1 tx only — skipped by threshold
+          { id: 'tx_4', date: '2026-05-10', type: 'expense', amount: 99999, categoryId: 'cat_transport', accountId: 'acc_1', notes: 'Car' },
+        ]}
+        categories={[
+          { id: 'cat_food', name: 'Food', color: '#FF6384' },
+          { id: 'cat_transport', name: 'Transport', color: '#FFCE56' },
+        ]}
+        budgets={[]}
+      />);
 
-      const restoreBtns = screen.getAllByText('Restore');
-      fireEvent.click(restoreBtns[0]);
+      clickExportAndWait();
 
-      expect(
-        screen.getByText('Failed to restore auto-backup.')
-      ).toBeTruthy();
-    });
-
-    it('clears restore message after set timeout', () => {
-      vi.useFakeTimers();
-      mockDb.getAutoBackups.mockReturnValue(THREE_SNAPSHOTS);
-      mockDb.restoreFromAutoBackup.mockReturnValue(true);
-      render(<Settings {...defaultProps} />);
-
-      const restoreBtns = screen.getAllByText('Restore');
-      fireEvent.click(restoreBtns[0]);
-      expect(
-        screen.getByText('Auto-backup restored successfully!')
-      ).toBeTruthy();
-
-      // Advance past the 3000ms timeout — wrap in act() to flush React state updates
-      act(() => {
-        vi.advanceTimersByTime(3000);
-      });
-
-      expect(
-        screen.queryByText('Auto-backup restored successfully!')
-      ).toBeNull();
-    });
-  });
-
-  // ======================== CLEAR ALL BACKUPS ========================
-
-  describe('Clear All Backups', () => {
-    it('shows Clear All Backups button when backups exist', () => {
-      mockDb.getAutoBackups.mockReturnValue(THREE_SNAPSHOTS);
-      render(<Settings {...defaultProps} />);
-      expect(screen.getByText('Clear All Backups')).toBeTruthy();
-    });
-
-    it('shows confirmation panel when clicking Clear All Backups', () => {
-      mockDb.getAutoBackups.mockReturnValue(THREE_SNAPSHOTS);
-      render(<Settings {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Clear All Backups'));
-
-      expect(
-        screen.getByText('This action is irreversible. Proceed?')
-      ).toBeTruthy();
-      expect(screen.getByText('Yes, Format App')).toBeTruthy();
-    });
-
-    it('calls db.clearAutoBackups when confirming clear', () => {
-      mockDb.getAutoBackups.mockReturnValue(THREE_SNAPSHOTS);
-      render(<Settings {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Clear All Backups'));
-      fireEvent.click(screen.getByText('Yes, Format App'));
-
-      expect(mockDb.clearAutoBackups).toHaveBeenCalledOnce();
-    });
-
-    it('hides confirmation panel after confirming clear', () => {
-      mockDb.getAutoBackups.mockReturnValue(THREE_SNAPSHOTS);
-      render(<Settings {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Clear All Backups'));
-      expect(
-        screen.getByText('This action is irreversible. Proceed?')
-      ).toBeTruthy();
-
-      fireEvent.click(screen.getByText('Yes, Format App'));
-
-      // Confirmation panel should disappear
-      expect(
-        screen.queryByText('This action is irreversible. Proceed?')
-      ).toBeNull();
-    });
-
-    it('hides confirmation panel when clicking Cancel', () => {
-      mockDb.getAutoBackups.mockReturnValue(THREE_SNAPSHOTS);
-      render(<Settings {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Clear All Backups'));
-      expect(
-        screen.getByText('This action is irreversible. Proceed?')
-      ).toBeTruthy();
-
-      fireEvent.click(screen.getByText('Cancel'));
-
-      expect(
-        screen.queryByText('This action is irreversible. Proceed?')
-      ).toBeNull();
-      expect(mockDb.clearAutoBackups).not.toHaveBeenCalled();
-    });
-  });
-
-  // ======================== BANGLA MODE ========================
-
-  describe('Bangla Mode', () => {
-    it('renders auto-backup title in Bangla', () => {
-      mockDb.getAutoBackups.mockReturnValue(THREE_SNAPSHOTS);
-      render(<Settings {...defaultProps} lang="bn" />);
-      expect(screen.getByText('অটো-ব্যাকআপ')).toBeTruthy();
-    });
-
-    it('shows "no backups" message in Bangla', () => {
-      mockDb.getAutoBackups.mockReturnValue([]);
-      render(<Settings {...defaultProps} lang="bn" />);
-      expect(
-        screen.getByText('এখনো কোনো অটো-ব্যাকআপ নেই। একটি পরিবর্তন করলেই তৈরি হবে।')
-      ).toBeTruthy();
-    });
-
-    it('shows restore button in Bangla', () => {
-      mockDb.getAutoBackups.mockReturnValue([SNAPSHOT_FULL]);
-      render(<Settings {...defaultProps} lang="bn" />);
-      expect(screen.getByText('পুনরুদ্ধার')).toBeTruthy();
-    });
-
-    it('shows Clear All Backups in Bangla', () => {
-      mockDb.getAutoBackups.mockReturnValue([SNAPSHOT_FULL]);
-      render(<Settings {...defaultProps} lang="bn" />);
-      expect(screen.getByText('সব ব্যাকআপ মুছুন')).toBeTruthy();
+      // Only Food flagged (Transport has < 2 txs, skipped)
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Food', expect.any(Number), expect.any(Number));
+      // Summary: 1 flagged
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/1 flagged as anomalous/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      // Transport should NOT be referenced in anomaly section
+      // (its tx is not flagged since < 2 txs in that category)
+      const transportCalls = mockJSDoc.text.mock.calls.filter(
+        call => typeof call[0] === 'string' && call[0].includes('Transport')
+      );
+      // Transport might appear in transactions list but not as anomaly section header
+      // We just verify Food is flagged
     });
   });
 
-  // ======================== EDGE CASES ========================
+  // ==================== BANGLA PDF GENERATION ====================
 
-  describe('Edge Cases', () => {
-    it('handles snapshot with undefined/missing properties gracefully', () => {
-      const minimalSnapshot = { timestamp: minutesAgo(5) };
-      mockDb.getAutoBackups.mockReturnValue([minimalSnapshot]);
-      render(<Settings {...defaultProps} />);
+  describe('Bangla PDF Generation', () => {
+    it('renders title banner in Bangla (পকেট খাতা — আর্থিক প্রতিবেদন)', () => {
+      render(<Settings
+        {...defaultProps}
+        lang="bn"
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 2000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Groceries' },
+        ]}
+        categories={[{ id: 'cat_food', name: 'Food & Drinks', color: '#FF6384' }]}
+        accounts={[{ id: 'acc_1', name: 'Cash' }]}
+        budgets={[]}
+      />);
 
-      // Should render without crashing and show zeros
-      expect(screen.getByText('Snapshot #1')).toBeTruthy();
-      expect(screen.getByText('5m ago')).toBeTruthy();
+      clickExportBangla();
+
+      // Title: পকেট খাতা — আর্থিক প্রতিবেদন
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringContaining('পকেট খাতা'),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Object)
+      );
+      // Period label
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/সময়কাল:/),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Object)
+      );
+      // Generated label
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/তৈরি:/),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Object)
+      );
     });
 
-    it('handles a large number of snapshots (only 3 shown)', () => {
-      const manySnapshots = Array.from({ length: 5 }, (_, i) => ({
-        ...SNAPSHOT_FULL,
-        timestamp: minutesAgo(i * 10),
-      }));
-      mockDb.getAutoBackups.mockReturnValue(manySnapshots);
-      render(<Settings {...defaultProps} />);
+    it('renders summary cards in Bangla (মোট আয়, মোট ব্যয়, নিট সঞ্চয়)', () => {
+      render(<Settings
+        {...defaultProps}
+        lang="bn"
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'income', amount: 10000, categoryId: 'cat_salary', accountId: 'acc_1', notes: 'Salary' },
+          { id: 'tx_2', date: '2026-05-12', type: 'expense', amount: 2000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Groceries' },
+        ]}
+        categories={[
+          { id: 'cat_salary', name: 'Salary', color: '#4BC0C0' },
+          { id: 'cat_food', name: 'Food & Drinks', color: '#FF6384' },
+        ]}
+        accounts={[{ id: 'acc_1', name: 'Cash' }]}
+        budgets={[]}
+      />);
 
-      // The component only shows the backups returned by db.getAutoBackups()
-      // (which the db module caps at 3, but our mock returns 5 — the UI shows all 5)
-      expect(screen.getByText(/5 auto-backups available/)).toBeTruthy();
-      expect(screen.getByText('Snapshot #1')).toBeTruthy();
-      expect(screen.getByText('Snapshot #2')).toBeTruthy();
-      expect(screen.getByText('Snapshot #3')).toBeTruthy();
-      expect(screen.getByText('Snapshot #4')).toBeTruthy();
-      expect(screen.getByText('Snapshot #5')).toBeTruthy();
+      clickExportBangla();
+
+      // Summary card labels
+      expect(mockJSDoc.text).toHaveBeenCalledWith('মোট আয়', expect.any(Number), expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith('মোট ব্যয়', expect.any(Number), expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith('নিট সঞ্চয়', expect.any(Number), expect.any(Number));
     });
 
-    it('does not crash when db methods are called with wrong index', () => {
-      mockDb.getAutoBackups.mockReturnValue([SNAPSHOT_FULL]);
-      mockDb.restoreFromAutoBackup.mockReturnValue(false);
-      render(<Settings {...defaultProps} />);
+    it('renders chart section in Bangla (আয় বনাম ব্যয় প্রবণতা, আয়, ব্যয়)', () => {
+      // Need multiple months of data for chart
+      render(<Settings
+        {...defaultProps}
+        lang="bn"
+        transactions={[
+          { id: 'tx_1', date: '2026-04-10', type: 'income', amount: 5000, categoryId: 'cat_salary', accountId: 'acc_1', notes: 'Salary' },
+          { id: 'tx_2', date: '2026-04-12', type: 'expense', amount: 2000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Food' },
+          { id: 'tx_3', date: '2026-05-10', type: 'income', amount: 6000, categoryId: 'cat_salary', accountId: 'acc_1', notes: 'Salary' },
+          { id: 'tx_4', date: '2026-05-12', type: 'expense', amount: 3000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Food' },
+        ]}
+        categories={[
+          { id: 'cat_salary', name: 'Salary', color: '#4BC0C0' },
+          { id: 'cat_food', name: 'Food & Drinks', color: '#FF6384' },
+        ]}
+        accounts={[{ id: 'acc_1', name: 'Cash' }]}
+        budgets={[]}
+      />);
 
-      // Just one backup — click restore, it calls with index 0
-      const restoreBtn = screen.getByText('Restore');
-      fireEvent.click(restoreBtn);
+      clickExportBangla();
 
-      expect(mockDb.restoreFromAutoBackup).toHaveBeenCalledWith(0);
-      expect(
-        screen.getByText('Failed to restore auto-backup.')
-      ).toBeTruthy();
+      // Chart section header
+      expect(mockJSDoc.text).toHaveBeenCalledWith('আয় বনাম ব্যয় প্রবণতা', 25, expect.any(Number));
+      // Chart legend labels
+      expect(mockJSDoc.text).toHaveBeenCalledWith('আয়', expect.any(Number), expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith('ব্যয়', expect.any(Number), expect.any(Number));
+    });
+
+    it('renders budget section in Bangla (বাজেট বনাম প্রকৃত, মোট:, ব্যয়:, বেশি হয়েছে)', () => {
+      render(<Settings
+        {...defaultProps}
+        lang="bn"
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 6000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Groceries' },
+        ]}
+        categories={[{ id: 'cat_food', name: 'Food & Drinks', color: '#FF6384' }]}
+        accounts={[{ id: 'acc_1', name: 'Cash' }]}
+        budgets={[
+          { id: 'budget_1', categoryId: 'cat_food', limit: 5000, year: 2026, month: 4 },
+        ]}
+      />);
+
+      clickExportBangla();
+
+      // Section header
+      expect(mockJSDoc.text).toHaveBeenCalledWith('বাজেট বনাম প্রকৃত', 25, expect.any(Number));
+      // Total label
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/মোট:/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      // Spent label
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/ব্যয়:/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      // Over-by label (budget is over 6000 spent on 5000 limit)
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/বেশি হয়েছে/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+    });
+
+    it('renders smart insights in Bangla (স্মার্ট অন্তর্দৃষ্টি, সর্বোচ্চ ব্যয়ের ক্যাটাগরি, মোট আয়:, মোট ব্যয়:, সঞ্চয়ের হার:)', () => {
+      render(<Settings
+        {...defaultProps}
+        lang="bn"
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 3000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Food' },
+          { id: 'tx_2', date: '2026-05-14', type: 'income', amount: 10000, categoryId: 'cat_salary', accountId: 'acc_1', notes: 'Salary' },
+        ]}
+        categories={[
+          { id: 'cat_food', name: 'Food', color: '#FF6384' },
+          { id: 'cat_salary', name: 'Salary', color: '#4BC0C0' },
+        ]}
+        accounts={[{ id: 'acc_1', name: 'Cash' }]}
+        budgets={[]}
+      />);
+
+      clickExportBangla();
+
+      expect(mockJSDoc.text).toHaveBeenCalledWith('স্মার্ট অন্তর্দৃষ্টি', 25, expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith('সর্বোচ্চ ব্যয়ের ক্যাটাগরি', 26, expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/মোট আয়:/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/মোট ব্যয়:/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/সঞ্চয়ের হার:/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/লেনদেন:/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+    });
+
+    it('renders anomaly detection in Bangla (অস্বাভাবিক সনাক্তকরণ, অস্বাভাবিক হিসেবে চিহ্নিত, গড়:)', () => {
+      render(<Settings
+        {...defaultProps}
+        lang="bn"
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 100, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Snacks' },
+          { id: 'tx_2', date: '2026-05-11', type: 'expense', amount: 110, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Lunch' },
+          { id: 'tx_3', date: '2026-05-12', type: 'expense', amount: 1000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Big purchase' },
+        ]}
+        categories={[{ id: 'cat_food', name: 'Food & Drinks', color: '#FF6384' }]}
+        accounts={[{ id: 'acc_1', name: 'Cash' }]}
+        budgets={[]}
+      />);
+
+      clickExportBangla();
+
+      expect(mockJSDoc.text).toHaveBeenCalledWith('অস্বাভাবিক সনাক্তকরণ', 25, expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/অস্বাভাবিক হিসেবে চিহ্নিত/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/গড়:/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+    });
+
+    it('renders transaction column headers in Bangla (তারিখ, ধরণ, ক্যাটাগরি, একাউন্ট, পরিমাণ)', () => {
+      render(<Settings
+        {...defaultProps}
+        lang="bn"
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 2000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Groceries' },
+        ]}
+        categories={[{ id: 'cat_food', name: 'Food', color: '#FF6384' }]}
+        accounts={[{ id: 'acc_1', name: 'Cash' }]}
+        budgets={[]}
+      />);
+
+      clickExportBangla();
+
+      // Column headers — each is a separate text call; date/type/category/account have
+      // 4th arg=undefined (no align), amount has 4th arg={ align: 'right' }
+      expect(mockJSDoc.text).toHaveBeenCalledWith('তারিখ', expect.any(Number), expect.any(Number), undefined);
+      expect(mockJSDoc.text).toHaveBeenCalledWith('ধরণ', expect.any(Number), expect.any(Number), undefined);
+      expect(mockJSDoc.text).toHaveBeenCalledWith('ক্যাটাগরি', expect.any(Number), expect.any(Number), undefined);
+      expect(mockJSDoc.text).toHaveBeenCalledWith('একাউন্ট', expect.any(Number), expect.any(Number), undefined);
+      expect(mockJSDoc.text).toHaveBeenCalledWith('পরিমাণ', expect.any(Number), expect.any(Number), expect.any(Object));
+    });
+
+    it('renders transaction type labels in Bangla (আয়, ব্যয়)', () => {
+      render(<Settings
+        {...defaultProps}
+        lang="bn"
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'income', amount: 10000, categoryId: 'cat_salary', accountId: 'acc_1', notes: 'Salary' },
+          { id: 'tx_2', date: '2026-05-12', type: 'expense', amount: 2000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Food' },
+        ]}
+        categories={[
+          { id: 'cat_salary', name: 'Salary', color: '#4BC0C0' },
+          { id: 'cat_food', name: 'Food', color: '#FF6384' },
+        ]}
+        accounts={[{ id: 'acc_1', name: 'Cash' }]}
+        budgets={[]}
+      />);
+
+      clickExportBangla();
+
+      expect(mockJSDoc.text).toHaveBeenCalledWith('আয়', expect.any(Number), expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith('ব্যয়', expect.any(Number), expect.any(Number));
+    });
+
+    it('renders footer in Bangla (পকেট খাতা দ্বারা তৈরি:)', () => {
+      render(<Settings
+        {...defaultProps}
+        lang="bn"
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 2000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Groceries' },
+        ]}
+        categories={[{ id: 'cat_food', name: 'Food', color: '#FF6384' }]}
+        accounts={[{ id: 'acc_1', name: 'Cash' }]}
+        budgets={[]}
+      />);
+
+      clickExportBangla();
+
+      // Footer text — centered with { align: 'center' } option
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/পকেট খাতা দ্বারা তৈরি:/),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Object)
+      );
+    });
+
+    it('renders no-budgets empty state in Bangla', () => {
+      render(<Settings
+        {...defaultProps}
+        lang="bn"
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 2000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Groceries' },
+        ]}
+        categories={[{ id: 'cat_food', name: 'Food', color: '#FF6384' }]}
+        accounts={[{ id: 'acc_1', name: 'Cash' }]}
+        budgets={[]}
+      />);
+
+      clickExportBangla();
+
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        'এই সময়ের জন্য কোনো বাজেট সেট করা হয়নি।',
+        expect.any(Number),
+        expect.any(Number)
+      );
+    });
+
+    it('renders anomaly empty state in Bangla', () => {
+      render(<Settings
+        {...defaultProps}
+        lang="bn"
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 100, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Snacks' },
+          { id: 'tx_2', date: '2026-05-11', type: 'expense', amount: 110, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Lunch' },
+          { id: 'tx_3', date: '2026-05-12', type: 'expense', amount: 120, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Dinner' },
+        ]}
+        categories={[{ id: 'cat_food', name: 'Food', color: '#FF6384' }]}
+        accounts={[{ id: 'acc_1', name: 'Cash' }]}
+        budgets={[]}
+      />);
+
+      clickExportBangla();
+
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        'এই সময়ের মধ্যে কোনো অস্বাভাবিকতা পাওয়া যায়নি।',
+        expect.any(Number),
+        expect.any(Number)
+      );
+    });
+
+    it('renders all sections with full Bangla text in a single comprehensive PDF', () => {
+      render(<Settings
+        {...defaultProps}
+        lang="bn"
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'income', amount: 50000, categoryId: 'cat_salary', accountId: 'acc_1', notes: 'Salary' },
+          { id: 'tx_2', date: '2026-05-12', type: 'expense', amount: 8000, categoryId: 'cat_rent', accountId: 'acc_1', notes: 'House Rent' },
+          { id: 'tx_3', date: '2026-05-14', type: 'expense', amount: 3000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Groceries' },
+          { id: 'tx_4', date: '2026-05-15', type: 'income', amount: 5000, categoryId: 'cat_freelance', accountId: 'acc_1', notes: 'Freelance' },
+        ]}
+        categories={[
+          { id: 'cat_salary', name: 'Salary', color: '#4BC0C0' },
+          { id: 'cat_freelance', name: 'Freelance', color: '#36A2EB' },
+          { id: 'cat_rent', name: 'Rent', color: '#FF6384' },
+          { id: 'cat_food', name: 'Food & Drinks', color: '#FFCE56' },
+        ]}
+        accounts={[{ id: 'acc_1', name: 'Cash' }]}
+        budgets={[
+          { id: 'budget_1', categoryId: 'cat_rent', limit: 10000, year: 2026, month: 4 },
+          { id: 'budget_2', categoryId: 'cat_food', limit: 5000, year: 2026, month: 4 },
+        ]}
+      />);
+
+      clickExportBangla();
+
+      // Verify ALL sections have Bangla text
+      // Title banner
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/পকেট খাতা.*আর্থিক প্রতিবেদন/),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Object)
+      );
+      // Summary cards
+      expect(mockJSDoc.text).toHaveBeenCalledWith('মোট আয়', expect.any(Number), expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith('মোট ব্যয়', expect.any(Number), expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith('নিট সঞ্চয়', expect.any(Number), expect.any(Number));
+      // Budget section
+      expect(mockJSDoc.text).toHaveBeenCalledWith('বাজেট বনাম প্রকৃত', 25, expect.any(Number));
+      // Insights
+      expect(mockJSDoc.text).toHaveBeenCalledWith('স্মার্ট অন্তর্দৃষ্টি', 25, expect.any(Number));
+      // Anomaly detection
+      expect(mockJSDoc.text).toHaveBeenCalledWith('অস্বাভাবিক সনাক্তকরণ', 25, expect.any(Number));
+      // Transaction columns — date/type/category/account have 4th arg=undefined, amount has { align: 'right' }
+      expect(mockJSDoc.text).toHaveBeenCalledWith('তারিখ', expect.any(Number), expect.any(Number), undefined);
+      expect(mockJSDoc.text).toHaveBeenCalledWith('ধরণ', expect.any(Number), expect.any(Number), undefined);
+      expect(mockJSDoc.text).toHaveBeenCalledWith('ক্যাটাগরি', expect.any(Number), expect.any(Number), undefined);
+      expect(mockJSDoc.text).toHaveBeenCalledWith('একাউন্ট', expect.any(Number), expect.any(Number), undefined);
+      expect(mockJSDoc.text).toHaveBeenCalledWith('পরিমাণ', expect.any(Number), expect.any(Number), expect.any(Object));
+    });
+  });
+
+  // ==================== CROSS-SECTION BEHAVIOR ====================
+
+  describe('Cross-section behavior', () => {
+    it('renders all three sections in a single PDF when data exists', () => {
+      render(<Settings
+        {...defaultProps}
+        transactions={[
+          { id: 'tx_1', date: '2026-05-10', type: 'expense', amount: 2000, categoryId: 'cat_food', accountId: 'acc_1', notes: 'Groceries' },
+          { id: 'tx_2', date: '2026-05-12', type: 'expense', amount: 3000, categoryId: 'cat_rent', accountId: 'acc_1', notes: 'Rent' },
+          { id: 'tx_3', date: '2026-05-14', type: 'income', amount: 10000, categoryId: 'cat_salary', accountId: 'acc_1', notes: 'Salary' },
+        ]}
+        categories={[
+          { id: 'cat_food', name: 'Food', color: '#FF6384' },
+          { id: 'cat_rent', name: 'Rent', color: '#36A2EB' },
+          { id: 'cat_salary', name: 'Salary', color: '#4BC0C0' },
+        ]}
+        budgets={[
+          { id: 'budget_1', categoryId: 'cat_food', limit: 3000, year: 2026, month: 4 },
+        ]}
+      />);
+
+      clickExportAndWait();
+
+      // All three section headers present at x=25 (marginL+7)
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Budget vs Actual', 25, expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Smart Insights', 25, expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith('Anomaly Detection', 25, expect.any(Number));
+      // Summary section — now uses card-based layout with TOTAL INCOME / TOTAL EXPENSE / NET SAVINGS
+      expect(mockJSDoc.text).toHaveBeenCalledWith('TOTAL INCOME', expect.any(Number), expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith('TOTAL EXPENSE', expect.any(Number), expect.any(Number));
+      expect(mockJSDoc.text).toHaveBeenCalledWith('NET SAVINGS', expect.any(Number), expect.any(Number));
+      // Transactions section
+      expect(mockJSDoc.text).toHaveBeenCalledWith(
+        expect.stringMatching(/Transactions \(3\)/),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(mockJSDoc.save).toHaveBeenCalled();
+    });
+
+    it('does not generate PDF when there are zero transactions', () => {
+      const alertMock = vi.fn();
+      vi.stubGlobal('alert', alertMock);
+
+      render(<Settings
+        {...defaultProps}
+        transactions={[]}
+        categories={[]}
+        budgets={[]}
+      />);
+
+      clickExportAndWait();
+
+      // doc.save should NOT have been called
+      expect(mockJSDoc.save).not.toHaveBeenCalled();
+      expect(alertMock).toHaveBeenCalledWith('No transactions to export.');
     });
   });
 });

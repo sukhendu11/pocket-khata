@@ -388,7 +388,84 @@ body {
 }
 
 /* Icon bounce */
-/* Notification shake for errors */
+/* Menu dropdown — smooth scale + fade entrance */
+.menu-dropdown {
+  animation: menuSlideIn 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+  transform-origin: top left;
+}
+
+@keyframes menuSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Menu button click feedback */
+.menu-btn-icon {
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.menu-btn-icon:active {
+  transform: scale(0.88);
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--text-secondary);
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  box-shadow: var(--neomorphic-pressed-sm);
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: #fff;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--accent-color);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(16px);
+}
+
+.toggle-switch input:disabled + .toggle-slider {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* Hide scrollbar utility */
 .hide-scrollbar {
   scrollbar-width: none;

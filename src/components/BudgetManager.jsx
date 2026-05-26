@@ -36,7 +36,8 @@ export default function BudgetManager({
           return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
         })
         .reduce((sum, tx) => sum + tx.amount, 0);
-      const percentage = b.limit > 0 ? Math.min((spent / b.limit) * 100, 100) : 0;
+      const percentage = b.limit > 0 ? Math.min((spent / b.limit) * 100, 100) : (spent > 0 ? 100 : 0);
+      const displayPct = b.limit === 0 && spent > 0 ? '100%+' : formatPercent(percentage, lang);
       return {
         ...b,
         categoryName: cat?.name || 'Unknown',
@@ -44,6 +45,7 @@ export default function BudgetManager({
         spent,
         remaining: b.limit - spent,
         percentage,
+        displayPct,
         isOverBudget: spent > b.limit,
         isNearLimit: percentage >= 80 && spent <= b.limit,
       };
@@ -205,8 +207,7 @@ export default function BudgetManager({
                     ? `${t('budget.overByAmount', lang)} ৳${formatNumber(Math.abs(b.remaining), lang)}`
                     : `${formatNumber(b.remaining, lang)} ${t('budget.remainingAmount', lang)}`
                   }
-                </span>
-                <span style={styles.pctText}>{formatPercent(b.percentage, lang)}</span>
+                </span>                        <span style={styles.pctText}>{b.displayPct}</span>
               </div>
 
               {/* Status Badges */}

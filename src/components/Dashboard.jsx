@@ -262,25 +262,27 @@ export default function Dashboard({
         ))}
       </div>
 
-      {/* 4.5 Budget & Savings Mini Cards */}
-      {(budgets?.length > 0 || savingsGoals?.length > 0) && (
-        <div style={styles.miniCardsRow}>
-          {budgets?.length > 0 && (
-            <div className="neo-raised-sm" style={styles.miniCard} onClick={() => onNavigate('budgets')}>
-              <div style={styles.miniCardIcon}><PieChartIcon size={14} style={{ color: 'var(--accent-color)' }} /></div>
-              <span style={styles.miniCardLabel}>{t('budget.title', lang)}</span>
-              <span style={styles.miniCardCount}>{formatNumber(budgets.length, lang)} {t('dashboard.active', lang)}</span>
-            </div>
-          )}
-          {savingsGoals?.length > 0 && (
-            <div className="neo-raised-sm" style={styles.miniCard} onClick={() => onNavigate('savings')}>
-              <div style={styles.miniCardIcon}><Target size={14} style={{ color: 'var(--color-income)' }} /></div>
-              <span style={styles.miniCardLabel}>{t('savings.title', lang)}</span>
-              <span style={styles.miniCardCount}>{formatNumber(savingsGoals.filter(g => g.currentAmount >= g.targetAmount).length, lang)}/{formatNumber(savingsGoals.length, lang)} {t('dashboard.done', lang)}</span>
-            </div>
-          )}
+      {/* 4.5 Budget & Savings Mini Cards — Always visible for quick access */}
+      <div style={styles.miniCardsRow}>
+        <div className="neo-raised-sm" style={styles.miniCard} onClick={() => onNavigate('budgets')}>
+          <div style={styles.miniCardIcon}><PieChartIcon size={14} style={{ color: 'var(--accent-color)' }} /></div>
+          <span style={styles.miniCardLabel}>{t('budget.title', lang)}</span>
+          <span style={styles.miniCardCount}>
+            {budgets?.length > 0
+              ? `${formatNumber(budgets.length, lang)} ${t('dashboard.active', lang)}`
+              : t('dashboard.createFirst', lang)}
+          </span>
         </div>
-      )}
+        <div className="neo-raised-sm" style={styles.miniCard} onClick={() => onNavigate('savings')}>
+          <div style={styles.miniCardIcon}><Target size={14} style={{ color: 'var(--color-income)' }} /></div>
+          <span style={styles.miniCardLabel}>{t('savings.title', lang)}</span>
+          <span style={styles.miniCardCount}>
+            {savingsGoals?.length > 0
+              ? `${formatNumber(savingsGoals.filter(g => g.currentAmount >= g.targetAmount).length, lang)}/${formatNumber(savingsGoals.length, lang)} ${t('dashboard.done', lang)}`
+              : t('dashboard.createFirst', lang)}
+          </span>
+        </div>
+      </div>
 
       {/* 5. Overview — Income vs Expense Summary Card */}
       <div style={styles.sectionHeader}>

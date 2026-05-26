@@ -262,149 +262,21 @@ describe('auto-backup', () => {
   });
 });
 
-// ========== CLEAR DEMO DATA TESTS ==========
-
-describe('clearDemoData', () => {
-
-  it('removes demo accounts, transactions, and reminders; keeps default categories', () => {
-    const result = db.clearDemoData();
-
-    // Demo accounts (4) should be gone
-    expect(result.accounts.length).toBe(0);
-
-    // Default categories (17) are system-defined and kept even after clearing demo data
-    expect(result.categories.length).toBe(17);
-    expect(result.categories[0].default).toBe(true);
-
-    // Demo transactions (5) should be gone
-    expect(result.transactions.length).toBe(0);
-
-    // Demo reminders (3) should be gone
-    expect(result.reminders.length).toBe(0);
-  });
-
-  it('preserves user-added data', () => {
-    // Add user data first
-    db.addAccount({ name: 'My Savings', type: 'Bank', balance: 10000 });
-    db.addCategory({ name: 'Groceries', type: 'expense', icon: 'ShoppingCart', color: '#ff0000' });
-    const userAcc = db.getAccounts()[0];
-    db.addTransaction({
-      type: 'expense', amount: 2500, date: '2026-05-01',
-      accountId: userAcc.id,
-      categoryId: db.getCategories()[0].id,
-      notes: 'Weekly groceries',
-    });
-    db.addReminder({ name: 'Water Bill', amount: 1200, dueDate: '2026-06-01', categoryId: 'cat_utilities' });
-
-    const result = db.clearDemoData();
-
-    // User-added account should remain
-    expect(result.accounts.length).toBeGreaterThanOrEqual(1);
-    expect(result.accounts.some(a => a.name === 'My Savings')).toBe(true);
-
-    // User-added category should remain
-    expect(result.categories.some(c => c.name === 'Groceries')).toBe(true);
-
-    // User transaction should remain
-    expect(result.transactions.length).toBeGreaterThanOrEqual(1);
-
-    // User reminder should remain
-    expect(result.reminders.some(r => r.name === 'Water Bill')).toBe(true);
-  });
-
-  it('keeps categories referenced by real transactions', () => {
-    // Add a user account
-    const acc = db.addAccount({ name: 'My Account', type: 'Cash', balance: 5000 });
-
-    // Add a real transaction referencing a default category
-    db.addTransaction({
-      type: 'expense', amount: 500, date: '2026-05-15',
-      accountId: acc.id,
-      categoryId: 'cat_food',
-      notes: 'Real transaction using default category',
-    });
-
-    const result = db.clearDemoData();
-
-    // The 'Food & Dining' category should be kept since a real transaction references it
-    const keptCategories = result.categories;
-    expect(keptCategories.some(c => c.id === 'cat_food')).toBe(true);
-
-    // Other default categories (like cat_shopping) are system-defined and kept regardless
-    expect(keptCategories.some(c => c.id === 'cat_shopping')).toBe(true);
-  });
-
-  it('recalculates account balances after clearing demo transactions', () => {
-    // Add a real account and real income transaction
-    const userAcc = db.addAccount({ name: 'My Checking', type: 'Bank', balance: 0 });
-    expect(userAcc).toBeDefined();
-
-    db.addTransaction({
-      type: 'income', amount: 30000, date: '2026-05-10',
-      accountId: userAcc.id,
-      categoryId: 'cat_salary',
-      notes: 'Freelance payment',
-    });
-
-    const result = db.clearDemoData();
-
-    // After clearing demo transactions, the user account balance should only reflect the real transaction
-    const updatedAcc = result.accounts.find(a => a.id === userAcc.id);
-    expect(updatedAcc).toBeDefined();
-    // Balance should be 30000 (only the real income, not including demo transactions)
-    expect(updatedAcc.balance).toBe(30000);
-  });
-
-  it('returns empty arrays for non-default data when only demo data exists', () => {
-    const result = db.clearDemoData();
-    expect(result.accounts).toEqual([]);
-    // Default categories (17) are system-defined and always kept
-    expect(result.categories.length).toBe(17);
-    expect(result.transactions).toEqual([]);
-    expect(result.reminders).toEqual([]);
-  });
-
-  it('persists cleared state in localStorage', () => {
-    db.clearDemoData();
-
-    // Re-read from storage
-    const accounts = db.getAccounts();
-    const categories = db.getCategories();
-    const transactions = db.getTransactions();
-    const reminders = db.getReminders();
-
-    // All demo items should be gone
-    expect(accounts.length).toBe(0);
-    // Default categories (17) are system-defined and always kept
-    expect(categories.length).toBe(17);
-    expect(transactions.length).toBe(0);
-    expect(reminders.length).toBe(0);
-  });
-
-  it('does not throw when called on already-cleared data', () => {
-    db.clearDemoData();
-    // Should not throw
-    expect(() => db.clearDemoData()).not.toThrow();
-    const result = db.clearDemoData();
-    expect(result.accounts).toEqual([]);
-  });
-});
-
 // ========== SCHEMA MIGRATION TESTS ==========
 
 describe('schema versioning', () => {
 
-  it('sets schema version to 5 on fresh install', () => {
+  it('sets schema version to 6 on fresh install', () => {
     // localStorage is cleared in beforeEach, so this is a fresh install
     // The module-level migrateSchema() already ran on import, but since localStorage
     // was cleared in beforeEach, it won't have run yet for this test.
     // We trigger getAccounts to force seeding, then check the version
     db.getAccounts();
-    expect(db.getStoredSchemaVersion()).toBe(5);
+    expect(db.getStoredSchemaVersion()).toBe(6);
   });
 
   it('returns schema version info from the API', () => {
-    expect(db.getSchemaVersion()).toBe(5);
+    expect(db.getSchemaVersion()).toBe(6);
     expect(db.getAppVersion()).toBe('2.2.0');
   });
 
@@ -537,7 +409,7 @@ describe('schema versioning', () => {
   it('includes schemaVersion in export', () => {
     const jsonStr = db.exportDatabaseJSON();
     const data = JSON.parse(jsonStr);
-    expect(data.schemaVersion).toBe(5);
+    expect(data.schemaVersion).toBe(6);
   });
 
   it('new items from add* methods have createdAt/updatedAt', () => {
@@ -591,10 +463,10 @@ describe('schema versioning', () => {
     expect(categories[0].createdAt).toBeDefined();
   });
 
-  it('resetDatabase clears schema version and reseeds with v5 data', () => {
+  it('resetDatabase clears schema version and reseeds with v6 data', () => {
     // First, add some data and verify version
     db.addBudget({ categoryId: 'cat_food', limit: 5000, month: 4, year: 2026 });
-    expect(db.getStoredSchemaVersion()).toBe(5);
+    expect(db.getStoredSchemaVersion()).toBe(6);
 
     // Reset
     const result = db.resetDatabase();
@@ -604,8 +476,8 @@ describe('schema versioning', () => {
     expect(result.categories).toHaveLength(17);
     expect(db.getBudgets()).toHaveLength(0);
 
-    // Version should be reset to 5
-    expect(db.getStoredSchemaVersion()).toBe(5);
+    // Version should be reset to 6
+    expect(db.getStoredSchemaVersion()).toBe(6);
 
     // Reseeded data should have v2+ fields (categories still get default seed)
     expect(result.categories[0].archived).toBe(false);

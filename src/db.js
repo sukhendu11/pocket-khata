@@ -35,8 +35,11 @@ let _isCreatingBackup = false;
  *   5 — Removed auto-seeding of demo accounts, transactions, and reminders.
  *       Production starts with empty state. Demo data arrays remain in source
  *       for optional manual/tests use only.
+ *   6 — Added actual v4→v6 migration that cleans up demo data for existing users
+ *       whose localStorage still has pre-v5 seed data (the v5 version bump was
+ *       never accompanied by a real migration).
  */
-const CURRENT_SCHEMA_VERSION = 5;
+const CURRENT_SCHEMA_VERSION = 6;
 
 /**
  * Semantic version string shown in the UI.
@@ -47,13 +50,6 @@ const APP_VERSION = '2.2.0';
 const SEED_TIMESTAMP = new Date().toISOString();
 
 // ========== SEED DATA ==========
-
-const DEFAULT_ACCOUNTS = [
-  { id: 'acc_cash', name: 'Cash', type: 'Cash', balance: 12500, color: '#3cd070', createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP, demo: true },
-  { id: 'acc_bank', name: 'Bank Account', type: 'Bank', balance: 45000, color: '#4a90e2', createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP, demo: true },
-  { id: 'acc_bkash', name: 'bKash Wallet', type: 'Bkash', balance: 8200, color: '#ff5a79', createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP, demo: true },
-  { id: 'acc_nagad', name: 'Nagad Wallet', type: 'Nagad', balance: 4300, color: '#ff8a00', createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP, demo: true },
-];
 
 const DEFAULT_CATEGORIES = [
   // ---- Income (4) ----
@@ -76,60 +72,6 @@ const DEFAULT_CATEGORIES = [
   { id: 'cat_debt', name: 'Debt / Loan', type: 'expense', icon: 'CreditCard', color: '#d63031', subcategories: ['Credit Card', 'Personal Loan', 'Student Loan', 'Mortgage'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
   { id: 'cat_family', name: 'Family / Personal', type: 'expense', icon: 'Heart', color: '#fd79a8', subcategories: ['Family', 'Gifts', 'Donation', 'Personal'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
   { id: 'cat_misc', name: 'Miscellaneous', type: 'expense', icon: 'Sparkles', color: '#636e72', subcategories: ['Other', 'Emergency', 'Misc'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
-];
-
-const DEFAULT_TRANSACTIONS = [
-  {
-    id: 'tx_1', type: 'income', amount: 55000,
-    date: new Date(new Date().setDate(new Date().getDate() - 10)).toISOString().split('T')[0],
-    accountId: 'acc_bank', categoryId: 'cat_salary', notes: 'Monthly Company Salary',
-    recurring: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP, demo: true,
-  },
-  {
-    id: 'tx_2', type: 'expense', amount: 15000,
-    date: new Date(new Date().setDate(new Date().getDate() - 8)).toISOString().split('T')[0],
-    accountId: 'acc_bank', categoryId: 'cat_rent', notes: 'Apartment Rent',
-    recurring: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP, demo: true,
-  },
-  {
-    id: 'tx_3', type: 'expense', amount: 450,
-    date: new Date(new Date().setDate(new Date().getDate() - 5)).toISOString().split('T')[0],
-    accountId: 'acc_cash', categoryId: 'cat_food', notes: 'Lunch at Restaurant',
-    recurring: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP, demo: true,
-  },
-  {
-    id: 'tx_4', type: 'transfer', amount: 5000,
-    date: new Date(new Date().setDate(new Date().getDate() - 3)).toISOString().split('T')[0],
-    accountId: 'acc_bank', transferToId: 'acc_bkash', categoryId: '', notes: 'Added money to bKash',
-    recurring: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP, demo: true,
-  },
-  {
-    id: 'tx_5', type: 'expense', amount: 1200,
-    date: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0],
-    accountId: 'acc_bkash', categoryId: 'cat_shopping', notes: 'T-shirt online purchase',
-    recurring: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP, demo: true,
-  },
-];
-
-const DEFAULT_REMINDERS = [
-  {
-    id: 'rem_1', name: 'Electricity Bill', amount: 1850,
-    dueDate: new Date(new Date().setDate(new Date().getDate() + 4)).toISOString().split('T')[0],
-    categoryId: 'cat_utilities', status: 'unpaid',
-    createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP, demo: true,
-  },
-  {
-    id: 'rem_2', name: 'Internet Subscription', amount: 950,
-    dueDate: new Date(new Date().setDate(new Date().getDate() + 9)).toISOString().split('T')[0],
-    categoryId: 'cat_utilities', status: 'unpaid',
-    createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP, demo: true,
-  },
-  {
-    id: 'rem_3', name: 'Gym Membership', amount: 1500,
-    dueDate: new Date(new Date().setDate(new Date().getDate() - 2)).toISOString().split('T')[0],
-    categoryId: 'cat_entertainment', status: 'paid',
-    createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP, demo: true,
-  },
 ];
 
 const DEFAULT_SECURITY = {
@@ -321,6 +263,41 @@ function migrateSchema() {
     }
   }
 
+  // ---- v4/v5 → v6: Remove demo seed data (accounts, transactions, reminders) ----
+  // This handles users who were on schema v4 or v5 — the v5 version bump was
+  // never accompanied by real migration code, so existing demo data remained.
+  if (version < 6) {
+    let changed = false;
+    let accounts, transactions, reminders;
+
+    try { accounts = JSON.parse(localStorage.getItem(KEYS.ACCOUNTS) || 'null'); } catch (e) {}
+    try { transactions = JSON.parse(localStorage.getItem(KEYS.TRANSACTIONS) || 'null'); } catch (e) {}
+    try { reminders = JSON.parse(localStorage.getItem(KEYS.REMINDERS) || 'null'); } catch (e) {}
+
+    // Filter out demo items
+    const realTransactions = Array.isArray(transactions) ? transactions.filter(tx => !tx.demo) : null;
+    const realAccounts = Array.isArray(accounts) ? accounts.filter(a => !a.demo) : null;
+    const realReminders = Array.isArray(reminders) ? reminders.filter(r => !r.demo) : null;
+
+    // Recalculate account balances from remaining transactions
+    if (realAccounts && realTransactions) {
+      const now = new Date().toISOString();
+      realAccounts.forEach(acc => {
+        acc.balance = recalculateBalance(acc.id, realTransactions);
+        acc.updatedAt = now;
+      });
+    }
+
+    // Write everything back
+    if (realAccounts) { localStorage.setItem(KEYS.ACCOUNTS, JSON.stringify(realAccounts)); changed = true; }
+    if (realTransactions) { localStorage.setItem(KEYS.TRANSACTIONS, JSON.stringify(realTransactions)); changed = true; }
+    if (realReminders) { localStorage.setItem(KEYS.REMINDERS, JSON.stringify(realReminders)); changed = true; }
+
+    if (changed) {
+      console.log('Schema migration v6: removed demo seed data.');
+    }
+  }
+
   // Persist the updated version
   localStorage.setItem(SCHEMA_VERSION_KEY, String(CURRENT_SCHEMA_VERSION));
 }
@@ -486,11 +463,9 @@ function getBudgetSpending(categoryId, month, year) {
     .reduce((sum, tx) => sum + tx.amount, 0);
 }
 
-// ========== DEMO DATA CLEARING ==========
-
 /**
  * Calculate the balance of an account based on all non-demo transactions.
- * This is used after clearing demo data to ensure account balances are correct.
+ * Used by schema migration v6 to recalculate balances after removing demo data.
  */
 function recalculateBalance(accountId, transactions) {
   let balance = 0;
@@ -505,60 +480,6 @@ function recalculateBalance(accountId, transactions) {
     }
   });
   return balance;
-}
-
-/**
- * Remove all seed/demo data items (tagged with `demo: true`) from every store
- * and recalculate account balances based on remaining real transactions.
- * Demo categories used by real transactions are kept (the transaction wins).
- */
-function clearDemoData() {
-  const accounts = getOrSeed(KEYS.ACCOUNTS, DEFAULT_ACCOUNTS);
-  const categories = getOrSeed(KEYS.CATEGORIES, DEFAULT_CATEGORIES);
-  const transactions = getOrSeed(KEYS.TRANSACTIONS, DEFAULT_TRANSACTIONS);
-  const reminders = getOrSeed(KEYS.REMINDERS, DEFAULT_REMINDERS);
-  const budgets = getOrSeed(KEYS.BUDGETS, DEFAULT_BUDGETS);
-  const savingsGoals = getOrSeed(KEYS.SAVINGS_GOALS, DEFAULT_SAVINGS_GOALS);
-
-  // Filter out demo items (keep system default categories)
-  const realTransactions = transactions.filter(tx => !tx.demo);
-  const realCategories = categories.filter(c => !c.demo && !c.default);
-
-  // But keep demo/user categories that are still referenced by real transactions
-  const referencedCategoryIds = new Set(realTransactions.map(tx => tx.categoryId).filter(Boolean));
-  const keptCategories = [
-    // Keep all system-default categories
-    ...categories.filter(c => c.default),
-    // Keep user-created (non-demo, non-default) categories
-    ...realCategories,
-    // Keep demo categories referenced by real transactions
-    ...categories.filter(c => c.demo && !c.default && referencedCategoryIds.has(c.id)),
-  ];
-
-  // Recalculate account balances from remaining transactions only
-  const realAccounts = accounts.filter(a => !a.demo).map(acc => ({
-    ...acc,
-    balance: recalculateBalance(acc.id, realTransactions),
-    updatedAt: new Date().toISOString(),
-  }));
-
-  const realReminders = reminders.filter(r => !r.demo);
-
-  // Save everything back
-  save(KEYS.ACCOUNTS, realAccounts);
-  save(KEYS.CATEGORIES, keptCategories);
-  save(KEYS.TRANSACTIONS, realTransactions);
-  save(KEYS.REMINDERS, realReminders);
-  // budgets and savingsGoals have no demo items, just save as-is
-  save(KEYS.BUDGETS, budgets);
-  save(KEYS.SAVINGS_GOALS, savingsGoals);
-
-  return {
-    accounts: realAccounts,
-    categories: keptCategories,
-    transactions: realTransactions,
-    reminders: realReminders,
-  };
 }
 
 function nowISO() {
@@ -953,11 +874,6 @@ export const db = {
   },
   getBudgetSpending(categoryId, month, year) {
     return getBudgetSpending(categoryId, month, year);
-  },
-
-  // ---- Demo Data ----
-  clearDemoData() {
-    return clearDemoData();
   },
 
   // ---- Database Reset & Backups ----

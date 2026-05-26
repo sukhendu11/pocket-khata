@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react';
 import { db } from './db';
 
 // Dashboard is the default screen — eager import eliminates the initial loading spinner
@@ -31,6 +31,8 @@ const SavingsTracker = lazy(() => import('./components/SavingsTracker'));
 import ErrorBoundary from './components/ErrorBoundary';
 
 import { t } from './i18n';
+import { Menu } from 'lucide-react';
+import { checkReminders } from './notifications';
 
 const globalLangStyles = {
   pill: {
@@ -165,6 +167,8 @@ export default function App() {
   // 4. System States
   const [theme, setTheme] = useState('light');
   const [currentTime, setCurrentTime] = useState('');
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
   // Lock screen removed (direct entry)
 
   // 5. Initial Load
@@ -372,9 +376,72 @@ export default function App() {
     preloadTransactionHistory();
   }, []);
 
-  // 12. Lock screen is removed — app starts directly in the dashboard
+  // 12. Notification system — check reminders on mount and periodically
+  const [notifiedTags, setNotifiedTags] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pocket_khata_notified_tags');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
 
-  // 13. Render Screen Routing
+  // Persist notified tags to localStorage so they survive refreshes
+  useEffect(() => {
+    try {
+      localStorage.setItem('pocket_khata_notified_tags', JSON.stringify([...notifiedTags]));
+    } catch {
+      // localStorage full or unavailable — that's fine
+    }
+  }, [notifiedTags]);
+
+  // Check reminders on mount and every 10 minutes
+  useEffect(() => {
+    if (reminders.length === 0) return;
+
+    const runCheck = () => {
+      const result = checkReminders(reminders, notifiedTags);
+      if (result.notifiedCount > 0) {
+        setNotifiedTags(result.updatedShownTags);
+      }
+    };
+
+    // Check immediately on mount
+    runCheck();
+
+    // Then check every 10 minutes
+    const interval = setInterval(runCheck, 10 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [reminders, notifiedTags]);
+
+  // Also check when a new reminder is added (via the reminders length change)
+  const remindersCountRef = reminders.length;
+  useEffect(() => {
+    if (reminders.length > 0) {
+      const result = checkReminders(reminders, notifiedTags);
+      if (result.notifiedCount > 0) {
+        setNotifiedTags(result.updatedShownTags);
+      }
+    }
+  }, [remindersCountRef]);
+  // Note: we intentionally use remindersCountRef (not reminders) to avoid
+  // re-triggering on every render; the dependency array uses the length.
+
+  // 13. Close menu when clicking outside
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMenu]);
+
+  // 14. Lock screen is removed — app starts directly in the dashboard
+
+  // 15. Render Screen Routing
   const renderScreen = () => {
     switch (currentScreen) {
       case 'dashboard':
@@ -398,6 +465,7 @@ export default function App() {
           <AnalyticsView
             transactions={transactions}
             categories={categories}
+            budgets={budgets}
             onNavigate={handleNavigate}
             lang={lang}
           />
@@ -497,6 +565,7 @@ export default function App() {
             transactions={transactions}
             accounts={accounts}
             categories={categories}
+            budgets={budgets}
             onNavigate={handleNavigate}
             lang={lang}
           />
@@ -547,8 +616,57 @@ export default function App() {
 
       {/* B. App Context Content Container */}
       <div className="app-container" style={{ position: 'relative' }}>
-        {/* Global Language Toggle — top-right corner, visible on all pages */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+        {/* Global Header Toolbar — language toggle + menu button */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          {/* Menu Button (left) */}
+          <div ref={menuRef} style={{ position: 'relative' }}>
+            <button
+              className="neo-btn neo-btn-round menu-btn-icon"
+              style={{ width: '36px', height: '36px', borderRadius: '50%', padding: 0 }}
+              onClick={() => setShowMenu(prev => !prev)}
+              aria-label="Menu"
+            >
+              <Menu size={18} />
+            </button>
+            {showMenu && (
+              <div className="menu-dropdown" style={{
+                position: 'absolute',
+                top: '42px',
+                left: 0,
+                zIndex: 100,
+                minWidth: '160px',
+                padding: '6px',
+                borderRadius: '12px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                backgroundColor: 'var(--bg-color)',
+              }}>
+                <button
+                  className="neo-btn"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    justifyContent: 'flex-start',
+                    gap: '8px',
+                    borderRadius: '8px',
+                    color: 'var(--text-primary)',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                  }}
+                  onClick={() => { handleNavigate('settings'); setShowMenu(false); }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+                  </svg>
+                  Settings
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Language Toggle (right) */}
           <div className="neo-pressed-sm" style={globalLangStyles.pill}>
             <button
               onClick={() => handleSetLang('en')}
