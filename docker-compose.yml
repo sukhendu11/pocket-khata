@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  # ──────────────────────────────────────────────
+  # Development — Vite dev server with hot reload
+  # ──────────────────────────────────────────────
+  dev:
+    image: node:18-alpine
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      # Mount the entire project for live code reloading
+      - .:/app
+      # Persist node_modules inside the container (avoid overwriting by bind mount)
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true  # Required for file watching in Docker on Windows/macOS
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    stdin_open: true
+    tty: true
+
+  # ──────────────────────────────────────────────
+  # Production — Nginx serving the built bundle
+  # ──────────────────────────────────────────────
+  prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    # Read-only root filesystem for security (tmpfs for temp data)
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run

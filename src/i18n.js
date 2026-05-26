@@ -35,11 +35,6 @@ const translations = {
   'dashboard.seeAll': { en: 'See All', bn: 'সব দেখুন' },
   'dashboard.noTransactions': { en: 'No transactions posted yet.', bn: 'এখনো কোনো লেনদেন হয়নি।' },
   'dashboard.quickLedger': { en: 'Quick Ledger', bn: 'দ্রুত লেজার' },
-  'dashboard.general': { en: 'General', bn: 'সাধারণ' },
-  'dashboard.local': { en: 'Local', bn: 'লোকাল' },
-  'dashboard.share': { en: 'share', bn: 'শেয়ার' },
-  'dashboard.totals': { en: 'totals', bn: 'মোট' },
-  'dashboard.exp': { en: 'Exp', bn: 'ব্যয়' },
 
   // ===== TRANSACTION FORM =====
   'txForm.editTitle': { en: 'Edit Transaction', bn: 'লেনদেন সম্পাদনা' },
@@ -82,8 +77,6 @@ const translations = {
   'txHistory.netChange': { en: 'Net Change', bn: 'নেট পরিবর্তন' },
   'txHistory.noMatching': { en: 'No matching transactions found.', bn: 'কোনো মিল খুঁজে পাওয়া যায়নি।' },
   'txHistory.tryWidening': { en: 'Try widening search or resetting filters.', bn: 'সার্চ বা ফিল্টার পরিবর্তন করে দেখুন।' },
-  'txHistory.manualLedger': { en: 'Manual Ledger', bn: 'ম্যানুয়াল লেজার' },
-  'txHistory.unclassified': { en: 'Unclassified', bn: 'শ্রেণীবিহীন' },
 
   // ===== CALENDAR VIEW =====
   'calendar.title': { en: 'Financial Calendar', bn: 'আর্থিক ক্যালেন্ডার' },
@@ -196,91 +189,6 @@ const translations = {
   'cat.name.family': { en: 'Family / Personal', bn: 'পরিবার / ব্যক্তিগত' },
   'cat.name.misc': { en: 'Miscellaneous', bn: 'বিবিধ' },
 
-  // ===== DEFAULT SUBCATEGORIES (with Bengali) =====
-  // Salary
-  'cat.sub.monthlySalary': { en: 'Monthly Salary', bn: 'মাসিক বেতন' },
-  'cat.sub.overtime': { en: 'Overtime', bn: 'ওভারটাইম' },
-  'cat.sub.commission': { en: 'Commission', bn: 'কমিশন' },
-  'cat.sub.bonus': { en: 'Bonus', bn: 'বোনাস' },
-  // Business
-  'cat.sub.sales': { en: 'Sales', bn: 'বিক্রয়' },
-  'cat.sub.service': { en: 'Service', bn: 'সেবা' },
-  'cat.sub.consulting': { en: 'Consulting', bn: 'পরামর্শ' },
-  // Freelance
-  'cat.sub.webDev': { en: 'Web Dev', bn: 'ওয়েব ডেভ' },
-  'cat.sub.design': { en: 'Design', bn: 'ডিজাইন' },
-  'cat.sub.writing': { en: 'Writing', bn: 'লেখালেখি' },
-  'cat.sub.other': { en: 'Other', bn: 'অন্যান্য' },
-  // Bonus
-  'cat.sub.perfBonus': { en: 'Performance Bonus', bn: 'পারফরম্যান্স বোনাস' },
-  'cat.sub.festivalBonus': { en: 'Festival Bonus', bn: 'উৎসব বোনাস' },
-  'cat.sub.annualBonus': { en: 'Annual Bonus', bn: 'বার্ষিক বোনাস' },
-  // Food
-  'cat.sub.groceries': { en: 'Groceries', bn: 'বাজার' },
-  'cat.sub.restaurants': { en: 'Restaurants', bn: 'রেস্টুরেন্ট' },
-  'cat.sub.cafe': { en: 'Cafe', bn: 'ক্যাফে' },
-  'cat.sub.foodDelivery': { en: 'Food Delivery', bn: 'ফুড ডেলিভারি' },
-  // Transport
-  'cat.sub.fuel': { en: 'Fuel', bn: 'জ্বালানি' },
-  'cat.sub.publicTransport': { en: 'Public Transport', bn: 'পাবলিক ট্রান্সপোর্ট' },
-  'cat.sub.rideShare': { en: 'Ride Share', bn: 'রাইড শেয়ার' },
-  'cat.sub.maintenance': { en: 'Maintenance', bn: 'রক্ষণাবেক্ষণ' },
-  // Bills & Utilities
-  'cat.sub.electricity': { en: 'Electricity', bn: 'বিদ্যুৎ' },
-  'cat.sub.water': { en: 'Water', bn: 'পানি' },
-  'cat.sub.gas': { en: 'Gas', bn: 'গ্যাস' },
-  'cat.sub.internet': { en: 'Internet', bn: 'ইন্টারনেট' },
-  'cat.sub.phone': { en: 'Phone', bn: 'ফোন' },
-  // Housing
-  'cat.sub.rent': { en: 'Rent', bn: 'ভাড়া' },
-  'cat.sub.housingMaintenance': { en: 'Maintenance', bn: 'মেইনটেন্যান্স' },
-  'cat.sub.furniture': { en: 'Furniture', bn: 'আসবাবপত্র' },
-  'cat.sub.insurance': { en: 'Insurance', bn: 'ইনশুরেন্স' },
-  // Shopping
-  'cat.sub.clothing': { en: 'Clothing', bn: 'পোশাক' },
-  'cat.sub.electronics': { en: 'Electronics', bn: 'ইলেকট্রনিক্স' },
-  'cat.sub.homeDecor': { en: 'Home Decor', bn: 'হোম ডেকর' },
-  'cat.sub.personalCare': { en: 'Personal Care', bn: 'ব্যক্তিগত যত্ন' },
-  // Health
-  'cat.sub.doctor': { en: 'Doctor', bn: 'ডাক্তার' },
-  'cat.sub.medicine': { en: 'Medicine', bn: 'ঔষধ' },
-  'cat.sub.gym': { en: 'Gym', bn: 'জিম' },
-  'cat.sub.healthInsurance': { en: 'Insurance', bn: 'ইনশুরেন্স' },
-  // Education
-  'cat.sub.tuition': { en: 'Tuition', bn: 'টিউশন' },
-  'cat.sub.books': { en: 'Books', bn: 'বই' },
-  'cat.sub.courses': { en: 'Courses', bn: 'কোর্স' },
-  'cat.sub.stationery': { en: 'Stationery', bn: 'স্টেশনারী' },
-  // Entertainment
-  'cat.sub.movies': { en: 'Movies', bn: 'সিনেমা' },
-  'cat.sub.music': { en: 'Music', bn: 'গান' },
-  'cat.sub.games': { en: 'Games', bn: 'গেমস' },
-  'cat.sub.events': { en: 'Events', bn: 'ইভেন্ট' },
-  // Travel
-  'cat.sub.flight': { en: 'Flight', bn: 'ফ্লাইট' },
-  'cat.sub.hotel': { en: 'Hotel', bn: 'হোটেল' },
-  'cat.sub.localTravel': { en: 'Local Travel', bn: 'স্থানীয় ভ্রমণ' },
-  'cat.sub.travelFood': { en: 'Food', bn: 'খাবার' },
-  // Savings
-  'cat.sub.savingsAccount': { en: 'Savings Account', bn: 'সঞ্চয় একাউন্ট' },
-  'cat.sub.stocks': { en: 'Stocks', bn: 'শেয়ার' },
-  'cat.sub.mutualFunds': { en: 'Mutual Funds', bn: 'মিউচুয়াল ফান্ড' },
-  'cat.sub.retirement': { en: 'Retirement', bn: 'অবসর' },
-  // Debt
-  'cat.sub.creditCard': { en: 'Credit Card', bn: 'ক্রেডিট কার্ড' },
-  'cat.sub.personalLoan': { en: 'Personal Loan', bn: 'পার্সোনাল লোন' },
-  'cat.sub.studentLoan': { en: 'Student Loan', bn: 'স্টুডেন্ট লোন' },
-  'cat.sub.mortgage': { en: 'Mortgage', bn: 'মর্টগেজ' },
-  // Family
-  'cat.sub.family': { en: 'Family', bn: 'পরিবার' },
-  'cat.sub.gifts': { en: 'Gifts', bn: 'উপহার' },
-  'cat.sub.donation': { en: 'Donation', bn: 'দান' },
-  'cat.sub.personal': { en: 'Personal', bn: 'ব্যক্তিগত' },
-  // Miscellaneous
-  'cat.sub.miscOther': { en: 'Other', bn: 'অন্যান্য' },
-  'cat.sub.emergency': { en: 'Emergency', bn: 'জরুরি' },
-  'cat.sub.misc': { en: 'Misc', bn: 'বিবিধ' },
-
   // ===== SETTINGS =====
   'settings.title': { en: 'App Settings', bn: 'অ্যাপ সেটিংস' },
   'settings.language': { en: 'Language', bn: 'ভাষা' },
@@ -334,11 +242,6 @@ const translations = {
   'analytics.noData': { en: 'No data available for this period.', bn: 'এই সময়ের জন্য কোনো ডাটা পাওয়া যায়নি।' },
   'analytics.incomeLabel': { en: 'Income:', bn: 'আয়:' },
   'analytics.expenseLabel': { en: 'Expense:', bn: 'ব্যয়:' },
-
-  // ===== PIE CHART CENTER TEXT =====
-  'pie.exp': { en: 'Exp', bn: 'ব্যয়' },
-  'pie.share': { en: 'share', bn: 'ভাগ' },
-  'pie.totals': { en: 'totals', bn: 'মোট' },
 
   // ===== MONTHS ABBREVIATED =====
   'months.jan': { en: 'Jan', bn: 'জানু' },
@@ -449,11 +352,9 @@ const translations = {
   'common.local': { en: 'Local', bn: 'স্থানীয়' },
   'common.general': { en: 'General', bn: 'সাধারণ' },
   'common.other': { en: 'Other', bn: 'অন্যান্য' },
-  'common.uncategorized': { en: 'Uncategorized', bn: 'শ্রেণীবিহীন' },
   'common.localWallet': { en: 'Local Wallet', bn: 'স্থানীয় ওয়ালেট' },
   'common.manualEntry': { en: 'Manual Entry', bn: 'ম্যানুয়াল এন্ট্রি' },
   'common.quickLedger': { en: 'Quick Ledger', bn: 'দ্রুত লেজার' },
-  'common.category': { en: 'category', bn: 'ক্যাটাগরি' },
   'common.manualLedger': { en: 'Manual Ledger', bn: 'ম্যানুয়াল লেজার' },
 
   // ===== AUTO BACKUPS =====

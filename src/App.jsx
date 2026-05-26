@@ -1,21 +1,34 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { db } from './db';
 
-// Import Screen Components
-
+// Dashboard is the default screen — eager import eliminates the initial loading spinner
 import Dashboard from './components/Dashboard';
-import TransactionForm from './components/TransactionForm';
-import TransactionHistory from './components/TransactionHistory';
-import AnalyticsView from './components/AnalyticsView';
-import CalendarView from './components/CalendarView';
-import ReminderManager from './components/ReminderManager';
-import Settings from './components/Settings';
-import AccountManager from './components/AccountManager';
-import CategoryManager from './components/CategoryManager';
-import ErrorBoundary from './components/ErrorBoundary';
 
-import BudgetManager from './components/BudgetManager';
-import SavingsTracker from './components/SavingsTracker';
+// Lazy-loaded screen components (code-split into separate chunks)
+const TransactionForm = lazy(() => import('./components/TransactionForm'));
+const TransactionHistory = lazy(() => import('./components/TransactionHistory'));
+
+// Preload TransactionHistory chunk immediately after mount (second most-used screen)
+// so it's ready before the user navigates there — eliminating the spinner on first visit
+let preloadedTransactionHistory = false;
+function preloadTransactionHistory() {
+  if (!preloadedTransactionHistory) {
+    preloadedTransactionHistory = true;
+    import('./components/TransactionHistory');
+  }
+}
+const AnalyticsView = lazy(() => import('./components/AnalyticsView'));
+const CalendarView = lazy(() => import('./components/CalendarView'));
+const ReminderManager = lazy(() => import('./components/ReminderManager'));
+const Settings = lazy(() => import('./components/Settings'));
+const AccountManager = lazy(() => import('./components/AccountManager'));
+const CategoryManager = lazy(() => import('./components/CategoryManager'));
+const BudgetManager = lazy(() => import('./components/BudgetManager'));
+const SavingsTracker = lazy(() => import('./components/SavingsTracker'));
+
+// ErrorBoundary is kept as a static import since it wraps the entire app
+// and must always be available to catch errors
+import ErrorBoundary from './components/ErrorBoundary';
 
 import { t } from './i18n';
 
@@ -39,6 +52,30 @@ const globalLangStyles = {
     transition: 'all 0.2s',
   },
 };
+
+// Loading fallback shown while lazy chunks are fetched
+const LoadingFallback = () => (
+  <div style={{
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '60px 20px',
+    gap: '12px',
+  }}>
+    <div className="spinner" style={{
+      width: '28px',
+      height: '28px',
+      border: '3px solid var(--text-secondary)',
+      borderTopColor: 'var(--accent-color)',
+      borderRadius: '50%',
+      animation: 'spin 0.8s linear infinite',
+    }} />
+    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+      Loading…
+    </span>
+  </div>
+);
 
 const bottomNavStyles = {
   container: {
@@ -330,9 +367,14 @@ export default function App() {
     setCurrentScreen(screen);
   };
 
-  // 11. Lock screen is removed — app starts directly in the dashboard
+  // 11. Preload TransactionHistory after mount so it's ready for instant navigation
+  useEffect(() => {
+    preloadTransactionHistory();
+  }, []);
 
-  // 12. Render Screen Routing
+  // 12. Lock screen is removed — app starts directly in the dashboard
+
+  // 13. Render Screen Routing
   const renderScreen = () => {
     switch (currentScreen) {
       case 'dashboard':
@@ -535,25 +577,29 @@ export default function App() {
           </div>
         </div>
         <ErrorBoundary>
-          {renderScreen()}
+          <Suspense fallback={<LoadingFallback />}>
+            {renderScreen()}
+          </Suspense>
         </ErrorBoundary>
       </div>
 
       {/* C. Floating Transaction Add/Edit Form Overlay */}
       {showTransactionForm && (
         <ErrorBoundary>
-          <TransactionForm
-            transaction={editingTransaction}
-            accounts={accounts}
-            categories={categories}
-            onSave={handleSaveTransaction}
-            onDelete={handleDeleteTransaction}
-            onClose={() => {
-              setShowTransactionForm(false);
-              setEditingTransaction(null);
-            }}
-            lang={lang}
-          />
+          <Suspense fallback={null}>
+            <TransactionForm
+              transaction={editingTransaction}
+              accounts={accounts}
+              categories={categories}
+              onSave={handleSaveTransaction}
+              onDelete={handleDeleteTransaction}
+              onClose={() => {
+                setShowTransactionForm(false);
+                setEditingTransaction(null);
+              }}
+              lang={lang}
+            />
+          </Suspense>
         </ErrorBoundary>
       )}
 

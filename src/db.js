@@ -451,10 +451,39 @@ function clearAutoBackups() {
   localStorage.removeItem(AUTO_BACKUP_KEY);
 }
 
+function resetAutoBackupDedup() {
+  _lastBackupTime = 0;
+  _isCreatingBackup = false;
+}
+
+function getAutoBackupCount() {
+  return getAutoBackups().length;
+}
+
 function getLatestBackupTimestamp() {
   const backups = getAutoBackups();
   if (backups.length === 0) return null;
   return backups[0].timestamp;
+}
+
+function getSchemaVersion() {
+  return CURRENT_SCHEMA_VERSION;
+}
+
+function getAppVersion() {
+  return APP_VERSION;
+}
+
+function getBudgetSpending(categoryId, month, year) {
+  const transactions = getOrSeed(KEYS.TRANSACTIONS, []);
+  return transactions
+    .filter(tx => {
+      if (tx.type !== 'expense') return false;
+      if (tx.demo) return false;
+      const d = new Date(tx.date);
+      return d.getMonth() === month && d.getFullYear() === year && tx.categoryId === categoryId;
+    })
+    .reduce((sum, tx) => sum + tx.amount, 0);
 }
 
 // ========== DEMO DATA CLEARING ==========
@@ -540,14 +569,14 @@ function nowISO() {
 
 export const db = {
   // Schema info
-  getSchemaVersion() {
-    return CURRENT_SCHEMA_VERSION;
-  },
-  getAppVersion() {
-    return APP_VERSION;
-  },
   getStoredSchemaVersion() {
     return getStoredSchemaVersion();
+  },
+  getSchemaVersion() {
+    return getSchemaVersion();
+  },
+  getAppVersion() {
+    return getAppVersion();
   },
 
   // ---- Accounts ----
@@ -829,17 +858,6 @@ export const db = {
     const budgets = this.getBudgets();
     this.saveBudgets(budgets.filter(b => b.id !== id));
   },
-  getBudgetSpending(categoryId, month, year) {
-    const transactions = this.getTransactions();
-    return transactions
-      .filter(tx => {
-        if (tx.type !== 'expense') return false;
-        if (tx.categoryId !== categoryId) return false;
-        const d = new Date(tx.date);
-        return d.getMonth() === month && d.getFullYear() === year;
-      })
-      .reduce((sum, tx) => sum + tx.amount, 0);
-  },
 
   // ---- Savings Goals ----
   getSavingsGoals() {
@@ -918,20 +936,23 @@ export const db = {
   getAutoBackups() {
     return getAutoBackups();
   },
-  getLatestBackupTimestamp() {
-    return getLatestBackupTimestamp();
-  },
-  getAutoBackupCount() {
-    return getAutoBackups().length;
-  },
   restoreFromAutoBackup(index) {
     return restoreFromAutoBackup(index);
   },
   clearAutoBackups() {
     clearAutoBackups();
   },
+  getAutoBackupCount() {
+    return getAutoBackupCount();
+  },
+  getLatestBackupTimestamp() {
+    return getLatestBackupTimestamp();
+  },
   resetAutoBackupDedup() {
-    _lastBackupTime = 0;
+    resetAutoBackupDedup();
+  },
+  getBudgetSpending(categoryId, month, year) {
+    return getBudgetSpending(categoryId, month, year);
   },
 
   // ---- Demo Data ----

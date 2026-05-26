@@ -548,7 +548,7 @@ export default function Settings({
 
         {/* Footer info */}
         <div style={styles.footer}>
-          <p>{t('settings.version', lang)} (v{db.getAppVersion()})</p>
+          <p>{t('settings.version', lang)}</p>
           <p style={{ marginTop: '2px' }}>{t('settings.dbInfo', lang)} — Schema v{db.getStoredSchemaVersion()}</p>
         </div>
 

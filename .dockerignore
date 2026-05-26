@@ -1,0 +1,44 @@
+# Dependencies
+node_modules
+npm-debug.log*
+.npm
+
+# Build output
+dist
+build
+
+# Git
+.git
+.gitattributes
+.gitignore
+.github
+
+# IDE & editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Docker files — not needed inside the build context
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation — not needed for the build
+README.md
+CONTRIBUTING.md
+LICENSE
+CHANGELOG.md
+
+# Public assets already tracked; exclude generated ones
+public/pwa-icon-*.svg

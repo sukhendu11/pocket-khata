@@ -16,6 +16,7 @@ module.exports = {
       'warn',
       { allowConstantExport: true },
     ],
+    'no-console': ['error', { allow: ['warn', 'error'] }],
     'no-shadow': ['error', { builtinGlobals: true, allow: ['name', 'screen'] }],
   },
 }
