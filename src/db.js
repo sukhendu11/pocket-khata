@@ -18,7 +18,7 @@ function migrateSchema() {
         items.forEach(item => {
           if (!item.createdAt) { item.createdAt = now; changed = true; }
           if (!item.updatedAt) { item.updatedAt = now; changed = true; }
-          // ... rest of patchArray function ...
+          //... rest of patchArray function...
         });
         if (changed) localStorage.setItem(key, JSON.stringify(items));
       } catch (e) {
@@ -50,11 +50,11 @@ function migrateSchema() {
       });
     }
 
-    // ... rest of migrateSchema function ...
+    //... rest of migrateSchema function...
   }
 
   if (version < 4) {
-    // ... rest of migrateSchema function ...
+    //... rest of migrateSchema function...
   }
 
   const ts = now;
