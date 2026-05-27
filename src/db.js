@@ -270,9 +270,15 @@ function migrateSchema() {
     let changed = false;
     let accounts, transactions, reminders;
 
-    try { accounts = JSON.parse(localStorage.getItem(KEYS.ACCOUNTS) || 'null'); } catch (e) {}
-    try { transactions = JSON.parse(localStorage.getItem(KEYS.TRANSACTIONS) || 'null'); } catch (e) {}
-    try { reminders = JSON.parse(localStorage.getItem(KEYS.REMINDERS) || 'null'); } catch (e) {}
+    try { accounts = JSON.parse(localStorage.getItem(KEYS.ACCOUNTS) || 'null'); } catch {
+      /* ignore invalid stored account JSON */
+    }
+    try { transactions = JSON.parse(localStorage.getItem(KEYS.TRANSACTIONS) || 'null'); } catch {
+      /* ignore invalid stored transactions JSON */
+    }
+    try { reminders = JSON.parse(localStorage.getItem(KEYS.REMINDERS) || 'null'); } catch {
+      /* ignore invalid stored reminders JSON */
+    }
 
     // Filter out demo items
     const realTransactions = Array.isArray(transactions) ? transactions.filter(tx => !tx.demo) : null;
@@ -281,10 +287,10 @@ function migrateSchema() {
 
     // Recalculate account balances from remaining transactions
     if (realAccounts && realTransactions) {
-      const now = new Date().toISOString();
+      const nowIso = new Date().toISOString();
       realAccounts.forEach(acc => {
         acc.balance = recalculateBalance(acc.id, realTransactions);
-        acc.updatedAt = now;
+        acc.updatedAt = nowIso;
       });
     }
 
@@ -294,7 +300,7 @@ function migrateSchema() {
     if (realReminders) { localStorage.setItem(KEYS.REMINDERS, JSON.stringify(realReminders)); changed = true; }
 
     if (changed) {
-      console.log('Schema migration v6: removed demo seed data.');
+      // Migration completed successfully; no user-facing action required.
     }
   }
 
