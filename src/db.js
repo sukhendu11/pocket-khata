@@ -1,3 +1,13 @@
+function getAccounts() {
+  const raw = localStorage.getItem('accounts');
+  if (!raw) return [];
+  return JSON.parse(raw);
+}
+
+function saveAccounts(accounts) {
+  localStorage.setItem('accounts', JSON.stringify(accounts));
+}
+
 function migrateSchema() {
   const version = parseInt(localStorage.getItem(SCHEMA_VERSION_KEY)) || 0;
 
