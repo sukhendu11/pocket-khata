@@ -1,10 +1,9 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: import.meta.env.VITE_BASE_URL || '/',
+  base: '/',
   build: {
     rollupOptions: {
       output: {
@@ -19,10 +18,9 @@ export default defineConfig({
             if (id.includes('jspdf')) {
               return 'vendor-pdf';
             }
-            return 'vendor';
           }
-        }
+        },
       },
     },
   },
-})
+});
