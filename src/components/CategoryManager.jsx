@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
+import { trackAction } from '../lib/analytics';
 
 // Dictionary mapping icon names to Lucide components
 const ICON_COMPONENTS = {
@@ -30,13 +31,13 @@ const ICON_COMPONENTS = {
 };
 
 export default function CategoryManager({
-  categories,
-  transactions,
-  onAddCategory,
-  onUpdateCategory,
-  onDeleteCategory,
-  onNavigate,
-  lang
+  categories = [],
+  transactions = [],
+  onAddCategory = () => {},
+  onUpdateCategory = () => {},
+  onDeleteCategory = () => {},
+  onNavigate = () => {},
+  lang = 'en',
 }) {
   const [activeTab, setActiveTab] = useState('expense'); // 'expense', 'income'
   const [showAddModal, setShowAddModal] = useState(false);
@@ -110,6 +111,7 @@ export default function CategoryManager({
     setColor('#ff7b54');
     setSubcategories([]);
     setSubcategoryInput('');
+    trackAction(editingCategory ? 'edit_category' : 'add_category', { type, icon, subcategoryCount: subcategories.length });
     setEditingCategory(null);
     setShowAddModal(false);
   };
@@ -139,6 +141,7 @@ export default function CategoryManager({
       if (!confirmDelete) return;
     }
 
+    trackAction('delete_category', { categoryId: catId });
     onDeleteCategory(catId);
   };
 
@@ -186,7 +189,7 @@ export default function CategoryManager({
       <div className="neo-pressed-sm" style={styles.segmentContainer}>          {['expense', 'income'].map(tab => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => { setActiveTab(tab); trackAction('switch_category_tab', { tab }); }}
             className="neo-btn"
             style={{
               ...styles.segmentBtn,
@@ -402,16 +405,6 @@ export default function CategoryManager({
     </div>
   );
 }
-
-CategoryManager.defaultProps = {
-  categories: [],
-  transactions: [],
-  onAddCategory: () => {},
-  onUpdateCategory: () => {},
-  onDeleteCategory: () => {},
-  onNavigate: () => {},
-  lang: 'en',
-};
 
 CategoryManager.propTypes = {
   categories: PropTypes.array,

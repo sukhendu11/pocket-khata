@@ -3,18 +3,19 @@ import { ArrowLeft, Plus, X, AlertCircle, Target, Wallet, Trash2, Edit3, Trendin
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber, formatPercent } from '../utils';
+import { trackAction } from '../lib/analytics';
 
 const COLORS = ['#22C55E', '#54a0ff', '#ff5a79', '#f7b731', '#8e44ad', '#00c9db', '#ff7b54', '#16a085'];
 
 export default function SavingsTracker({
-  savingsGoals,
-  accounts,
-  onAddSavingsGoal,
-  onUpdateSavingsGoal,
-  onDeleteSavingsGoal,
-  onContributeToSavingsGoal,
-  onNavigate,
-  lang,
+  savingsGoals = [],
+  accounts = [],
+  onAddSavingsGoal = () => {},
+  onUpdateSavingsGoal = () => {},
+  onDeleteSavingsGoal = () => {},
+  onContributeToSavingsGoal = () => {},
+  onNavigate = () => {},
+  lang = 'en',
 }) {
   const [showForm, setShowForm] = useState(false);
   const [showContribute, setShowContribute] = useState(null);
@@ -79,6 +80,7 @@ export default function SavingsTracker({
     } else {
       onAddSavingsGoal({ ...payload, currentAmount: 0 });
     }
+    trackAction(editing ? 'edit_savings_goal' : 'add_savings_goal', { targetAmount: parsed, hasDeadline: !!deadline });
     setShowForm(false);
     setEditing(null);
   };
@@ -94,6 +96,7 @@ export default function SavingsTracker({
       setFormError(t('savings.errAccount', lang));
       return;
     }
+    trackAction('contribute_savings', { goalId: showContribute.id, amount: parsed });
     onContributeToSavingsGoal(showContribute.id, parsed, contributeAccountId);
     setShowContribute(null);
     setContributeAmount('');
@@ -187,7 +190,7 @@ export default function SavingsTracker({
                 <button className="neo-btn" style={styles.editBtn} onClick={() => openEdit(g)}>
                   <Edit3 size={10} /> {t('budget.edit', lang)}
                 </button>
-                <button className="neo-btn" style={styles.deleteBtn} onClick={() => onDeleteSavingsGoal(g.id)}>
+                <button className="neo-btn" style={styles.deleteBtn} onClick={() => { onDeleteSavingsGoal(g.id); trackAction('delete_savings_goal', { goalId: g.id }); }}>
                   <Trash2 size={10} />
                 </button>
               </div>
@@ -291,17 +294,6 @@ SavingsTracker.propTypes = {
   onContributeToSavingsGoal: PropTypes.func,
   onNavigate: PropTypes.func,
   lang: PropTypes.string,
-};
-
-SavingsTracker.defaultProps = {
-  savingsGoals: [],
-  accounts: [],
-  onAddSavingsGoal: () => {},
-  onUpdateSavingsGoal: () => {},
-  onDeleteSavingsGoal: () => {},
-  onContributeToSavingsGoal: () => {},
-  onNavigate: () => {},
-  lang: 'en',
 };
 
 const styles = {

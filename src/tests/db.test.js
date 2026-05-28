@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { db } from '../db';
 
 beforeEach(() => {
@@ -7,26 +7,31 @@ beforeEach(() => {
 });
 
 describe('db accounts', () => {
-  it('returns empty accounts on first call', () => {
+  it('returns 4 system accounts on first call', () => {
     const accounts = db.getAccounts();
-    expect(accounts).toEqual([]);
+    expect(accounts).toHaveLength(4);
+    const ids = accounts.map(a => a.id);
+    expect(ids).toContain('acc_system_cash');
+    expect(ids).toContain('acc_system_bank');
+    expect(ids).toContain('acc_system_bkash');
+    expect(ids).toContain('acc_system_nagad');
   });
 
-  it('adds a new account', () => {
+  it('adds a new account alongside system accounts', () => {
     const account = db.addAccount({ name: 'Test', type: 'Cash', balance: 1000 });
     expect(account.id).toBeDefined();
     expect(account.name).toBe('Test');
     expect(account.balance).toBe(1000);
 
     const accounts = db.getAccounts();
-    expect(accounts).toHaveLength(1);
+    expect(accounts).toHaveLength(5); // 4 system + 1 new
   });
 
-  it('deletes an account', () => {
+  it('deletes a user account but keeps system accounts', () => {
     const account = db.addAccount({ name: 'Temp', type: 'Cash', balance: 500 });
-    expect(db.getAccounts()).toHaveLength(1);
+    expect(db.getAccounts()).toHaveLength(5); // 4 system + 1 new
     db.deleteAccount(account.id);
-    expect(db.getAccounts()).toHaveLength(0);
+    expect(db.getAccounts()).toHaveLength(4); // 4 system remain
   });
 });
 
@@ -131,7 +136,7 @@ describe('db export/import', () => {
     const data = JSON.parse(jsonStr);
     expect(data.budgets).toHaveLength(1);
     expect(data.savingsGoals).toHaveLength(1);
-    expect(data.accounts).toHaveLength(0);
+    expect(data.accounts.length).toBeGreaterThanOrEqual(4); // system accounts included
 
     // Reset and re-import
     localStorage.clear();
@@ -266,17 +271,17 @@ describe('auto-backup', () => {
 
 describe('schema versioning', () => {
 
-  it('sets schema version to 6 on fresh install', () => {
+  it('sets schema version to 7 on fresh install', () => {
     // localStorage is cleared in beforeEach, so this is a fresh install
     // The module-level migrateSchema() already ran on import, but since localStorage
     // was cleared in beforeEach, it won't have run yet for this test.
     // We trigger getAccounts to force seeding, then check the version
     db.getAccounts();
-    expect(db.getStoredSchemaVersion()).toBe(6);
+    expect(db.getStoredSchemaVersion()).toBe(7);
   });
 
   it('returns schema version info from the API', () => {
-    expect(db.getSchemaVersion()).toBe(6);
+    expect(db.getSchemaVersion()).toBe(7);
     expect(db.getAppVersion()).toBe('2.2.0');
   });
 
@@ -290,10 +295,12 @@ describe('schema versioning', () => {
     // Don't set a version key — migration should detect version 0 and run v1→v2
     // Trigger migration by calling a getter
     const accounts = db.getAccounts();
-    expect(accounts).toHaveLength(1);
-    expect(accounts[0].createdAt).toBeDefined();
-    expect(accounts[0].updatedAt).toBeDefined();
-    expect(typeof accounts[0].createdAt).toBe('string');
+    expect(accounts.length).toBeGreaterThanOrEqual(5); // 4 system + 1 migrated
+    const migrated = accounts.find(a => a.id === 'acc_test');
+    expect(migrated).toBeDefined();
+    expect(migrated.createdAt).toBeDefined();
+    expect(migrated.updatedAt).toBeDefined();
+    expect(typeof migrated.createdAt).toBe('string');
   });
 
   it('migrates v1 categories (missing archived) to v2', () => {
@@ -393,23 +400,27 @@ describe('schema versioning', () => {
     localStorage.setItem('pocket_khata_schema_version', '2');
 
     const accounts = db.getAccounts();
-    expect(accounts).toHaveLength(1);
-    expect(accounts[0].createdAt).toBe(ts);
-    expect(accounts[0].updatedAt).toBe(ts);
+    expect(accounts.length).toBeGreaterThanOrEqual(5); // 4 system + 1 existing
+    const existing = accounts.find(a => a.id === 'acc_v2');
+    expect(existing).toBeDefined();
+    expect(existing.createdAt).toBe(ts);
+    expect(existing.updatedAt).toBe(ts);
   });
 
   it('handles corrupt JSON during migration gracefully', () => {
     localStorage.setItem('pocket_khata_accounts', 'not valid json {{{');
     // Should not throw; getOrSeed should reseed
     const accounts = db.getAccounts();
-    // Corrupt JSON causes reseed — since empty default is [], it should be empty
-    expect(accounts).toEqual([]);
+    // Corrupt JSON causes reseed — system accounts are always merged
+    expect(accounts.length).toBeGreaterThanOrEqual(4);
+    const ids = accounts.map(a => a.id);
+    expect(ids).toContain('acc_system_cash');
   });
 
   it('includes schemaVersion in export', () => {
     const jsonStr = db.exportDatabaseJSON();
     const data = JSON.parse(jsonStr);
-    expect(data.schemaVersion).toBe(6);
+    expect(data.schemaVersion).toBe(7);
   });
 
   it('new items from add* methods have createdAt/updatedAt', () => {
@@ -443,7 +454,7 @@ describe('schema versioning', () => {
 
     // Remove v2 fields to simulate an older export
     // eslint-disable-next-line no-unused-vars
-    data.accounts = data.accounts.map(({ createdAt, updatedAt, ...rest }) => rest);
+    data.accounts = data.accounts.map(({ createdAt, updatedAt, system, ...rest }) => rest);
     // eslint-disable-next-line no-unused-vars
     data.categories = data.categories.map(({ createdAt, updatedAt, archived, ...rest }) => rest);
 
@@ -454,34 +465,317 @@ describe('schema versioning', () => {
 
     // Verify migration re-added v2 fields
     const accounts = db.getAccounts();
-    expect(accounts).toHaveLength(1);
-    expect(accounts[0].createdAt).toBeDefined();
-    expect(accounts[0].updatedAt).toBeDefined();
+    expect(accounts.length).toBeGreaterThanOrEqual(5); // 4 system + 1 imported
+    const imported = accounts.find(a => a.name === 'Legacy Acc');
+    expect(imported).toBeDefined();
+    expect(imported.createdAt).toBeDefined();
+    expect(imported.updatedAt).toBeDefined();
 
     const categories = db.getCategories();
-    expect(categories[0].archived).toBe(false);
+    expect(categories.find(c => c.archived === false)).toBeDefined();
     expect(categories[0].createdAt).toBeDefined();
   });
 
-  it('resetDatabase clears schema version and reseeds with v6 data', () => {
+  it('resetDatabase clears schema version and reseeds with v7 data', () => {
     // First, add some data and verify version
     db.addBudget({ categoryId: 'cat_food', limit: 5000, month: 4, year: 2026 });
-    expect(db.getStoredSchemaVersion()).toBe(6);
+    expect(db.getStoredSchemaVersion()).toBe(7);
 
     // Reset
     const result = db.resetDatabase();
 
-    // Should be back to defaults (accounts/transactions/reminders empty)
-    expect(result.accounts).toEqual([]);
+    // Should be back to defaults (accounts has 4 system accounts, transactions/reminders empty)
+    expect(result.accounts.length).toBeGreaterThanOrEqual(4); // system accounts always present
     expect(result.categories).toHaveLength(17);
     expect(db.getBudgets()).toHaveLength(0);
 
-    // Version should be reset to 6
-    expect(db.getStoredSchemaVersion()).toBe(6);
+    // Version should be reset to 7
+    expect(db.getStoredSchemaVersion()).toBe(7);
 
     // Reseeded data should have v2+ fields (categories still get default seed)
     expect(result.categories[0].archived).toBe(false);
     expect(result.categories[0].subcategories).toBeDefined();
     expect(result.categories[0].default).toBe(true);
+  });
+});
+
+// ========== RECURRING TRANSACTION ENGINE TESTS ==========
+
+/**
+ * Helper to seed localStorage directly, bypassing db.addAccount/addTransaction
+ * which have balance-adjustment side effects that would pollute the starting state.
+ */
+function seedData({ accounts, transactions }) {
+  const ts = new Date().toISOString();
+  localStorage.setItem('pocket_khata_accounts', JSON.stringify(
+    accounts.map(a => ({ ...a, createdAt: ts, updatedAt: ts }))
+  ));
+  localStorage.setItem('pocket_khata_transactions', JSON.stringify(
+    transactions.map(t => ({ ...t, createdAt: ts, updatedAt: ts }))
+  ));
+  // Prevent schema migrations from re-running and altering our data
+  localStorage.setItem('pocket_khata_schema_version', '7');
+}
+
+/** Advance a YYYY-MM-DD date by `months` months using local-time arithmetic. */
+function addMonths(dateStr, months) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().split('T')[0];
+}
+
+/** Advance a YYYY-MM-DD date by `days` days using local-time arithmetic. */
+function addDays(dateStr, days) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
+describe('processRecurringTransactions', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-15T10:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('creates an income clone when nextDate equals today, updates balance', () => {
+    seedData({
+      accounts: [{ id: 'acc_1', name: 'Bank', type: 'Bank', balance: 50000, color: '#4a90e2' }],
+      transactions: [{
+        id: 'tx_recur', type: 'income', amount: 5000, date: '2026-06-01',
+        accountId: 'acc_1', categoryId: 'cat_salary', notes: 'Monthly salary',
+        recurring: { frequency: 'monthly', interval: 1, nextDate: '2026-06-15', endDate: null, occurrencesCreated: 0 },
+      }],
+    });
+
+    const result = db.processRecurringTransactions();
+
+    expect(result.count).toBe(1);
+    expect(result.createdTransactions).toHaveLength(1);
+
+    const clone = result.createdTransactions[0];
+    expect(clone.type).toBe('income');
+    expect(clone.amount).toBe(5000);
+    expect(clone.date).toBe('2026-06-15');
+    expect(clone.recurring).toBe(false);
+    expect(clone.accountId).toBe('acc_1');
+    expect(clone.notes).toBe('Monthly salary');
+    expect(clone.id).not.toBe('tx_recur');
+
+    // Balance updated: 50000 + 5000
+    expect(db.getAccounts().find(a => a.id === 'acc_1').balance).toBe(55000);
+
+    // Source schedule advanced
+    const savedTx = db.getTransactions().find(t => t.id === 'tx_recur');
+    expect(savedTx.recurring.nextDate).toBe(addMonths('2026-06-15', 1));
+    expect(savedTx.recurring.occurrencesCreated).toBe(1);
+  });
+
+  it('creates a clone when nextDate is in the past', () => {
+    seedData({
+      accounts: [{ id: 'acc_1', name: 'Cash', type: 'Cash', balance: 10000, color: '#3cd070' }],
+      transactions: [{
+        id: 'tx_past', type: 'income', amount: 2000, date: '2026-05-01',
+        accountId: 'acc_1', categoryId: 'cat_freelance', notes: 'Past due',
+        recurring: { frequency: 'monthly', interval: 1, nextDate: '2026-06-01', endDate: null, occurrencesCreated: 0 },
+      }],
+    });
+
+    const result = db.processRecurringTransactions();
+
+    expect(result.count).toBe(1);
+    expect(db.getAccounts().find(a => a.id === 'acc_1').balance).toBe(12000);
+  });
+
+  it('updates account balance for expense transactions', () => {
+    seedData({
+      accounts: [{ id: 'acc_1', name: 'Cash', type: 'Cash', balance: 10000, color: '#3cd070' }],
+      transactions: [{
+        id: 'tx_exp', type: 'expense', amount: 500, date: '2026-06-01',
+        accountId: 'acc_1', categoryId: 'cat_food', notes: 'Monthly food',
+        recurring: { frequency: 'monthly', interval: 1, nextDate: '2026-06-15', endDate: null, occurrencesCreated: 0 },
+      }],
+    });
+
+    db.processRecurringTransactions();
+
+    expect(db.getAccounts().find(a => a.id === 'acc_1').balance).toBe(9500);
+  });
+
+  it('updates both accounts for transfer transactions', () => {
+    seedData({
+      accounts: [
+        { id: 'acc_from', name: 'Bank', type: 'Bank', balance: 50000, color: '#4a90e2' },
+        { id: 'acc_to', name: 'Cash', type: 'Cash', balance: 10000, color: '#3cd070' },
+      ],
+      transactions: [{
+        id: 'tx_trf', type: 'transfer', amount: 3000, date: '2026-06-01',
+        accountId: 'acc_from', transferToId: 'acc_to',
+        categoryId: '', notes: 'Monthly transfer',
+        recurring: { frequency: 'monthly', interval: 1, nextDate: '2026-06-15', endDate: null, occurrencesCreated: 0 },
+      }],
+    });
+
+    db.processRecurringTransactions();
+
+    const accounts = db.getAccounts();
+    expect(accounts.find(a => a.id === 'acc_from').balance).toBe(47000);
+    expect(accounts.find(a => a.id === 'acc_to').balance).toBe(13000);
+  });
+
+  it('advances nextDate by interval and increments occurrencesCreated', () => {
+    seedData({
+      accounts: [{ id: 'acc_1', name: 'Bank', type: 'Bank', balance: 50000, color: '#4a90e2' }],
+      transactions: [{
+        id: 'tx_qtly', type: 'income', amount: 5000, date: '2026-06-01',
+        accountId: 'acc_1', categoryId: 'cat_salary', notes: 'Quarterly bonus',
+        recurring: { frequency: 'monthly', interval: 3, nextDate: '2026-06-15', endDate: null, occurrencesCreated: 0 },
+      }],
+    });
+
+    db.processRecurringTransactions();
+
+    const savedTx = db.getTransactions().find(t => t.id === 'tx_qtly');
+    expect(savedTx.recurring.nextDate).toBe(addMonths('2026-06-15', 3));
+    expect(savedTx.recurring.occurrencesCreated).toBe(1);
+  });
+
+  it('skips non-recurring transactions', () => {
+    seedData({
+      accounts: [{ id: 'acc_1', name: 'Bank', type: 'Bank', balance: 50000, color: '#4a90e2' }],
+      transactions: [{
+        id: 'tx_once', type: 'income', amount: 5000, date: '2026-06-01',
+        accountId: 'acc_1', categoryId: 'cat_salary', notes: 'One-time',
+        recurring: false,
+      }],
+    });
+
+    const result = db.processRecurringTransactions();
+
+    expect(result.count).toBe(0);
+    expect(db.getTransactions()).toHaveLength(1);
+    expect(db.getAccounts().find(a => a.id === 'acc_1').balance).toBe(50000);
+  });
+
+  it('skips transactions with future nextDate', () => {
+    seedData({
+      accounts: [{ id: 'acc_1', name: 'Bank', type: 'Bank', balance: 50000, color: '#4a90e2' }],
+      transactions: [{
+        id: 'tx_future', type: 'income', amount: 5000, date: '2026-06-01',
+        accountId: 'acc_1', categoryId: 'cat_salary', notes: 'Future',
+        recurring: { frequency: 'monthly', interval: 1, nextDate: '2026-07-01', endDate: null, occurrencesCreated: 0 },
+      }],
+    });
+
+    const result = db.processRecurringTransactions();
+
+    expect(result.count).toBe(0);
+    expect(db.getAccounts().find(a => a.id === 'acc_1').balance).toBe(50000);
+  });
+
+  it('terminates schedule when endDate has passed', () => {
+    seedData({
+      accounts: [{ id: 'acc_1', name: 'Bank', type: 'Bank', balance: 50000, color: '#4a90e2' }],
+      transactions: [{
+        id: 'tx_expired', type: 'income', amount: 5000, date: '2026-06-01',
+        accountId: 'acc_1', categoryId: 'cat_salary', notes: 'Expired',
+        recurring: { frequency: 'monthly', interval: 1, nextDate: '2026-06-15', endDate: '2026-06-10', occurrencesCreated: 0 },
+      }],
+    });
+
+    const result = db.processRecurringTransactions();
+
+    expect(result.count).toBe(0);
+
+    const savedTx = db.getTransactions().find(t => t.id === 'tx_expired');
+    expect(savedTx.recurring).toBe(false);
+
+    expect(db.getAccounts().find(a => a.id === 'acc_1').balance).toBe(50000);
+  });
+
+  it('handles multiple due transactions at once', () => {
+    seedData({
+      accounts: [{ id: 'acc_1', name: 'Bank', type: 'Bank', balance: 100000, color: '#4a90e2' }],
+      transactions: [
+        {
+          id: 'tx_sal', type: 'income', amount: 5000, date: '2026-06-01',
+          accountId: 'acc_1', categoryId: 'cat_salary', notes: 'Salary',
+          recurring: { frequency: 'monthly', interval: 1, nextDate: '2026-06-15', endDate: null, occurrencesCreated: 0 },
+        },
+        {
+          id: 'tx_rent', type: 'expense', amount: 1500, date: '2026-06-01',
+          accountId: 'acc_1', categoryId: 'cat_rent', notes: 'Rent',
+          recurring: { frequency: 'monthly', interval: 1, nextDate: '2026-06-15', endDate: null, occurrencesCreated: 0 },
+        },
+      ],
+    });
+
+    const result = db.processRecurringTransactions();
+
+    expect(result.count).toBe(2);
+    expect(db.getTransactions()).toHaveLength(4);
+    expect(db.getAccounts().find(a => a.id === 'acc_1').balance).toBe(103500);
+  });
+
+  it('handles weekly frequency correctly', () => {
+    seedData({
+      accounts: [{ id: 'acc_1', name: 'Cash', type: 'Cash', balance: 10000, color: '#3cd070' }],
+      transactions: [{
+        id: 'tx_wkly', type: 'expense', amount: 200, date: '2026-06-01',
+        accountId: 'acc_1', categoryId: 'cat_food', notes: 'Weekly food',
+        recurring: { frequency: 'weekly', interval: 1, nextDate: '2026-06-15', endDate: null, occurrencesCreated: 0 },
+      }],
+    });
+
+    db.processRecurringTransactions();
+
+    const savedTx = db.getTransactions().find(t => t.id === 'tx_wkly');
+    expect(savedTx.recurring.nextDate).toBe(addDays('2026-06-15', 7));
+    expect(savedTx.recurring.occurrencesCreated).toBe(1);
+  });
+
+  it('handles yearly frequency correctly', () => {
+    seedData({
+      accounts: [{ id: 'acc_1', name: 'Bank', type: 'Bank', balance: 50000, color: '#4a90e2' }],
+      transactions: [{
+        id: 'tx_yrly', type: 'income', amount: 100000, date: '2026-01-01',
+        accountId: 'acc_1', categoryId: 'cat_bonus', notes: 'Annual bonus',
+        recurring: { frequency: 'yearly', interval: 1, nextDate: '2026-06-15', endDate: null, occurrencesCreated: 0 },
+      }],
+    });
+
+    db.processRecurringTransactions();
+
+    const savedTx = db.getTransactions().find(t => t.id === 'tx_yrly');
+    expect(savedTx.recurring.nextDate).toBe(addMonths('2026-06-15', 12));
+    expect(savedTx.recurring.occurrencesCreated).toBe(1);
+  });
+
+  it('returns count of 0 when no recurring transactions exist', () => {
+    seedData({
+      accounts: [{ id: 'acc_1', name: 'Bank', type: 'Bank', balance: 50000, color: '#4a90e2' }],
+      transactions: [
+        {
+          id: 'tx_a', type: 'income', amount: 5000, date: '2026-06-01',
+          accountId: 'acc_1', categoryId: 'cat_salary', notes: 'No recurring',
+          recurring: false,
+        },
+        {
+          id: 'tx_b', type: 'expense', amount: 500, date: '2026-06-02',
+          accountId: 'acc_1', categoryId: 'cat_food', notes: 'Also not recurring',
+          recurring: false,
+        },
+      ],
+    });
+
+    const result = db.processRecurringTransactions();
+
+    expect(result.count).toBe(0);
+    expect(result.createdTransactions).toEqual([]);
+    expect(db.getTransactions()).toHaveLength(2);
+    expect(db.getAccounts().find(a => a.id === 'acc_1').balance).toBe(50000);
   });
 });

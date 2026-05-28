@@ -200,6 +200,7 @@ describe('Integration: Budget Planner → OnAddBudget Callback', () => {
       limit: 4000,
       month: 4,
       year: 2025,
+      rollover: false,
     });
   });
 
@@ -210,13 +211,13 @@ describe('Integration: Budget Planner → OnAddBudget Callback', () => {
     const newBudget = { id: 'budget_food_extra', categoryId: 'cat_food', limit: 3000, month: 4, year: 2025 };
     const updatedBudgets = [...initialBudgets, newBudget];
 
-    // First render with initial budgets
+    // First render with initial budgets, then rerender with updated data
     const { rerender } = render(
       <BudgetManager {...budgetManagerDefaultProps} budgets={initialBudgets} />
     );
     expect(screen.getAllByText('Food & Drinks').length).toBe(1);
 
-    // Re-render with updated budgets (simulating onAddBudget → setBudgets flow)
+    // Rerender with updated budgets (simulating onAddBudget → setBudgets flow)
     rerender(<BudgetManager {...budgetManagerDefaultProps} budgets={updatedBudgets} />);
     // Now two Food & Drinks budget items should appear
     const foodItems = screen.getAllByText('Food & Drinks');
@@ -415,7 +416,7 @@ describe('Integration: Dashboard Monthly Totals → Analytics Overview', () => {
     useFixedDate();
     useMockRAF();
     render(<Dashboard {...dashboardDefaultProps} accounts={[]} transactions={[]} />);
-    //　0 appears in balance (৳ 0), income (+৳ 0), expense (-৳ 0), and overview net
+    // 0 appears in balance (৳ 0), income (+৳ 0), expense (-৳ 0), and overview net
     const zeroAmounts = screen.getAllByText(/\u09F3\s*0/);
     expect(zeroAmounts.length).toBeGreaterThanOrEqual(1);
 
@@ -531,7 +532,7 @@ describe('Integration: End-to-End Add Budget Flow', () => {
     // Step 1: Start with initial budgets in Dashboard
     const initialBudgets = [{ id: 'budget_food', categoryId: 'cat_food', limit: 5000, month: 4, year: 2025 }];
 
-    const { rerender } = render(
+    render(
       <Dashboard
         {...dashboardDefaultProps}
         budgets={initialBudgets}

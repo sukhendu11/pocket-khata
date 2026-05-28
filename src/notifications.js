@@ -1,6 +1,8 @@
 // Notification utility for Pocket Khata bill reminders
 // Handles permission requests, service worker messaging, and periodic checking
 
+import { trackError } from './lib/analytics';
+
 /**
  * Check if the browser supports the Notification API and service workers.
  */
@@ -19,6 +21,7 @@ export async function requestNotificationPermission() {
     const permission = await Notification.requestPermission();
     return permission;
   } catch (e) {
+    trackError(e, { handler: 'requestNotificationPermission' });
     console.error('Error requesting notification permission:', e);
     return 'denied';
   }
@@ -46,6 +49,7 @@ export async function registerServiceWorker() {
     });
     return registration;
   } catch (e) {
+    trackError(e, { handler: 'registerServiceWorker' });
     console.error('Service worker registration failed:', e);
     return null;
   }
@@ -73,6 +77,7 @@ export async function showNotification(title, body, tag, data = {}) {
       });
     }
   } catch (e) {
+    trackError(e, { handler: 'showNotification', tag });
     console.error('Failed to show notification:', e);
   }
 }
@@ -148,7 +153,8 @@ export async function isServiceWorkerActive() {
   try {
     const registrations = await navigator.serviceWorker.getRegistrations();
     return registrations.length > 0;
-  } catch {
+  } catch (e) {
+    trackError(e, { handler: 'isServiceWorkerActive' });
     return false;
   }
 }

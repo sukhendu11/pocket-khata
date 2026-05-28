@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { trackError } from '../lib/analytics';
 
 /**
  * ErrorBoundary — catches render errors and shows a safe fallback UI
@@ -17,6 +18,8 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('[ErrorBoundary] Caught error:', error, errorInfo);
+    // Track the error via analytics (consent-gated internally)
+    trackError(error, { component: this.props.componentName || 'ErrorBoundary' });
   }
 
   handleRetry = () => {
@@ -25,6 +28,7 @@ export default class ErrorBoundary extends React.Component {
 
   static propTypes = {
     children: PropTypes.node,
+    componentName: PropTypes.string,
   };
 
   render() {

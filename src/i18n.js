@@ -56,10 +56,18 @@ const translations = {
   'txForm.selectDestination': { en: 'Please select a destination account.', bn: 'অনুগ্রহ করে গন্তব্য একাউন্ট নির্বাচন করুন।' },
   'txForm.differentAccounts': { en: 'Source and destination accounts must be different.', bn: 'উৎস ও গন্তব্য একাউন্ট ভিন্ন হতে হবে।' },
   'txForm.selectCategory': { en: 'Please select a category.', bn: 'অনুগ্রহ করে ক্যাটাগরি নির্বাচন করুন।' },
+  'txForm.recurring': { en: 'Recurring Transaction', bn: 'পুনরাবৃত্ত লেনদেন' },
+  'txForm.recurFreq': { en: 'FREQUENCY', bn: 'পুনরাবৃত্তি' },
+  'txForm.recurInterval': { en: 'EVERY', bn: 'প্রতি' },
+  'txForm.recurEndDate': { en: 'END DATE (optional)', bn: 'শেষ তারিখ (ঐচ্ছিক)' },
+  'txForm.freqDaily': { en: 'Daily', bn: 'দৈনিক' },
+  'txForm.freqWeekly': { en: 'Weekly', bn: 'সাপ্তাহিক' },
+  'txForm.freqMonthly': { en: 'Monthly', bn: 'মাসিক' },
+  'txForm.freqYearly': { en: 'Yearly', bn: 'বার্ষিক' },
 
   // ===== TRANSACTION HISTORY =====
   'txHistory.title': { en: 'Ledger Ledger', bn: 'লেজার খাতা' },
-  'txHistory.searchPlaceholder': { en: 'Search by note, description...', bn: 'নোট বা বিবরণ দিয়ে খুঁজুন...' },
+  'txHistory.searchPlaceholder': { en: 'Search notes, amount, category, account...', bn: 'নোট, পরিমাণ, ক্যাটাগরি, একাউন্ট দিয়ে খুঁজুন...' },
   'txHistory.type': { en: 'TYPE', bn: 'ধরণ' },
   'txHistory.allTransactions': { en: 'All Transactions', bn: 'সকল লেনদেন' },
   'txHistory.incomes': { en: 'Incomes', bn: 'আয়সমূহ' },
@@ -77,6 +85,16 @@ const translations = {
   'txHistory.netChange': { en: 'Net Change', bn: 'নেট পরিবর্তন' },
   'txHistory.noMatching': { en: 'No matching transactions found.', bn: 'কোনো মিল খুঁজে পাওয়া যায়নি।' },
   'txHistory.tryWidening': { en: 'Try widening search or resetting filters.', bn: 'সার্চ বা ফিল্টার পরিবর্তন করে দেখুন।' },
+  'txHistory.select': { en: 'Select', bn: 'নির্বাচন' },
+  'txHistory.selected': { en: 'selected', bn: 'টি নির্বাচিত' },
+  'txHistory.selectPrompt': { en: 'Tap transactions to select', bn: 'নির্বাচন করতে লেনদেনে ট্যাপ করুন' },
+  'txHistory.cancelSelection': { en: 'Cancel', bn: 'বাতিল' },
+  'txHistory.batchDelete': { en: 'Delete', bn: 'মুছুন' },
+  'txHistory.batchCategorize': { en: 'Categorize', bn: 'ক্যাটাগরি পরিবর্তন' },
+  'txHistory.selectedTransactions': { en: 'transaction(s) selected', bn: 'টি লেনদেন নির্বাচিত' },
+  'txHistory.deleteConfirmTitle': { en: 'Delete Transactions', bn: 'লেনদেন মুছুন' },
+  'txHistory.deleteConfirmMsg': { en: 'transaction(s) will be permanently deleted. This cannot be undone.', bn: 'টি লেনদেন স্থায়ীভাবে মুছে যাবে। এটি ফিরিয়ে আনা যাবে না।' },
+  'txHistory.deleteAction': { en: 'Delete', bn: 'মুছুন' },
 
   // ===== CALENDAR VIEW =====
   'calendar.title': { en: 'Financial Calendar', bn: 'আর্থিক ক্যালেন্ডার' },
@@ -138,6 +156,9 @@ const translations = {
   'accounts.createWallet': { en: 'Create Wallet', bn: 'ওয়ালেট তৈরি করুন' },
   'accounts.errName': { en: 'Please enter an account name.', bn: 'অনুগ্রহ করে একাউন্টের নাম লিখুন।' },
   'accounts.errBalance': { en: 'Please enter a valid starting balance.', bn: 'অনুগ্রহ করে সঠিক প্রারম্ভিক ব্যালেন্স লিখুন।' },
+  'accounts.editBalance': { en: 'Edit Balance', bn: 'ব্যালেন্স সম্পাদনা' },
+  'accounts.saveBalance': { en: 'Save Balance', bn: 'ব্যালেন্স সেভ করুন' },
+  'accounts.balancePlaceholder': { en: 'Enter new balance', bn: 'নতুন ব্যালেন্স লিখুন' },
   'accounts.deleteWarning': {
     en: 'Warning: This account has existing transactions in your ledger. Deleting the account will keep the ledger transactions but delete the account itself. Proceed?',
     bn: 'সতর্কতা: এই একাউন্টে বিদ্যমান লেনদেন আছে। একাউন্ট মুছলে লেনদেন থাকবে কিন্তু একাউন্ট মুছে যাবে। চালিয়ে যেতে চান?'
@@ -220,7 +241,8 @@ const translations = {
   'settings.importDesc': { en: 'Restore your full database from a previously exported JSON backup file.', bn: 'পূর্বে এক্সপোর্ট করা JSON ব্যাকআপ ফাইল থেকে সম্পূর্ণ ডাটাবেজ রিস্টোর করুন।' },
   'settings.importSuccess': { en: 'Database imported successfully!', bn: 'ডাটাবেজ সফলভাবে ইম্পোর্ট হয়েছে!' },
   'settings.importError': { en: 'Invalid JSON file. Please select a valid export file.', bn: 'অবৈধ JSON ফাইল। অনুগ্রহ করে সঠিক এক্সপোর্ট ফাইল নির্বাচন করুন।' },
-  'settings.noTransactions': { en: 'No transactions to export.', bn: 'এক্সপোর্ট করার মতো কোনো লেনদেন নেই。' },
+  'settings.noTransactions': { en: 'No transactions to export.', bn: 'এক্সপোর্ট করার মতো কোনো লেনদেন নেই।' },
+  'settings.generatingPDF': { en: 'Generating…', bn: 'উৎপন্ন হচ্ছে…' },
   'settings.resetSuccess': { en: 'Pocket Khata reset to factory defaults.', bn: 'পকেট খাতা ফ্যাক্টরি ডিফল্টে রিসেট হয়েছে।' },
 
   // ===== ANALYTICS VIEW =====
@@ -321,6 +343,9 @@ const translations = {
   'budget.edit': { en: 'Edit', bn: 'সম্পাদনা' },
   'budget.errCategory': { en: 'Please select a category', bn: 'অনুগ্রহ করে ক্যাটাগরি নির্বাচন করুন' },
   'budget.errLimit': { en: 'Please enter a valid budget limit', bn: 'অনুগ্রহ করে সঠিক বাজেট সীমা লিখুন' },
+  'budget.rollover': { en: 'Rollover unspent amount', bn: 'অব্যয়িত অর্থ পরবর্তী মাসে নিন' },
+  'budget.rolloverDesc': { en: 'Unused budget carries over to next month', bn: 'অব্যয়িত বাজেট পরবর্তী মাসে যোগ হবে' },
+  'budget.rolloverBadge': { en: 'Rollover', bn: 'রোলওভার' },
 
   // ===== SAVINGS GOALS =====
   'savings.title': { en: 'Savings Goals', bn: 'সঞ্চয় লক্ষ্য' },
@@ -373,6 +398,11 @@ const translations = {
   'reports.last3Months': { en: 'Last 3 Months', bn: 'গত ৩ মাস' },
   'reports.last6Months': { en: 'Last 6 Months', bn: 'গত ৬ মাস' },
   'reports.thisYear': { en: 'This Year', bn: 'এই বছর' },
+  'reports.sectionSummary': { en: 'Summary Cards', bn: 'সারাংশ কার্ড' },
+  'reports.sectionAccounts': { en: 'Account Details', bn: 'একাউন্ট বিবরণ' },
+  'reports.sectionTransactions': { en: 'Transactions Table', bn: 'লেনদেনের তালিকা' },
+  'reports.sectionAnalytics': { en: 'Charts & Insights', bn: 'চার্ট ও অন্তর্দৃষ্টি' },
+  'reports.sectionSelect': { en: 'SELECT SECTIONS TO INCLUDE', bn: 'অন্তর্ভুক্ত করার বিভাগ নির্বাচন' },
 
   // ===== NAVIGATION =====
   'nav.incomeExpense': { en: 'Income & Expense', bn: 'আয় ও ব্যয়' },
@@ -433,6 +463,9 @@ const translations = {
   'about.desc': { en: 'Pocket Khata is a neo-morphic personal finance manager that helps you track expenses, manage accounts, set budgets, and stay on top of your finances with bill reminders. All data stays securely on your device.', bn: 'পকেট খাতা একটি নিও-মরফিক ব্যক্তিগত অর্থ ব্যবস্থাপক যা আপনাকে খরচ ট্র্যাক করতে, একাউন্ট পরিচালনা করতে, বাজেট সেট করতে এবং বিল রিমাইন্ডারের মাধ্যমে আপনার আর্থিক অবস্থার শীর্ষে থাকতে সহায়তা করে। সমস্ত ডেটা আপনার ডিভাইসে নিরাপদে থাকে।' },
   'about.developer': { en: 'Developed with love for financial freedom.', bn: 'আর্থিক স্বাধীনতার জন্য ভালোবাসা দিয়ে তৈরি।' },
 
+  // ===== TOAST NOTIFICATIONS =====
+  'toast.recurringCreated': { en: '{count} recurring transaction(s) created automatically', bn: '{count} টি পুনরাবৃত্ত লেনদেন স্বয়ংক্রিয়ভাবে তৈরি হয়েছে' },
+
   // ===== PDF REPORT CONTENT =====
   'pdf.title': { en: 'Pocket Khata', bn: 'পকেট খাতা' },
   'pdf.subtitle': { en: 'Financial Report', bn: 'আর্থিক প্রতিবেদন' },
@@ -470,6 +503,44 @@ const translations = {
   'pdf.account': { en: 'Account', bn: 'একাউন্ট' },
   'pdf.amount': { en: 'Amount', bn: 'পরিমাণ' },
   'pdf.footer': { en: 'Generated by Pocket Khata on', bn: 'পকেট খাতা দ্বারা তৈরি:' },
+
+  // ===== ANALYTICS CONSENT POPUP =====
+  'analytics.consentTitle': { en: 'Help Improve Pocket Khata', bn: 'পকেট খাতাকে উন্নত করতে সাহায্য করুন' },
+  'analytics.consentDesc': { en: 'Help us understand how you use the app so we can make it better. We collect anonymous usage data only with your permission.', bn: 'আপনি কিভাবে অ্যাপটি ব্যবহার করেন তা বুঝতে আমাদের সাহায্য করুন যাতে আমরা এটি আরও ভাল করতে পারি। আমরা শুধুমাত্র আপনার অনুমতি নিয়ে বেনামী ব্যবহারের তথ্য সংগ্রহ করি।' },
+  'analytics.consentCollects': { en: 'We collect:', bn: 'আমরা সংগ্রহ করি:' },
+  'analytics.consentScreenViews': { en: 'Screen views (which pages you visit)', bn: 'স্ক্রিন ভিউ (আপনি কোন পৃষ্ঠাগুলো দেখেন)' },
+  'analytics.consentActions': { en: 'Actions (buttons you click, features you use)', bn: 'অ্যাকশন (আপনি যে বাটন ক্লিক করেন, ফিচার ব্যবহার করেন)' },
+  'analytics.consentErrors': { en: 'Error counts and types (to fix bugs)', bn: 'ত্রুটির সংখ্যা এবং ধরন (বাগ ঠিক করতে)' },
+  'analytics.consentDevice': { en: 'Anonymous device info (screen size, language, timezone)', bn: 'বেনামী ডিভাইস তথ্য (স্ক্রিন সাইজ, ভাষা, সময় অঞ্চল)' },
+  'analytics.consentNever': { en: 'We NEVER collect:', bn: 'আমরা কখনোই সংগ্রহ করি না:' },
+  'analytics.consentNoPersonal': { en: 'Personal data (name, email, phone)', bn: 'ব্যক্তিগত তথ্য (নাম, ইমেইল, ফোন)' },
+  'analytics.consentNoFinancial': { en: 'Financial data (amounts, balances, account details)', bn: 'আর্থিক তথ্য (পরিমাণ, ব্যালেন্স, একাউন্টের বিবরণ)' },
+  'analytics.consentAllow': { en: 'Allow', bn: 'অনুমতি দিন' },
+  'analytics.consentDecline': { en: 'Decline', bn: 'প্রত্যাখ্যান' },
+  'analytics.consentFootnote': { en: 'You can change this anytime in Settings → Privacy', bn: 'আপনি যেকোনো সময় সেটিংস → প্রাইভেসি থেকে পরিবর্তন করতে পারেন' },
+
+  // ===== PRIVACY SETTINGS =====
+  'privacy.title': { en: 'Privacy & Analytics', bn: 'গোপনীয়তা ও বিশ্লেষণ' },
+  'privacy.desc': { en: 'Control how anonymous usage data is collected. This data helps us understand app usage patterns to improve Pocket Khata.', bn: 'বেনামী ব্যবহারের তথ্য কীভাবে সংগ্রহ করা হয় তা নিয়ন্ত্রণ করুন। এই তথ্য পকেট খাতাকে উন্নত করতে অ্যাপ ব্যবহারের ধরণ বুঝতে আমাদের সাহায্য করে।' },
+  'privacy.consentStatus': { en: 'Tracking Status:', bn: 'ট্র্যাকিং অবস্থা:' },
+  'privacy.statusGranted': { en: 'Active', bn: 'সক্রিয়' },
+  'privacy.statusDenied': { en: 'Disabled', bn: 'নিষ্ক্রিয়' },
+  'privacy.resetConsent': { en: 'Reset Consent Choice', bn: 'সম্মতি রিসেট করুন' },
+  'privacy.resetDesc': { en: 'This will clear your choice and show the consent popup on the next app load.', bn: 'এটি আপনার পছন্দ মুছে ফেলবে এবং পরবর্তী অ্যাপ লোডে সম্মতি পপআপ দেখাবে।' },
+  'privacy.eventsQueued': { en: 'Events waiting to sync:', bn: 'সিঙ্কের জন্য অপেক্ষারত ইভেন্ট:' },
+  'privacy.lastSync': { en: 'Last sync:', bn: 'সর্বশেষ সিঙ্ক:' },
+  'privacy.never': { en: 'Never', bn: 'কখনোই নয়' },
+  'privacy.supabaseStatus': { en: 'Supabase:', bn: 'সুপাবেস:' },
+  'privacy.configured': { en: 'Configured', bn: 'কনফিগারেড' },
+  'privacy.notConfigured': { en: 'Not configured (local-only)', bn: 'কনফিগার করা হয়নি (শুধুমাত্র লোকাল)' },
+
+  // ===== ANALYTICS EVENTS =====
+  'analytics.events.title': { en: 'Analytics Events', bn: 'বিশ্লেষণ ইভেন্ট' },
+  'analytics.events.noData': { en: 'No events tracked yet.', bn: 'এখনো কোনো ইভেন্ট ট্র্যাক করা হয়নি।' },
+  'analytics.events.count': { en: 'event(s) in queue', bn: 'টি ইভেন্ট কিউতে আছে' },
+  'analytics.events.sync': { en: 'Sync Now', bn: 'এখন সিঙ্ক করুন' },
+  'analytics.events.syncing': { en: 'Syncing...', bn: 'সিঙ্ক হচ্ছে...' },
+  'analytics.events.synced': { en: 'Synced!', bn: 'সিঙ্ক হয়েছে!' },
 
 };
 

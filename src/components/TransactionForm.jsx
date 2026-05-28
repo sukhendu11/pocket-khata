@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Trash2, Calendar, Info } from 'lucide-react';
+import { trackError } from '../lib/analytics';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber } from '../utils';
@@ -23,6 +24,12 @@ export default function TransactionForm({
   const [notes, setNotes] = useState('');
   const [validationError, setValidationError] = useState('');
 
+  // Recurring transaction schedule state
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurFreq, setRecurFreq] = useState('monthly');
+  const [recurInterval, setRecurInterval] = useState(1);
+  const [recurEndDate, setRecurEndDate] = useState('');
+
   // Hydrate form if editing
   useEffect(() => {
     if (transaction) {
@@ -43,9 +50,28 @@ export default function TransactionForm({
     }
   }, [transaction, accounts, categories]);
 
+  // Hydrate recurring fields if editing a transaction with a schedule
+  useEffect(() => {
+    if (transaction && transaction.recurring && typeof transaction.recurring === 'object') {
+      setIsRecurring(true);
+      setRecurFreq(transaction.recurring.frequency || 'monthly');
+      setRecurInterval(transaction.recurring.interval || 1);
+      setRecurEndDate(transaction.recurring.endDate || '');
+    } else {
+      setIsRecurring(false);
+      setRecurFreq('monthly');
+      setRecurInterval(1);
+      setRecurEndDate('');
+    }
+  }, [transaction]);
+
   // Adjust categories when type changes
   useEffect(() => {
     if (!transaction) {
+      // Auto-disable recurring when switching to transfer
+      if (type === 'transfer') {
+        setIsRecurring(false);
+      }
       const filteredCats = categories.filter(c => c.type === type);
       if (filteredCats.length > 0) {
         setCategoryId(filteredCats[0].id);
@@ -58,51 +84,69 @@ export default function TransactionForm({
   }, [type, categories, transaction]);
 
   const handleSave = () => {
-    setValidationError('');
+    try {
+      setValidationError('');
 
-    const parsedAmount = Number(amount);
-    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
-      setValidationError(t('txForm.validAmount', lang));
-      return;
-    }
-
-    if (!accountId) {
-      setValidationError(t('txForm.selectAccountErr', lang));
-      return;
-    }
-
-    if (type === 'transfer') {
-      if (!transferToId) {
-        setValidationError(t('txForm.selectDestination', lang));
+      const parsedAmount = Number(amount);
+      if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+        setValidationError(t('txForm.validAmount', lang));
         return;
       }
-      if (accountId === transferToId) {
-        setValidationError(t('txForm.differentAccounts', lang));
+
+      if (!accountId) {
+        setValidationError(t('txForm.selectAccountErr', lang));
         return;
       }
-    } else {
-      if (!categoryId) {
-        setValidationError(t('txForm.selectCategory', lang));
-        return;
+
+      if (type === 'transfer') {
+        if (!transferToId) {
+          setValidationError(t('txForm.selectDestination', lang));
+          return;
+        }
+        if (accountId === transferToId) {
+          setValidationError(t('txForm.differentAccounts', lang));
+          return;
+        }
+      } else {
+        if (!categoryId) {
+          setValidationError(t('txForm.selectCategory', lang));
+          return;
+        }
       }
+
+      const payload = {
+        type,
+        amount: parsedAmount,
+        date,
+        accountId,
+        transferToId: type === 'transfer' ? transferToId : null,
+        categoryId: type === 'transfer' ? '' : categoryId,
+        subcategory: type === 'transfer' ? '' : subcategory,
+        notes: notes.trim(),
+      };
+
+      // Set recurring schedule if enabled (only for income/expense, not transfers)
+      if (isRecurring && type !== 'transfer') {
+        payload.recurring = {
+          frequency: recurFreq,
+          interval: Math.max(1, parseInt(recurInterval) || 1),
+          nextDate: date,
+          endDate: recurEndDate || null,
+          occurrencesCreated: 0,
+        };
+      } else {
+        payload.recurring = false;
+      }
+
+      if (transaction) {
+        payload.id = transaction.id;
+      }
+
+      onSave(payload);
+    } catch (e) {
+      trackError(e, { handler: 'TransactionForm.handleSave', transactionType: type });
+      console.error('Failed to save transaction from form:', e);
     }
-
-    const payload = {
-      type,
-      amount: parsedAmount,
-      date,
-      accountId,
-      transferToId: type === 'transfer' ? transferToId : null,
-      categoryId: type === 'transfer' ? '' : categoryId,
-      subcategory: type === 'transfer' ? '' : subcategory,
-      notes: notes.trim(),
-    };
-
-    if (transaction) {
-      payload.id = transaction.id;
-    }
-
-    onSave(payload);
   };
 
   // Find selected category for subcategory options
@@ -270,6 +314,67 @@ export default function TransactionForm({
                     </option>
                   ))}
                 </select>
+              )}
+            </div>
+          )}
+
+          {/* Recurring Toggle (only for income/expense, not transfers) */}
+          {type !== 'transfer' && (
+            <div style={styles.formGroup}>
+              <label style={styles.recurringToggleLabel}>
+                <input
+                  type="checkbox"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  style={styles.recurringCheckbox}
+                />
+                <span>{t('txForm.recurring', lang)}</span>
+              </label>
+
+              {isRecurring && (
+                <div style={styles.recurringOptions}>
+                  <div style={styles.row}>
+                    {/* Frequency */}
+                    <div style={{ flex: 1 }}>
+                      <label style={styles.label}>{t('txForm.recurFreq', lang)}</label>
+                      <select
+                        value={recurFreq}
+                        onChange={(e) => setRecurFreq(e.target.value)}
+                        className="neo-input"
+                        style={styles.select}
+                      >
+                        <option value="daily" style={styles.option}>{t('txForm.freqDaily', lang)}</option>
+                        <option value="weekly" style={styles.option}>{t('txForm.freqWeekly', lang)}</option>
+                        <option value="monthly" style={styles.option}>{t('txForm.freqMonthly', lang)}</option>
+                        <option value="yearly" style={styles.option}>{t('txForm.freqYearly', lang)}</option>
+                      </select>
+                    </div>
+                    {/* Interval */}
+                    <div style={{ flex: 1 }}>
+                      <label style={styles.label}>{t('txForm.recurInterval', lang)}</label>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={recurInterval}
+                        onChange={(e) => setRecurInterval(e.target.value)}
+                        className="neo-input"
+                        style={styles.intervalInput}
+                      />
+                    </div>
+                  </div>
+                  {/* End Date (optional) */}
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>{t('txForm.recurEndDate', lang)}</label>
+                    <input
+                      type="date"
+                      value={recurEndDate}
+                      onChange={(e) => setRecurEndDate(e.target.value)}
+                      className="neo-input"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -453,5 +558,34 @@ const styles = {
     fontSize: '11px',
     fontWeight: '600',
     color: 'var(--color-expense)',
+  },
+  recurringToggleLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '12px',
+    fontWeight: '600',
+    color: 'var(--text-primary)',
+    cursor: 'pointer',
+    padding: '8px 0',
+  },
+  recurringCheckbox: {
+    width: '16px',
+    height: '16px',
+    accentColor: 'var(--accent-color)',
+    cursor: 'pointer',
+  },
+  recurringOptions: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    padding: '12px',
+    marginTop: '4px',
+    backgroundColor: 'var(--bg-color)',
+    borderRadius: '12px',
+    boxShadow: 'var(--neomorphic-pressed-sm)',
+  },
+  intervalInput: {
+    width: '100%',
   },
 };

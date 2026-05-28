@@ -1,5 +1,5 @@
-import React from 'react';
 import { getAccounts } from '../db';
+import { formatNumber } from '../utils';
 
 function AccountList() {
   const accounts = getAccounts();
@@ -9,7 +9,7 @@ function AccountList() {
       {accounts.map(account => (
         <div key={account.id}>
           <h2>{account.name}</h2>
-          <p>Balance: {formatNumber(account.balance)}</p>
+          <p>Balance: ৳{formatNumber(account.balance)}</p>
         </div>
       ))}
     </div>

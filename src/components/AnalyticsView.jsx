@@ -3,6 +3,7 @@ import { ArrowLeft, TrendingUp, TrendingDown, AlertTriangle, Target, Lightbulb }
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber, formatPercent } from '../utils';
+import { trackAction } from '../lib/analytics';
 import PieChart from './PieChart';
 
 // ===== DATE BOUNDS HELPER =====
@@ -51,11 +52,11 @@ function getDateBounds(range) {
 }
 
 export default function AnalyticsView({
-  transactions,
-  categories,
-  budgets,
-  onNavigate,
-  lang
+  transactions = [],
+  categories = [],
+  budgets = [],
+  onNavigate = () => {},
+  lang = 'en',
 }) {
   const [timeRange, setTimeRange] = useState('month'); // 'month', 'last_month', '6_months', 'all'
   const [activeChart1, setActiveChart1] = useState(null); // Overview slice index
@@ -229,11 +230,11 @@ export default function AnalyticsView({
   // ==================== FEATURE A: Budget vs Actual ====================
   const budgetVsActual = useMemo(() => {
     const { currentStart, currentEnd } = dateBounds;
-    const isAllTime = !currentStart;
+    const isAllTime = !currentStart; // 'all' range — currentStart is null
 
     // Filter budgets that fall within the selected time range
     let currentBudgets = budgets.filter(b => {
-      if (isAllTime) return true; // 'all' range — include all budgets
+      if (isAllTime) return true;
       const budgetDate = new Date(b.year, b.month, 1);
       return budgetDate >= currentStart && budgetDate <= currentEnd;
     });
@@ -275,7 +276,7 @@ export default function AnalyticsView({
         isOverBudget: spent > b.limit,
       };
     }).sort((a, b) => b.percentage - a.percentage);
-  }, [budgets, transactions, categories, dateBounds]);
+  }, [budgets, transactions, categories, dateBounds, lang]);
 
   const budgetVsActualTotal = useMemo(() => {
     const totalLimit = budgetVsActual.reduce((s, b) => s + b.limit, 0);
@@ -290,7 +291,6 @@ export default function AnalyticsView({
   // ==================== FEATURE B: Smart Insights ====================
   const insights = useMemo(() => {
     const { currentStart, currentEnd, prevStart, prevEnd } = dateBounds;
-    const isAllTime = !currentStart;
 
     // Helper: check if a tx date falls within a range
     const inRange = (d, start, end) => {
@@ -466,6 +466,7 @@ export default function AnalyticsView({
           <button
             key={item.key}
             onClick={() => {
+              trackAction('change_time_range', { timeRange: item.key });
               setTimeRange(item.key);
               setActiveChart1(null);
               setActiveChart2(null);
@@ -498,7 +499,7 @@ export default function AnalyticsView({
               <PieChart
                 data={overviewData.data}
                 activeIndex={activeChart1}
-                onSliceClick={(idx) => setActiveChart1(activeChart1 === idx ? null : idx)}
+                onSliceClick={(idx) => { setActiveChart1(activeChart1 === idx ? null : idx); trackAction('view_chart_detail', { chart: 'overview', sliceIndex: idx }); }}
                 centerText={t('analytics.ratio', lang)}
                 animate={true}
                 animationProgress={animationProgress}
@@ -549,7 +550,7 @@ export default function AnalyticsView({
               <PieChart
                 data={incomeBreakdown}
                 activeIndex={activeChart2}
-                onSliceClick={(idx) => setActiveChart2(activeChart2 === idx ? null : idx)}
+                onSliceClick={(idx) => { setActiveChart2(activeChart2 === idx ? null : idx); trackAction('view_chart_detail', { chart: 'income_breakdown', sliceIndex: idx }); }}
                 centerText={t('analytics.sources', lang)}
                 animate={true}
                 animationProgress={animationProgress}
@@ -591,7 +592,7 @@ export default function AnalyticsView({
               <PieChart
                 data={expenseBreakdown}
                 activeIndex={activeChart3}
-                onSliceClick={(idx) => setActiveChart3(activeChart3 === idx ? null : idx)}
+                onSliceClick={(idx) => { setActiveChart3(activeChart3 === idx ? null : idx); trackAction('view_chart_detail', { chart: 'expense_breakdown', sliceIndex: idx }); }}
                 centerText={t('analytics.costs', lang)}
                 animate={true}
                 animationProgress={animationProgress}
@@ -671,7 +672,6 @@ export default function AnalyticsView({
               {/* Per-budget items */}
               <div style={styles.bvaList}>
                 {budgetVsActual.map(b => {
-                const truePct = b.limit > 0 ? Math.round((b.spent / b.limit) * 100) : (b.spent > 0 ? 100 : 0);
                 return (
                   <div key={b.id} style={{
                     ...styles.bvaItem,
@@ -894,14 +894,6 @@ AnalyticsView.propTypes = {
   budgets: PropTypes.array,
   onNavigate: PropTypes.func,
   lang: PropTypes.string,
-};
-
-AnalyticsView.defaultProps = {
-  transactions: [],
-  categories: [],
-  budgets: [],
-  onNavigate: () => {},
-  lang: 'en',
 };
 
 const styles = {

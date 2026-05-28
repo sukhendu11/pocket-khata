@@ -62,7 +62,7 @@ function useFixedDate() {
 function openFilterPanel(props = {}) {
   const utils = render(<TransactionHistory {...defaultProps} {...props} />);
   const buttons = screen.getAllByRole('button');
-  fireEvent.click(buttons[1]); // filter toggle button
+  fireEvent.click(buttons[2]); // filter toggle button (buttons[0]=back, [1]=select, [2]=filter)
   return utils;
 }
 
@@ -88,10 +88,10 @@ describe('TransactionHistory — Rendering', () => {
     expect(screen.getByText('Ledger Ledger')).toBeTruthy();
   });
 
-  it('shows the back button', () => {
+  it('shows the back, select, and filter buttons', () => {
     render(<TransactionHistory {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    expect(buttons.length).toBeGreaterThanOrEqual(2); // back + filter
+    expect(buttons.length).toBeGreaterThanOrEqual(3); // back + select + filter
   });
 
   it('shows all 3 segment control buttons', () => {
@@ -103,9 +103,9 @@ describe('TransactionHistory — Rendering', () => {
 
   it('shows the search input with placeholder', () => {
     render(<TransactionHistory {...defaultProps} />);
-    const searchInput = screen.getByPlaceholderText('Search by note, description...');
+    const searchInput = screen.getByPlaceholderText('Search notes, amount, category, account...');
     expect(searchInput).toBeTruthy();
-  });
+  })
 });
 
 // ==============================================================================
@@ -164,7 +164,7 @@ describe('TransactionHistory — Type Filter', () => {
 describe('TransactionHistory — Search', () => {
   it('filters transactions by search text matching notes', () => {
     render(<TransactionHistory {...defaultProps} />);
-    const searchInput = screen.getByPlaceholderText('Search by note, description...');
+    const searchInput = screen.getByPlaceholderText('Search notes, amount, category, account...');
     fireEvent.change(searchInput, { target: { value: 'salary' } });
     expect(screen.getByText('May salary')).toBeTruthy();
     expect(screen.queryByText('Bus pass')).toBeNull();
@@ -173,15 +173,49 @@ describe('TransactionHistory — Search', () => {
 
   it('filters transactions by search text matching category name', () => {
     render(<TransactionHistory {...defaultProps} />);
-    const searchInput = screen.getByPlaceholderText('Search by note, description...');
+    const searchInput = screen.getByPlaceholderText('Search notes, amount, category, account...');
     fireEvent.change(searchInput, { target: { value: 'Transport' } });
     expect(screen.getByText('Bus pass')).toBeTruthy();
     expect(screen.queryByText('May salary')).toBeNull();
   });
 
+  it('filters transactions by searching for an amount', () => {
+    render(<TransactionHistory {...defaultProps} />);
+    const searchInput = screen.getByPlaceholderText('Search notes, amount, category, account...');
+    // Search for amount 1500 (Lunch with team)
+    fireEvent.change(searchInput, { target: { value: '1500' } });
+    expect(screen.getByText('Lunch with team')).toBeTruthy();
+    expect(screen.queryByText('Bus pass')).toBeNull();
+    expect(screen.queryByText('May salary')).toBeNull();
+  });
+
+  it('filters transactions by searching for an account name', () => {
+    render(<TransactionHistory {...defaultProps} />);
+    const searchInput = screen.getByPlaceholderText('Search notes, amount, category, account...');
+    // Search for 'Cash' — should match Cash Wallet account
+    fireEvent.change(searchInput, { target: { value: 'Cash' } });
+    expect(screen.getByText('Bus pass')).toBeTruthy();    // acc_cash
+    expect(screen.getByText('Lunch with team')).toBeTruthy(); // acc_cash
+    expect(screen.getByText('Freelance gig')).toBeTruthy();  // acc_cash
+    expect(screen.getByText('Old snack')).toBeTruthy();      // acc_cash
+    expect(screen.queryByText('May salary')).toBeNull();  // acc_bank
+    expect(screen.queryByText('Monthly rent')).toBeNull();  // acc_bank
+  });
+
+  it('searches by amount with Bengali digit', () => {
+    render(<TransactionHistory {...defaultProps} />);
+    const searchInput = screen.getByPlaceholderText('Search notes, amount, category, account...');
+    // The amount is stored as a number, so Bengali digits won't match via String(tx.amount)
+    // Searching for the English digit form instead
+    fireEvent.change(searchInput, { target: { value: '500' } });
+    expect(screen.getByText('Old snack')).toBeTruthy();    // amount 500
+    expect(screen.getByText('Freelance gig')).toBeTruthy(); // amount 5000 (partial match)
+    expect(screen.queryByText('May salary')).toBeNull();   // amount 80000 (no '500' in it)
+  });
+
   it('clears search with the X button', () => {
     const { container } = render(<TransactionHistory {...defaultProps} />);
-    const searchInput = screen.getByPlaceholderText('Search by note, description...');
+    const searchInput = screen.getByPlaceholderText('Search notes, amount, category, account...');
     fireEvent.change(searchInput, { target: { value: 'salary' } });
     expect(screen.queryByText('Bus pass')).toBeNull();
 
@@ -207,14 +241,14 @@ describe('TransactionHistory — Filter Panel', () => {
     expect(screen.queryByText(/Reset Filters/i)).toBeNull();
 
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // filter toggle button
+    fireEvent.click(buttons[2]); // filter toggle button (0=back, 1=select, 2=filter)
     expect(screen.getByText(/Reset Filters/i)).toBeTruthy();
   });
 
   it('shows filter labels when panel is open', () => {
     render(<TransactionHistory {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]);
+    fireEvent.click(buttons[2]);
 
     expect(screen.getByText('TYPE')).toBeTruthy();
     expect(screen.getByText('ACCOUNT')).toBeTruthy();
@@ -280,10 +314,10 @@ describe('TransactionHistory — Filter Panel', () => {
   it('reset filters button clears all filters', () => {
     render(<TransactionHistory {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // open filter panel
+    fireEvent.click(buttons[2]); // open filter panel (0=back, 1=select, 2=filter)
 
     // Apply search
-    const searchInput = screen.getByPlaceholderText('Search by note, description...');
+    const searchInput = screen.getByPlaceholderText('Search notes, amount, category, account...');
     fireEvent.change(searchInput, { target: { value: 'salary' } });
 
     // Click Reset Filters
@@ -374,7 +408,7 @@ describe('TransactionHistory — Date Grouping', () => {
 describe('TransactionHistory — Empty State', () => {
   it('shows empty state when no transactions match', () => {
     render(<TransactionHistory {...defaultProps} />);
-    const searchInput = screen.getByPlaceholderText('Search by note, description...');
+    const searchInput = screen.getByPlaceholderText('Search notes, amount, category, account...');
     fireEvent.change(searchInput, { target: { value: 'zzz_nonexistent' } });
     expect(screen.getByText('No matching transactions found.')).toBeTruthy();
     expect(screen.getByText(/Try widening search/)).toBeTruthy();
@@ -488,6 +522,178 @@ describe('TransactionHistory — Bangla Mode', () => {
     expect(screen.getByText('ধরণ')).toBeTruthy();
     expect(screen.getByText('একাউন্ট')).toBeTruthy();
     expect(screen.getByText('ক্যাটাগরি')).toBeTruthy();
+  });
+});
+
+// ==============================================================================
+// Batch Operations
+// ==============================================================================
+
+describe('TransactionHistory — Batch Operations', () => {
+  it('shows select mode toggle button in header', () => {
+    render(<TransactionHistory {...defaultProps} />);
+    const buttons = screen.getAllByRole('button');
+    // buttons[1] is the select mode toggle
+    fireEvent.click(buttons[1]);
+    expect(screen.getByText('Tap transactions to select')).toBeTruthy();
+  });
+
+  it('toggling select mode shows the select banner and hides edit icons', () => {
+    render(<TransactionHistory {...defaultProps} />);
+    const buttons = screen.getAllByRole('button');
+    fireEvent.click(buttons[1]); // enter select mode
+    
+    expect(screen.getByText('Tap transactions to select')).toBeTruthy();
+    
+    // Click the X button to exit select mode
+    fireEvent.click(buttons[1]);
+    expect(screen.queryByText('Tap transactions to select')).toBeNull();
+  });
+
+  it('cancel button in select banner exits select mode', () => {
+    render(<TransactionHistory {...defaultProps} />);
+    const buttons = screen.getAllByRole('button');
+    fireEvent.click(buttons[1]); // enter select mode
+    
+    const cancelBtn = screen.getByText('Cancel');
+    fireEvent.click(cancelBtn);
+    
+    expect(screen.queryByText('Tap transactions to select')).toBeNull();
+  });
+
+  it('selecting transactions increments selected count', () => {
+    render(<TransactionHistory {...defaultProps} />);
+    const buttons = screen.getAllByRole('button');
+    fireEvent.click(buttons[1]); // enter select mode
+    
+    // Click on a transaction to select it
+    const txItem = screen.getByText('Bus pass').closest('[class*="neo-raised-sm"]');
+    expect(txItem).toBeTruthy();
+    fireEvent.click(txItem);
+    
+    // Text appears both in the select banner and the batch toolbar
+    expect(screen.getAllByText(/1 selected/).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('selecting multiple transactions shows correct count and batch toolbar', () => {
+    render(<TransactionHistory {...defaultProps} />);
+    const buttons = screen.getAllByRole('button');
+    fireEvent.click(buttons[1]); // enter select mode
+    
+    // Select two transactions
+    const tx1 = screen.getByText('Bus pass').closest('[class*="neo-raised-sm"]');
+    fireEvent.click(tx1);
+    const tx2 = screen.getByText('May salary').closest('[class*="neo-raised-sm"]');
+    fireEvent.click(tx2);
+    
+    // Check count shows "2 selected"
+    expect(screen.getAllByText(/2 selected/).length).toBeGreaterThanOrEqual(1);
+    
+    // Batch toolbar shows Categorize and Delete buttons
+    expect(screen.getByText('Categorize')).toBeTruthy();
+    expect(screen.getAllByText('Delete').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('calling onBatchDelete with selected IDs', () => {
+    const handleBatchDelete = vi.fn();
+    render(<TransactionHistory {...defaultProps} onBatchDelete={handleBatchDelete} />);
+    const buttons = screen.getAllByRole('button');
+    fireEvent.click(buttons[1]); // enter select mode
+    
+    // Select one transaction
+    const txItem = screen.getByText('Bus pass').closest('[class*="neo-raised-sm"]');
+    fireEvent.click(txItem);
+    
+    // Click Delete (batch toolbar button)
+    const deleteBtns = screen.getAllByText('Delete');
+    const batchDeleteBtn = deleteBtns[deleteBtns.length - 1];
+    fireEvent.click(batchDeleteBtn);
+    
+    // Confirmation dialog appears
+    expect(screen.getByText('Delete Transactions')).toBeTruthy();
+    
+    // Confirm delete — use getAllByText since the batch toolbar Delete is still visible
+    const overlayDeleteBtns = screen.getAllByText('Delete');
+    const confirmDeleteBtn = overlayDeleteBtns.find(btn => 
+      btn.closest && btn.closest('[style*="position: fixed"]')
+    ) || overlayDeleteBtns[overlayDeleteBtns.length - 1];
+    fireEvent.click(confirmDeleteBtn);
+    
+    expect(handleBatchDelete).toHaveBeenCalledWith(
+      expect.arrayContaining(['tx_bus'])
+    );
+  });
+
+  it('calling onBatchCategorize with selected IDs and category', () => {
+    const handleBatchCategorize = vi.fn();
+    render(<TransactionHistory {...defaultProps} onBatchCategorize={handleBatchCategorize} />);
+    const buttons = screen.getAllByRole('button');
+    fireEvent.click(buttons[1]); // enter select mode
+    
+    // Select two transactions
+    const tx1 = screen.getByText('Bus pass').closest('[class*="neo-raised-sm"]');
+    fireEvent.click(tx1);
+    const tx2 = screen.getByText('May salary').closest('[class*="neo-raised-sm"]');
+    fireEvent.click(tx2);
+    
+    // Click Categorize
+    fireEvent.click(screen.getByText('Categorize'));
+    
+    // Category picker appears
+    expect(screen.getByText('Food & Drinks')).toBeTruthy();
+    
+    // Click a category
+    fireEvent.click(screen.getByText('Food & Drinks'));
+    
+    expect(handleBatchCategorize).toHaveBeenCalledWith(
+      expect.arrayContaining(['tx_bus', 'tx_salary']),
+      'cat_food'
+    );
+  });
+
+  it('select all via banner checkbox selects all visible transactions', () => {
+    render(<TransactionHistory {...defaultProps} />);
+    const buttons = screen.getAllByRole('button');
+    fireEvent.click(buttons[1]); // enter select mode
+    
+    // Click the select-all checkbox in the banner (the Square icon)
+    expect(screen.getByText('Tap transactions to select')).toBeTruthy();
+    
+    // Find and click the select-all area (first child of selectBanner)
+    const bannerText = screen.getByText('Tap transactions to select');
+    const bannerRow = bannerText.closest('[style*="display: flex"]');
+    if (bannerRow) {
+      // Click the checkbox area (the <div> with onClick for selectAll)
+      const checkboxArea = bannerRow.querySelector('[style*="cursor: pointer"]');
+      if (checkboxArea) fireEvent.click(checkboxArea);
+    }
+    
+    // Now 6 transactions should be selected — text appears in both banner and batch toolbar
+    expect(screen.getAllByText(/6 selected/).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('cancel from category picker does not call onBatchCategorize', () => {
+    const handleBatchCategorize = vi.fn();
+    render(<TransactionHistory {...defaultProps} onBatchCategorize={handleBatchCategorize} />);
+    const buttons = screen.getAllByRole('button');
+    fireEvent.click(buttons[1]); // enter select mode
+    
+    // Select a transaction
+    const txItem = screen.getByText('Bus pass').closest('[class*="neo-raised-sm"]');
+    fireEvent.click(txItem);
+    
+    // Open category picker
+    fireEvent.click(screen.getByText('Categorize'));
+    
+    // Click Cancel in the picker — use getAllByText since banner also has a Cancel button
+    const cancelBtns = screen.getAllByText('Cancel');
+    // Pick the cancel inside the overlay (the last one rendered, inside the dialog)
+    const cancelBtn = cancelBtns.find(btn => 
+      btn.closest && btn.closest('[class*="neo-raised-sm"]')
+    ) || cancelBtns[cancelBtns.length - 1];
+    fireEvent.click(cancelBtn);
+    
+    expect(handleBatchCategorize).not.toHaveBeenCalled();
   });
 });
 

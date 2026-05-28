@@ -6,6 +6,7 @@ import {
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber } from '../utils';
+import { trackAction } from '../lib/analytics';
 import { 
   getNotificationPermission, 
   requestNotificationPermission, 
@@ -54,6 +55,7 @@ export default function ReminderManager({
   const handleRequestNotificationPermission = async () => {
     const result = await requestNotificationPermission();
     setNotifState((prev) => ({ ...prev, permission: result }));
+    trackAction('request_notification_permission', { result });
   };
 
   // 2. Filtered lists
@@ -138,6 +140,7 @@ export default function ReminderManager({
     setAmount('');
     setDueDate('');
     setCategoryId('');
+    trackAction(editingReminder ? 'edit_reminder' : 'add_reminder', { categoryId, amount: parsedAmount });
     setEditingReminder(null);
     setShowAddModal(false);
   };
@@ -164,6 +167,7 @@ export default function ReminderManager({
 
   const executePay = (sourceAccountId) => {
     if (selectedReminderToPay && sourceAccountId) {
+      trackAction('pay_reminder', { reminderId: selectedReminderToPay.id, amount: selectedReminderToPay.amount, sourceAccountId });
       onPayReminder(selectedReminderToPay.id, sourceAccountId);
       setShowPaySelectModal(false);
       setSelectedReminderToPay(null);
@@ -311,7 +315,7 @@ export default function ReminderManager({
                     <button 
                       className="neo-btn" 
                       style={styles.deleteCardBtn}
-                      onClick={() => onDeleteReminder(rem.id)}
+                      onClick={() => { onDeleteReminder(rem.id); trackAction('delete_reminder', { reminderId: rem.id }); }}
                     >
                       <Trash2 size={12} />
                     </button>
@@ -323,7 +327,7 @@ export default function ReminderManager({
                     <button 
                       className="neo-btn" 
                       style={styles.deleteCardBtnMuted}
-                      onClick={() => onDeleteReminder(rem.id)}
+                      onClick={() => { onDeleteReminder(rem.id); trackAction('delete_reminder', { reminderId: rem.id }); }}
                     >
                       <Trash2 size={10} />
                     </button>

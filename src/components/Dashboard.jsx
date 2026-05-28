@@ -7,6 +7,7 @@ import {
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber, formatPercent } from '../utils';
+import { trackAction } from '../lib/analytics';
 import TransactionItem from './TransactionItem';
 
 export default function Dashboard({ 
@@ -101,6 +102,7 @@ export default function Dashboard({
     if (lang !== 'bn') return acc.name;
     const nameMap = {
       'Cash': t('accounts.name.cash', lang),
+      'Cash Ledger': t('accounts.name.cash', lang),
       'Bank Account': t('accounts.name.bankAccount', lang),
       'bKash Wallet': t('accounts.name.bkashWallet', lang),
       'Nagad Wallet': t('accounts.name.nagadWallet', lang),
@@ -182,7 +184,7 @@ export default function Dashboard({
           <button 
             className="neo-btn neo-btn-round" 
             style={styles.actionBtn}
-            onClick={() => onNavigate('reminders')}
+            onClick={() => { onNavigate('reminders'); trackAction('view_reminders', { source: 'dashboard_header' }); }}
           >
             <Bell size={18} style={{ color: hasOverdueReminders ? 'var(--color-expense)' : 'var(--text-secondary)' }} />
             {hasOverdueReminders && <div style={styles.badgeDot} />}
@@ -190,7 +192,7 @@ export default function Dashboard({
           <button 
             className="neo-btn neo-btn-round" 
             style={styles.actionBtn}
-            onClick={onToggleTheme}
+            onClick={() => { onToggleTheme(); trackAction('toggle_theme', { source: 'dashboard' }); }}
           >
             {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
@@ -198,18 +200,18 @@ export default function Dashboard({
       </div>
 
       {/* 2. Aggregate Balance Card */}
-      <div className="neo-raised" style={styles.balanceCard}>
+      <div className="neo-raised card-entrance" style={styles.balanceCard}>
         <span style={styles.cardLabel}>{t('dashboard.totalBalance', lang)}</span>
         <h2 style={styles.balanceVal}>৳ {formatNumber(netBalance, lang)}</h2>
         <div style={styles.cardIndicatorContainer}>
-          <div style={styles.cardIndicatorDot} />
+          <div className="balance-dot" style={styles.cardIndicatorDot} />
           <span style={styles.cardIndicatorText}>{t('dashboard.dbActive', lang)}</span>
         </div>
       </div>
 
       {/* 3. Income vs Expense summary */}
       <div style={styles.summaryGrid}>
-        <div className="neo-raised-sm" style={styles.summaryBox}>
+        <div className="neo-raised-sm card-entrance card-entrance-1 hover-lift" style={styles.summaryBox}>
           <div className="neo-pressed-sm" style={{ ...styles.sumIconBg, color: 'var(--color-income)' }}>
             <ArrowUpRight size={18} />
           </div>
@@ -221,7 +223,7 @@ export default function Dashboard({
           </div>
         </div>
 
-        <div className="neo-raised-sm" style={styles.summaryBox}>
+        <div className="neo-raised-sm card-entrance card-entrance-2 hover-lift" style={styles.summaryBox}>
           <div className="neo-pressed-sm" style={{ ...styles.sumIconBg, color: 'var(--color-expense)' }}>
             <ArrowDownLeft size={18} />
           </div>
@@ -237,23 +239,23 @@ export default function Dashboard({
       {/* 4. Accounts Quick Scroll (Horizontal Deck) */}
       <div style={styles.sectionHeader}>
         <h3 style={styles.sectionTitle}>{t('dashboard.myAccounts', lang)}</h3>
-        <button style={styles.seeAllBtn} onClick={() => onNavigate('accounts')}>
+        <button style={styles.seeAllBtn}onClick={() => { onNavigate('accounts'); trackAction('view_accounts', { source: 'dashboard_deck' }); }}
+          >
           {t('dashboard.manage', lang)} <ChevronRight size={14} />
         </button>
       </div>
 
       <div style={styles.accountsScrollDeck} className="hide-scrollbar">
-        {accounts.map(acc => (
+        {accounts.map((acc, idx) => (
           <div 
             key={acc.id} 
-            className="neo-raised-sm hover-lift press-scale" 
+            className={`neo-raised-sm hover-lift press-scale card-entrance card-entrance-${Math.min(idx + 1, 6)}`} 
             style={{ 
               ...styles.accountCard, 
               borderLeft: `3px solid ${acc.color || 'var(--accent-color)'}` 
-            }}
-            onClick={() => onNavigate('accounts')}
-          >
-            <span style={{ ...styles.accCardIcon, backgroundColor: `${acc.color}22`, color: acc.color }}>
+            }}onClick={() => { onNavigate('accounts'); trackAction('view_accounts', { source: 'dashboard_card' }); }}
+            >
+              <span style={{ ...styles.accCardIcon, backgroundColor: `${acc.color}22`, color: acc.color }}>
               {getAccountIcon(acc.type)}
             </span>
             <h4 style={styles.accCardName}>{getLocalizedAccName(acc)}</h4>
@@ -264,7 +266,7 @@ export default function Dashboard({
 
       {/* 4.5 Budget & Savings Mini Cards — Always visible for quick access */}
       <div style={styles.miniCardsRow}>
-        <div className="neo-raised-sm" style={styles.miniCard} onClick={() => onNavigate('budgets')}>
+        <div className="neo-raised-sm hover-lift card-entrance card-entrance-3" style={styles.miniCard} onClick={() => { onNavigate('budgets'); trackAction('view_budgets', { source: 'dashboard_mini' }); }}>
           <div style={styles.miniCardIcon}><PieChartIcon size={14} style={{ color: 'var(--accent-color)' }} /></div>
           <span style={styles.miniCardLabel}>{t('budget.title', lang)}</span>
           <span style={styles.miniCardCount}>
@@ -273,7 +275,7 @@ export default function Dashboard({
               : t('dashboard.createFirst', lang)}
           </span>
         </div>
-        <div className="neo-raised-sm" style={styles.miniCard} onClick={() => onNavigate('savings')}>
+        <div className="neo-raised-sm hover-lift card-entrance card-entrance-4" style={styles.miniCard} onClick={() => { onNavigate('savings'); trackAction('view_savings', { source: 'dashboard_mini' }); }}>
           <div style={styles.miniCardIcon}><Target size={14} style={{ color: 'var(--color-income)' }} /></div>
           <span style={styles.miniCardLabel}>{t('savings.title', lang)}</span>
           <span style={styles.miniCardCount}>
@@ -289,7 +291,7 @@ export default function Dashboard({
         <h3 style={styles.sectionTitle}>{t('dashboard.overview', lang)}</h3>
       </div>
 
-      <div className="neo-raised" style={styles.chartContainer}>
+      <div className="neo-raised card-entrance card-entrance-5" style={styles.chartContainer}>
         {(() => {
           const { income, expense } = monthlyTotals;
           const net = income - expense;
@@ -349,7 +351,7 @@ export default function Dashboard({
         <h3 style={styles.sectionTitle}>{t('dashboard.financialTrends', lang)}</h3>
       </div>
 
-      <div className="neo-raised" style={styles.chartContainer}>
+      <div className="neo-raised card-entrance card-entrance-6" style={styles.chartContainer}>
         <div style={styles.lineChartWrapper}>
           <svg 
             width="100%" 
@@ -453,7 +455,7 @@ export default function Dashboard({
       {/* 7. Recent Transactions Ledger */}
       <div style={styles.sectionHeader}>
         <h3 style={styles.sectionTitle}>{t('dashboard.recentLedger', lang)}</h3>
-        <button style={styles.seeAllBtn} onClick={() => onNavigate('transactions')}>
+        <button style={styles.seeAllBtn} onClick={() => { onNavigate('transactions'); trackAction('view_transactions', { source: 'dashboard_recent' }); }}>
           {t('dashboard.seeAll', lang)} <ChevronRight size={14} />
         </button>
       </div>

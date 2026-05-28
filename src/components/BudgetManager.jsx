@@ -3,28 +3,34 @@ import { ArrowLeft, Plus, X, AlertCircle, Bell, Trash2, Edit3 } from 'lucide-rea
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber, formatPercent } from '../utils';
+import { trackAction } from '../lib/analytics';
 
 export default function BudgetManager({
-  budgets,
-  categories,
-  transactions,
-  onAddBudget,
-  onUpdateBudget,
-  onDeleteBudget,
-  onNavigate,
-  lang,
+  budgets = [],
+  categories = [],
+  transactions = [],
+  onAddBudget = () => {},
+  onUpdateBudget = () => {},
+  onDeleteBudget = () => {},
+  onNavigate = () => {},
+  lang = 'en',
 }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [categoryId, setCategoryId] = useState('');
   const [limit, setLimit] = useState('');
+  const [rollover, setRollover] = useState(false);
   const [formError, setFormError] = useState('');
 
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
-  // Compute spending per budget
+  // Compute previous month index/year (for rollover lookup)
+  const prevMonthIndex = currentMonth === 0 ? 11 : currentMonth - 1;
+  const prevMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+  // Compute spending per budget with rollover support
   const budgetsWithSpending = useMemo(() => {
     return budgets.map(b => {
       const cat = categories.find(c => c.id === b.categoryId);
@@ -36,34 +42,60 @@ export default function BudgetManager({
           return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
         })
         .reduce((sum, tx) => sum + tx.amount, 0);
-      const percentage = b.limit > 0 ? Math.min((spent / b.limit) * 100, 100) : (spent > 0 ? 100 : 0);
-      const displayPct = b.limit === 0 && spent > 0 ? '100%+' : formatPercent(percentage, lang);
+
+      // Rollover: find previous month's budget for same category with rollover enabled
+      let rolloverAmount = 0;
+      let hasRollover = false;
+      const prevBudget = budgets.find(pb =>
+        pb.categoryId === b.categoryId &&
+        pb.month === prevMonthIndex &&
+        pb.year === prevMonthYear
+      );
+      if (prevBudget && prevBudget.rollover) {
+        const prevSpent = transactions
+          .filter(tx => {
+            if (tx.type !== 'expense') return false;
+            if (tx.categoryId !== b.categoryId) return false;
+            const d = new Date(tx.date);
+            return d.getMonth() === prevMonthIndex && d.getFullYear() === prevMonthYear;
+          })
+          .reduce((sum, tx) => sum + tx.amount, 0);
+        rolloverAmount = Math.max(0, prevBudget.limit - prevSpent);
+        hasRollover = rolloverAmount > 0;
+      }
+
+      const effectiveLimit = b.limit + rolloverAmount;
+      const percentage = effectiveLimit > 0 ? Math.min((spent / effectiveLimit) * 100, 100) : (spent > 0 ? 100 : 0);
+      const displayPct = effectiveLimit === 0 && spent > 0 ? '100%+' : formatPercent(percentage, lang);
       return {
         ...b,
         categoryName: cat?.name || 'Unknown',
         categoryColor: cat?.color || '#bdc3c7',
         spent,
-        remaining: b.limit - spent,
+        effectiveLimit,
+        rolloverAmount,
+        hasRollover,
+        remaining: effectiveLimit - spent,
         percentage,
         displayPct,
-        isOverBudget: spent > b.limit,
-        isNearLimit: percentage >= 80 && spent <= b.limit,
+        isOverBudget: spent > effectiveLimit,
+        isNearLimit: percentage >= 80 && spent <= effectiveLimit,
       };
     }).sort((a, b) => b.percentage - a.percentage);
-  }, [budgets, categories, transactions, currentMonth, currentYear]);
+  }, [budgets, categories, transactions, currentMonth, currentYear, prevMonthIndex, prevMonthYear, lang]);
 
-  // Total budget stats
+  // Total budget stats (using effective limits)
   const totalStats = useMemo(() => {
-    const totalLimit = budgets.reduce((s, b) => s + b.limit, 0);
+    const totalLimit = budgetsWithSpending.reduce((s, b) => s + b.effectiveLimit, 0);
     const totalSpent = budgetsWithSpending.reduce((s, b) => s + b.spent, 0);
     return {
       totalLimit,
       totalSpent,
       totalRemaining: totalLimit - totalSpent,
       totalPct: totalLimit > 0 ? Math.min((totalSpent / totalLimit) * 100, 100) : 0,
-      budgetCount: budgets.length,
+      budgetCount: budgetsWithSpending.length,
     };
-  }, [budgets, budgetsWithSpending]);
+  }, [budgetsWithSpending]);
 
   // Only expense categories for budgeting
   const expenseCats = categories.filter(c => c.type === 'expense');
@@ -72,6 +104,7 @@ export default function BudgetManager({
     setEditing(null);
     setCategoryId('');
     setLimit('');
+    setRollover(false);
     setFormError('');
     setShowForm(true);
   };
@@ -80,6 +113,7 @@ export default function BudgetManager({
     setEditing(budget);
     setCategoryId(budget.categoryId);
     setLimit(budget.limit.toString());
+    setRollover(budget.rollover || false);
     setFormError('');
     setShowForm(true);
   };
@@ -101,6 +135,7 @@ export default function BudgetManager({
       limit: parsedLimit,
       month: currentMonth,
       year: currentYear,
+      rollover,
     };
 
     if (editing) {
@@ -109,6 +144,7 @@ export default function BudgetManager({
       onAddBudget(payload);
     }
 
+    trackAction(editing ? 'edit_budget' : 'add_budget', { categoryId, limit: parsedLimit, rollover });
     setShowForm(false);
     setEditing(null);
   };
@@ -175,7 +211,14 @@ export default function BudgetManager({
               <div style={styles.cardTop}>
                 <div style={styles.cardLeft}>
                   <span style={styles.catName}>{b.categoryName}</span>
-                  <span style={styles.catLimit}>{t('budget.limit', lang)} ৳{formatNumber(b.limit, lang)}</span>
+                  <span style={styles.catLimit}>
+                    {t('budget.limit', lang)} ৳{formatNumber(b.limit, lang)}
+                    {b.hasRollover && (
+                      <span style={styles.rolloverLimit}>
+                        {' + '}{t('budget.limit', lang)} ৳{formatNumber(b.rolloverAmount, lang)} {t('budget.rolloverBadge', lang)}
+                      </span>
+                    )}
+                  </span>
                 </div>
                 <div style={styles.cardRight}>
                   <span style={{
@@ -184,7 +227,7 @@ export default function BudgetManager({
                   }}>
                     ৳{formatNumber(b.spent, lang)}
                   </span>
-                  <span style={styles.ofLimit}>/ ৳{formatNumber(b.limit, lang)}</span>
+                  <span style={styles.ofLimit}>/ ৳{formatNumber(b.effectiveLimit, lang)}</span>
                 </div>
               </div>
 
@@ -212,6 +255,11 @@ export default function BudgetManager({
 
               {/* Status Badges */}
               <div style={styles.badgeRow}>
+                {b.hasRollover && (
+                  <span style={styles.rolloverBadge}>
+                    <Bell size={10} /> {t('budget.rolloverBadge', lang)}
+                  </span>
+                )}
                 {b.isOverBudget && (
                   <span style={styles.overBadge}>
                     <AlertCircle size={10} /> {t('budget.overBudget', lang)}
@@ -225,7 +273,7 @@ export default function BudgetManager({
                 <button className="neo-btn" style={styles.editBadgeBtn} onClick={() => openEdit(b)}>
                   <Edit3 size={10} /> {t('budget.edit', lang)}
                 </button>
-                <button className="neo-btn" style={styles.deleteBadgeBtn} onClick={() => onDeleteBudget(b.id)}>
+                <button className="neo-btn" style={styles.deleteBadgeBtn} onClick={() => { onDeleteBudget(b.id); trackAction('delete_budget', { categoryId: b.categoryId }); }}>
                   <Trash2 size={10} />
                 </button>
               </div>
@@ -280,6 +328,28 @@ export default function BudgetManager({
                 />
               </div>
 
+              {/* Rollover Toggle */}
+              <div style={styles.toggleGroup}>
+                <div style={styles.toggleRow} onClick={() => setRollover(!rollover)}>
+                  <div style={{
+                    ...styles.toggleTrack,
+                    backgroundColor: rollover ? 'var(--accent-color)' : 'var(--bg-color)',
+                    boxShadow: rollover
+                      ? 'inset 0 1px 3px rgba(0,0,0,0.2)'
+                      : 'inset 0 1px 3px rgba(0,0,0,0.1)',
+                  }}>
+                    <div style={{
+                      ...styles.toggleThumb,
+                      transform: rollover ? 'translateX(16px)' : 'translateX(2px)',
+                    }} />
+                  </div>
+                  <div style={styles.toggleLabelGroup}>
+                    <span style={styles.toggleLabel}>{t('budget.rollover', lang)}</span>
+                    <span style={styles.toggleDesc}>{t('budget.rolloverDesc', lang)}</span>
+                  </div>
+                </div>
+              </div>
+
               <p style={styles.formHint}>
                 {t('budget.budgetFor', lang)} {t('calendar.months', lang)[currentMonth]} {formatNumber(currentYear, lang)}
               </p>
@@ -304,17 +374,6 @@ BudgetManager.propTypes = {
   onDeleteBudget: PropTypes.func,
   onNavigate: PropTypes.func,
   lang: PropTypes.string,
-};
-
-BudgetManager.defaultProps = {
-  budgets: [],
-  categories: [],
-  transactions: [],
-  onAddBudget: () => {},
-  onUpdateBudget: () => {},
-  onDeleteBudget: () => {},
-  onNavigate: () => {},
-  lang: 'en',
 };
 
 const styles = {
@@ -347,6 +406,15 @@ const styles = {
   badgeRow: { display: 'flex', gap: '6px', alignItems: 'center', marginTop: '4px' },
   overBadge: { display: 'flex', alignItems: 'center', gap: '3px', fontSize: '9px', fontWeight: '700', color: 'var(--color-expense)', backgroundColor: 'rgba(255,94,87,0.12)', padding: '3px 6px', borderRadius: '4px' },
   nearBadge: { display: 'flex', alignItems: 'center', gap: '3px', fontSize: '9px', fontWeight: '700', color: '#f7b731', backgroundColor: 'rgba(247,183,49,0.12)', padding: '3px 6px', borderRadius: '4px' },
+  rolloverBadge: { display: 'flex', alignItems: 'center', gap: '3px', fontSize: '9px', fontWeight: '700', color: 'var(--accent-color)', backgroundColor: 'rgba(56,103,214,0.12)', padding: '3px 6px', borderRadius: '4px' },
+  rolloverLimit: { fontSize: '10px', color: 'var(--accent-color)', fontWeight: '600' },
+  toggleGroup: { display: 'flex', flexDirection: 'column', gap: '2px' },
+  toggleRow: { display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '4px 0' },
+  toggleTrack: { width: '36px', height: '20px', borderRadius: '10px', position: 'relative', transition: 'background-color 0.25s', cursor: 'pointer', flexShrink: 0 },
+  toggleThumb: { width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'var(--text-primary)', position: 'absolute', top: '2px', transition: 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)' },
+  toggleLabelGroup: { display: 'flex', flexDirection: 'column', gap: '1px' },
+  toggleLabel: { fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' },
+  toggleDesc: { fontSize: '9px', color: 'var(--text-secondary)', fontWeight: '500' },
   editBadgeBtn: { padding: '3px 8px', fontSize: '9px', borderRadius: '4px', border: '1px solid var(--accent-color)', color: 'var(--accent-color)', height: '22px' },
   deleteBadgeBtn: { width: '22px', height: '22px', borderRadius: '4px', padding: 0, border: '1px solid var(--color-expense)', color: 'var(--color-expense)' },
   formDrawer: { paddingBottom: '30px' },

@@ -398,6 +398,7 @@ describe('BudgetManager — Save New Budget', () => {
       limit: 3000,
       month: 4,
       year: 2025,
+      rollover: false,
     });
   });
 

@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react';
 import { db } from './db';
+import ConsentPopup from './components/ConsentPopup';
+import {
+  getConsent,
+  trackScreenView,
+  trackAction,
+  trackError,
+  trackDeviceInfo,
+  startAutoSync,
+} from './lib/analytics';
 
 // Dashboard is the default screen — eager import eliminates the initial loading spinner
 import Dashboard from './components/Dashboard';
@@ -31,7 +40,7 @@ const SavingsTracker = lazy(() => import('./components/SavingsTracker'));
 import ErrorBoundary from './components/ErrorBoundary';
 
 import { t } from './i18n';
-import { Menu } from 'lucide-react';
+import { Menu, CheckCircle } from 'lucide-react';
 import { checkReminders } from './notifications';
 
 const globalLangStyles = {
@@ -145,7 +154,119 @@ export default function App() {
   const [savingsGoals, setSavingsGoals] = useState([]);
   // Security (lock screen) removed
 
-  // 2. Language State
+  // 2. Analytics consent state — with usage-delayed popup
+  const CONSENT_DELAY_DAYS = 3;           // Calendar days before consent popup appears
+  const CONSENT_DELAY_ACTIVE_MS = 30 * 60 * 1000; // OR 30 minutes of active usage
+
+  // Usage-tracking keys
+  const FIRST_OPEN_KEY = 'pocket_khata_first_open';
+  const ACTIVE_TIME_KEY = 'pocket_khata_active_time';
+
+  const [analyticsConsent, setAnalyticsConsent] = useState(() => {
+    const stored = getConsent();
+    // If user already made a choice, respect it immediately
+    if (stored !== null) return stored;
+
+    // Check usage-delay thresholds
+    const firstOpen = localStorage.getItem(FIRST_OPEN_KEY);
+    if (!firstOpen) {
+      // First-ever open — record timestamp, DO NOT show popup yet
+      localStorage.setItem(FIRST_OPEN_KEY, String(Date.now()));
+      return null;
+    }
+
+    const daysSince = (Date.now() - Number(firstOpen)) / (1000 * 60 * 60 * 24);
+    const activeTime = Number(localStorage.getItem(ACTIVE_TIME_KEY) || 0);
+
+    // Only show consent popup if user has been using the app for a while
+    if (daysSince >= CONSENT_DELAY_DAYS || activeTime >= CONSENT_DELAY_ACTIVE_MS) {
+      return null; // Show popup
+    }
+
+    // Not enough usage yet — suppress popup
+    return 'deferred';
+  });
+
+  // Track total active usage time (excluding time when tab is hidden)
+  useEffect(() => {
+    // If consent is already granted/denied, no need to track defferal
+    if (getConsent() !== null) return;
+    if (analyticsConsent !== 'deferred' && analyticsConsent !== null) return;
+
+    let sessionStart = Date.now();
+    let isVisible = true;
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        // Tab hidden — record elapsed active time
+        if (isVisible) {
+          const elapsed = Date.now() - sessionStart;
+          const prev = Number(localStorage.getItem(ACTIVE_TIME_KEY) || 0);
+          localStorage.setItem(ACTIVE_TIME_KEY, String(prev + elapsed));
+          isVisible = false;
+        }
+      } else {
+        // Tab visible again — reset session start
+        isVisible = true;
+        sessionStart = Date.now();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    // Also save on beforeunload
+    const handleUnload = () => {
+      if (isVisible) {
+        const elapsed = Date.now() - sessionStart;
+        const prev = Number(localStorage.getItem(ACTIVE_TIME_KEY) || 0);
+        localStorage.setItem(ACTIVE_TIME_KEY, String(prev + elapsed));
+      }
+    };
+    window.addEventListener('beforeunload', handleUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('beforeunload', handleUnload);
+      // Save remaining time on unmount
+      if (isVisible) {
+        const elapsed = Date.now() - sessionStart;
+        const prev = Number(localStorage.getItem(ACTIVE_TIME_KEY) || 0);
+        localStorage.setItem(ACTIVE_TIME_KEY, String(prev + elapsed));
+      }
+    };
+  }, [analyticsConsent]);
+
+  const handleConsentResult = (consentStatus) => {
+    setAnalyticsConsent(consentStatus);
+    if (consentStatus === 'granted') {
+      // Track initial device info + first screen view
+      trackDeviceInfo();
+      trackScreenView(currentScreen);
+      // Start auto-sync
+      startAutoSync();
+    }
+  };
+
+  // 3. Toast notification for auto-created recurring transactions etc.
+  const [toast, setToast] = useState(null);
+
+  // Auto-dismiss toast after 4 seconds
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  // When consent becomes null on mount, do nothing (popup will show)
+  // When consent is granted, start tracking
+  useEffect(() => {
+    if (getConsent() === 'granted') {
+      const cleanup = startAutoSync();
+      return cleanup;
+    }
+  }, []);
+
+  // 4. Language State
   const [lang, setLang] = useState(() => {
     return localStorage.getItem('pocket_khata_lang') || 'en';
   });
@@ -153,8 +274,8 @@ export default function App() {
   const handleSetLang = (l) => {
     setLang(l);
     localStorage.setItem('pocket_khata_lang', l);
-    // Update html data attribute for Bangla font switching
     document.documentElement.setAttribute('data-lang', l);
+    trackAction('change_language', { lang: l });
   };
 
   // 3. Navigation & View States
@@ -188,6 +309,19 @@ export default function App() {
     setBudgets(loadedBudgets);
     setSavingsGoals(loadedSavingsGoals);
 
+    // Process recurring transactions — auto-creates any that are due
+    const result = db.processRecurringTransactions();
+    if (result.count > 0) {
+      // Refresh data to include newly created transactions and updated balances
+      setTransactions(db.getTransactions());
+      setAccounts(db.getAccounts());
+      // Show a toast notification
+      setToast({
+        key: 'recurringCreated',
+        count: result.count,
+      });
+    }
+
     // Set Theme
     const savedTheme = localStorage.getItem('pocket_khata_theme') || 'light';
     setTheme(savedTheme);
@@ -218,30 +352,48 @@ export default function App() {
     setTheme(nextTheme);
     localStorage.setItem('pocket_khata_theme', nextTheme);
     document.documentElement.setAttribute('data-theme', nextTheme);
+    trackAction('toggle_theme', { theme: nextTheme });
   };
 
   // 7. DB Mutators
   // -- Transactions
   const handleSaveTransaction = (tx) => {
-    if (tx.id) {
-      const oldTx = transactions.find(oldTxRef => oldTxRef.id === tx.id);
-      db.updateTransaction(tx, oldTx);
-    } else {
-      db.addTransaction(tx);
-    }
-    setTransactions(db.getTransactions());
-    setAccounts(db.getAccounts());
-    setShowTransactionForm(false);
-    setEditingTransaction(null);
-  };
-
-  const handleDeleteTransaction = () => {
-    if (editingTransaction?.id) {
-      db.deleteTransaction(editingTransaction.id);
+    try {
+      const isEdit = !!tx.id;
+      if (isEdit) {
+        const oldTx = transactions.find(oldTxRef => oldTxRef.id === tx.id);
+        db.updateTransaction(tx, oldTx);
+      } else {
+        db.addTransaction(tx);
+      }
       setTransactions(db.getTransactions());
       setAccounts(db.getAccounts());
       setShowTransactionForm(false);
       setEditingTransaction(null);
+      trackAction(isEdit ? 'edit_transaction' : 'add_transaction', {
+        type: tx.type,
+        hasRecurring: !!tx.recurring && typeof tx.recurring === 'object',
+      });
+    } catch (e) {
+      trackError(e, { handler: 'handleSaveTransaction', txType: tx?.type });
+      console.error('Failed to save transaction:', e);
+    }
+  };
+
+  const handleDeleteTransaction = () => {
+    try {
+      if (editingTransaction?.id) {
+        const txType = editingTransaction.type;
+        db.deleteTransaction(editingTransaction.id);
+        setTransactions(db.getTransactions());
+        setAccounts(db.getAccounts());
+        setShowTransactionForm(false);
+        setEditingTransaction(null);
+        trackAction('delete_transaction', { type: txType });
+      }
+    } catch (e) {
+      trackError(e, { handler: 'handleDeleteTransaction' });
+      console.error('Failed to delete transaction:', e);
     }
   };
 
@@ -252,128 +404,275 @@ export default function App() {
 
   // -- Accounts
   const handleAddAccount = (acc) => {
-    db.addAccount(acc);
-    setAccounts(db.getAccounts());
+    try {
+      db.addAccount(acc);
+      setAccounts(db.getAccounts());
+    } catch (e) {
+      trackError(e, { handler: 'handleAddAccount' });
+      console.error('Failed to add account:', e);
+    }
+  };
+
+  const handleUpdateAccount = (updatedAccount) => {
+    try {
+      db.updateAccount(updatedAccount);
+      setAccounts(db.getAccounts());
+    } catch (e) {
+      trackError(e, { handler: 'handleUpdateAccount', accountId: updatedAccount?.id });
+      console.error('Failed to update account:', e);
+    }
   };
 
   const handleDeleteAccount = (id) => {
-    db.deleteAccount(id);
-    setAccounts(db.getAccounts());
+    try {
+      db.deleteAccount(id);
+      setAccounts(db.getAccounts());
+    } catch (e) {
+      trackError(e, { handler: 'handleDeleteAccount', accountId: id });
+      console.error('Failed to delete account:', e);
+    }
   };
 
   // -- Categories
   const handleAddCategory = (cat) => {
-    db.addCategory(cat);
-    setCategories(db.getCategories());
+    try {
+      db.addCategory(cat);
+      setCategories(db.getCategories());
+    } catch (e) {
+      trackError(e, { handler: 'handleAddCategory' });
+      console.error('Failed to add category:', e);
+    }
   };
 
   const handleUpdateCategory = (cat) => {
-    db.updateCategory(cat);
-    setCategories(db.getCategories());
+    try {
+      db.updateCategory(cat);
+      setCategories(db.getCategories());
+    } catch (e) {
+      trackError(e, { handler: 'handleUpdateCategory', categoryId: cat?.id });
+      console.error('Failed to update category:', e);
+    }
   };
 
   const handleDeleteCategory = (id) => {
-    db.deleteCategory(id);
-    setCategories(db.getCategories());
+    try {
+      db.deleteCategory(id);
+      setCategories(db.getCategories());
+    } catch (e) {
+      trackError(e, { handler: 'handleDeleteCategory', categoryId: id });
+      console.error('Failed to delete category:', e);
+    }
   };
 
   // -- Reminders
   const handleAddReminder = (rem) => {
-    db.addReminder(rem);
-    setReminders(db.getReminders());
+    try {
+      db.addReminder(rem);
+      setReminders(db.getReminders());
+    } catch (e) {
+      trackError(e, { handler: 'handleAddReminder' });
+      console.error('Failed to add reminder:', e);
+    }
   };
 
   const handleUpdateReminder = (rem) => {
-    db.updateReminder(rem);
-    setReminders(db.getReminders());
+    try {
+      db.updateReminder(rem);
+      setReminders(db.getReminders());
+    } catch (e) {
+      trackError(e, { handler: 'handleUpdateReminder', reminderId: rem?.id });
+      console.error('Failed to update reminder:', e);
+    }
   };
 
   const handleDeleteReminder = (id) => {
-    db.deleteReminder(id);
-    setReminders(db.getReminders());
+    try {
+      db.deleteReminder(id);
+      setReminders(db.getReminders());
+    } catch (e) {
+      trackError(e, { handler: 'handleDeleteReminder', reminderId: id });
+      console.error('Failed to delete reminder:', e);
+    }
   };
 
   const handlePayReminder = (id, sourceAccountId) => {
-    db.payReminder(id, sourceAccountId);
-    setReminders(db.getReminders());
-    setTransactions(db.getTransactions());
-    setAccounts(db.getAccounts());
+    try {
+      db.payReminder(id, sourceAccountId);
+      setReminders(db.getReminders());
+      setTransactions(db.getTransactions());
+      setAccounts(db.getAccounts());
+    } catch (e) {
+      trackError(e, { handler: 'handlePayReminder', reminderId: id });
+      console.error('Failed to pay reminder:', e);
+    }
   };
 
   // -- Backup Restores
   const handleResetDatabase = () => {
-    const freshDb = db.resetDatabase();
-    setAccounts(freshDb.accounts);
-    setCategories(freshDb.categories);
-    setTransactions(freshDb.transactions);
-    setReminders(freshDb.reminders);
+    try {
+      const freshDb = db.resetDatabase();
+      setAccounts(freshDb.accounts);
+      setCategories(freshDb.categories);
+      setTransactions(freshDb.transactions);
+      setReminders(freshDb.reminders);
+    } catch (e) {
+      trackError(e, { handler: 'handleResetDatabase' });
+      console.error('Failed to reset database:', e);
+    }
   };
 
   const handleImportDatabase = (jsonString) => {
-    const success = db.importDatabaseJSON(jsonString);
-    if (success) {
-      setAccounts(db.getAccounts());
-      setCategories(db.getCategories());
-      setTransactions(db.getTransactions());
-      setReminders(db.getReminders());
+    try {
+      const success = db.importDatabaseJSON(jsonString);
+      if (success) {
+        setAccounts(db.getAccounts());
+        setCategories(db.getCategories());
+        setTransactions(db.getTransactions());
+        setReminders(db.getReminders());
+      }
+      return success;
+    } catch (e) {
+      trackError(e, { handler: 'handleImportDatabase' });
+      console.error('Failed to import database:', e);
+      return false;
     }
-    return success;
   };
 
   const handleExportDatabase = () => {
-    return db.exportDatabaseJSON();
+    try {
+      return db.exportDatabaseJSON();
+    } catch (e) {
+      trackError(e, { handler: 'handleExportDatabase' });
+      console.error('Failed to export database:', e);
+      return null;
+    }
   };
 
   // 8. Budget handlers
   const handleAddBudget = (budget) => {
-    db.addBudget(budget);
-    setBudgets(db.getBudgets());
+    try {
+      db.addBudget(budget);
+      setBudgets(db.getBudgets());
+    } catch (e) {
+      trackError(e, { handler: 'handleAddBudget' });
+      console.error('Failed to add budget:', e);
+    }
   };
   const handleUpdateBudget = (budget) => {
-    db.updateBudget(budget);
-    setBudgets(db.getBudgets());
+    try {
+      db.updateBudget(budget);
+      setBudgets(db.getBudgets());
+    } catch (e) {
+      trackError(e, { handler: 'handleUpdateBudget', budgetId: budget?.id });
+      console.error('Failed to update budget:', e);
+    }
   };
   const handleDeleteBudget = (id) => {
-    db.deleteBudget(id);
-    setBudgets(db.getBudgets());
+    try {
+      db.deleteBudget(id);
+      setBudgets(db.getBudgets());
+    } catch (e) {
+      trackError(e, { handler: 'handleDeleteBudget', budgetId: id });
+      console.error('Failed to delete budget:', e);
+    }
   };
 
   // 9. Savings Goal handlers
   const handleAddSavingsGoal = (goal) => {
-    db.addSavingsGoal(goal);
-    setSavingsGoals(db.getSavingsGoals());
+    try {
+      db.addSavingsGoal(goal);
+      setSavingsGoals(db.getSavingsGoals());
+    } catch (e) {
+      trackError(e, { handler: 'handleAddSavingsGoal' });
+      console.error('Failed to add savings goal:', e);
+    }
   };
   const handleUpdateSavingsGoal = (goal) => {
-    db.updateSavingsGoal(goal);
-    setSavingsGoals(db.getSavingsGoals());
+    try {
+      db.updateSavingsGoal(goal);
+      setSavingsGoals(db.getSavingsGoals());
+    } catch (e) {
+      trackError(e, { handler: 'handleUpdateSavingsGoal', goalId: goal?.id });
+      console.error('Failed to update savings goal:', e);
+    }
   };
   const handleDeleteSavingsGoal = (id) => {
-    db.deleteSavingsGoal(id);
-    setSavingsGoals(db.getSavingsGoals());
+    try {
+      db.deleteSavingsGoal(id);
+      setSavingsGoals(db.getSavingsGoals());
+    } catch (e) {
+      trackError(e, { handler: 'handleDeleteSavingsGoal', goalId: id });
+      console.error('Failed to delete savings goal:', e);
+    }
   };
   const handleContributeToSavingsGoal = (goalId, amount, sourceAccountId) => {
-    db.contributeToSavingsGoal(goalId, amount, sourceAccountId);
-    setSavingsGoals(db.getSavingsGoals());
-    setTransactions(db.getTransactions());
-    setAccounts(db.getAccounts());
+    try {
+      db.contributeToSavingsGoal(goalId, amount, sourceAccountId);
+      setSavingsGoals(db.getSavingsGoals());
+      setTransactions(db.getTransactions());
+      setAccounts(db.getAccounts());
+    } catch (e) {
+      trackError(e, { handler: 'handleContributeToSavingsGoal', goalId });
+      console.error('Failed to contribute to savings goal:', e);
+    }
   };
 
-  // 10. Navigation helpers
+  // 10. Batch operations for TransactionHistory
+  const handleBatchDelete = useCallback((ids) => {
+    try {
+      ids.forEach(id => db.deleteTransaction(id));
+      setTransactions(db.getTransactions());
+      setAccounts(db.getAccounts());
+      trackAction('batch_delete_transactions', { count: ids.length });
+    } catch (e) {
+      trackError(e, { handler: 'handleBatchDelete', count: ids.length });
+      console.error('Failed to batch delete transactions:', e);
+    }
+  }, []);
+
+  const handleBatchCategorize = useCallback((ids, categoryId) => {
+    try {
+      ids.forEach(id => {
+        const tx = transactions.find(txItem => txItem.id === id);
+        if (tx) {
+          db.updateTransaction({ ...tx, categoryId }, tx);
+        }
+      });
+      setTransactions(db.getTransactions());
+      setAccounts(db.getAccounts());
+      trackAction('batch_categorize_transactions', { count: ids.length });
+    } catch (e) {
+      trackError(e, { handler: 'handleBatchCategorize', count: ids.length, categoryId });
+      console.error('Failed to batch categorize transactions:', e);
+    }
+  }, [transactions]);
+
+  // 11. Navigation helpers
   const handleAddTransactionClick = useCallback(() => {
     setIsCenterBtnPressed(true);
     setTimeout(() => setIsCenterBtnPressed(false), 300);
     setEditingTransaction(null);
     setShowTransactionForm(true);
+    trackAction('open_transaction_form');
   }, []);
 
   const handleNavigate = (screen) => {
     setTransactionFilter(null);
     setCurrentScreen(screen);
+    trackScreenView(screen);
   };
 
   // 11. Preload TransactionHistory after mount so it's ready for instant navigation
   useEffect(() => {
     preloadTransactionHistory();
+  }, []);
+
+  // Track the initial screen view on mount (if consent already granted)
+  useEffect(() => {
+    if (getConsent() === 'granted') {
+      trackDeviceInfo();
+      trackScreenView(currentScreen);
+    }
   }, []);
 
   // 12. Notification system — check reminders on mount and periodically
@@ -480,6 +779,8 @@ export default function App() {
             onEditTransaction={handleEditTransactionClick}
             lang={lang}
             filterType={transactionFilter}
+            onBatchDelete={handleBatchDelete}
+            onBatchCategorize={handleBatchCategorize}
           />
         );
       case 'calendar':
@@ -513,6 +814,7 @@ export default function App() {
             accounts={accounts}
             transactions={transactions}
             onAddAccount={handleAddAccount}
+            onUpdateAccount={handleUpdateAccount}
             onDeleteAccount={handleDeleteAccount}
             onNavigate={handleNavigate}
             lang={lang}
@@ -614,8 +916,45 @@ export default function App() {
         </div>
       </div>
 
-      {/* B. App Context Content Container */}
+      {/* B. Analytics Consent Popup — shown only after usage delay threshold */}
+      {analyticsConsent === null && (
+        <ConsentPopup lang={lang} onConsent={handleConsentResult} />
+      )}
+
+      {/* C. App Context Content Container */}
       <div className="app-container" style={{ position: 'relative' }}>
+        {/* Toast notification overlay */}
+        {toast && (
+          <div style={{
+            position: 'absolute',
+            top: '-20px',
+            left: 0,
+            right: 0,
+            display: 'flex',
+            justifyContent: 'center',
+            zIndex: 200,
+            pointerEvents: 'none',
+          }}>
+            <div style={{
+              padding: '10px 18px',
+              borderRadius: '12px',
+              backgroundColor: 'var(--bg-color)',
+              boxShadow: '0 6px 24px rgba(0,0,0,0.15)',
+              border: '1px solid var(--accent-color)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              animation: 'slideDown 0.3s ease-out',
+              whiteSpace: 'nowrap',
+            }}>
+              <CheckCircle size={18} color="var(--color-income)" />
+              <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                {t(toast.key, lang).replace('{count}', toast.count)}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Global Header Toolbar — language toggle + menu button */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
           {/* Menu Button (left) */}

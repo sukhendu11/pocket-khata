@@ -3,6 +3,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Calendar, Info } from 'lucide-rea
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber } from '../utils';
+import { trackAction } from '../lib/analytics';
 import TransactionItem from './TransactionItem';
 
 export default function CalendarView({
@@ -24,10 +25,12 @@ export default function CalendarView({
 
   // 1. Shift Month
   const handlePrevMonth = () => {
+    trackAction('calendar_prev_month', { year, month });
     setCurrentDate(new Date(year, month - 1, 1));
   };
 
   const handleNextMonth = () => {
+    trackAction('calendar_next_month', { year, month });
     setCurrentDate(new Date(year, month + 1, 1));
   };
 
@@ -95,6 +98,7 @@ export default function CalendarView({
   const handleDaySelect = (day) => {
     if (day) {
       setSelectedDateStr(day.dateStr);
+      trackAction('calendar_select_day', { dateStr: day.dateStr });
     }
   };
 

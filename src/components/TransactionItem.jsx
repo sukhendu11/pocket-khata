@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { ArrowUpRight, ArrowDownLeft, Edit3, TrendingUp } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Edit3, TrendingUp, RefreshCw, CheckSquare, Square } from 'lucide-react';
 import { t } from '../i18n';
 import { formatNumber } from '../utils';
 
@@ -28,6 +28,9 @@ export default function TransactionItem({
   showDate = false,
   lang,
   style: extraStyle,
+  selectable = false,
+  selected = false,
+  onSelect,
 }) {
   const tx = transaction;
   const cat = category;
@@ -99,6 +102,16 @@ export default function TransactionItem({
     return `${acc?.name || t('common.local')} • ${categoryPart}${subcatPart}`;
   };
 
+  // Frequency label helper for recurring schedule badge
+  const frequencyLabel = tx.recurring && typeof tx.recurring === 'object'
+    ? t(`txForm.${{
+        daily: 'freqDaily',
+        weekly: 'freqWeekly',
+        monthly: 'freqMonthly',
+        yearly: 'freqYearly',
+      }[tx.recurring.frequency] || 'freqMonthly'}`, lang)
+    : null;
+
   const renderNotes = () => {
     if (tx.notes) return tx.notes;
     if (cat?.name) return cat.name;
@@ -107,12 +120,21 @@ export default function TransactionItem({
     return t('common.manualLedger');
   };
 
+  const handleClick = (e) => {
+    if (selectable && onSelect) {
+      e.stopPropagation();
+      onSelect();
+    } else if (onClick) {
+      onClick();
+    }
+  };
+
   const containerStyles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: variant === 'calendar' ? '10px 12px' : variant === 'default' ? '10px 12px' : '10px 14px',
-    cursor: onClick ? 'pointer' : 'default',
+    cursor: (selectable || onClick) ? 'pointer' : 'default',
     ...extraStyle,
   };
 
@@ -149,12 +171,53 @@ export default function TransactionItem({
             : 'neo-raised-sm'
       }
       style={containerStyles}
-      onClick={onClick}
+      onClick={handleClick}
     >
-      <div style={leftStyles}>
+      <div style={{
+        ...leftStyles,
+        ...(selectable ? { flex: 1, minWidth: 0 } : {}),
+      }}>
+        {selectable && (
+          <div
+            onClick={(e) => { e.stopPropagation(); onSelect && onSelect(); }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: selected ? 'var(--accent-color)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            {selected
+              ? <CheckSquare size={variant === 'calendar' ? 14 : 16} />
+              : <Square size={variant === 'calendar' ? 14 : 16} />
+            }
+          </div>
+        )}
         {renderIcon()}
         <div style={{ minWidth: 0 }}>
-          <span style={notesStyles}>{renderNotes()}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={notesStyles}>{renderNotes()}</span>
+            {frequencyLabel && (
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '2px',
+                fontSize: '8px',
+                fontWeight: '700',
+                color: 'var(--accent-color)',
+                backgroundColor: 'color-mix(in srgb, var(--accent-color) 15%, transparent)',
+                padding: '1px 5px',
+                borderRadius: '4px',
+                lineHeight: '1.4',
+                whiteSpace: 'nowrap',
+              }}>
+                <RefreshCw size={7} />
+                {frequencyLabel}
+              </span>
+            )}
+          </div>
           <div style={metaStyles}>{renderMeta()}</div>
         </div>
       </div>
@@ -170,6 +233,10 @@ export default function TransactionItem({
           >
             {amountPrefix} ৳{formatNumber(tx.amount, lang)}
           </p>
+          {/* Recurring badge on source transactions (fallback indicator) */}
+          {frequencyLabel && (
+            <RefreshCw size={10} style={{ color: 'var(--accent-color)', opacity: 0.7 }} />
+          )}
           {showDate && (
             <p
               style={{
@@ -202,4 +269,7 @@ TransactionItem.propTypes = {
   showDate: PropTypes.bool,
   lang: PropTypes.string,
   style: PropTypes.object,
+  selectable: PropTypes.bool,
+  selected: PropTypes.bool,
+  onSelect: PropTypes.func,
 };

@@ -1,19 +1,21 @@
 import { useState, useMemo } from 'react';
 import { 
   ArrowLeft, Plus, Landmark, CreditCard, Wallet, 
-  Trash2, X, AlertCircle, Info 
+  Trash2, X, AlertCircle, Info, Pencil 
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber } from '../utils';
+import { trackAction } from '../lib/analytics';
 
 export default function AccountManager({
-  accounts,
-  transactions,
-  onAddAccount,
-  onDeleteAccount,
-  onNavigate,
-  lang
+  accounts = [],
+  transactions = [],
+  onAddAccount = () => {},
+  onUpdateAccount = () => {},
+  onDeleteAccount = () => {},
+  onNavigate = () => {},
+  lang = 'en',
 }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
@@ -24,6 +26,10 @@ export default function AccountManager({
   const [balance, setBalance] = useState('');
   const [color, setColor] = useState('#4a90e2');
   const [formError, setFormError] = useState('');
+  // Edit balance state (for system accounts)
+  const [showEditBalance, setShowEditBalance] = useState(false);
+  const [editBalanceValue, setEditBalanceValue] = useState('');
+  const [editBalanceError, setEditBalanceError] = useState('');
 
   const colors = ['#4a90e2', '#3cd070', '#ff5a79', '#ff8a00', '#8e44ad', '#00c9db', '#ff7b54', '#718096'];
 
@@ -37,11 +43,22 @@ export default function AccountManager({
     }
   };
 
+  // Account type → i18n key mapping for Bengali support
+  const typeI18nMap = {
+    'Cash': 'accounts.cashLedger',
+    'Bank': 'accounts.bankAccount',
+    'Bkash': 'accounts.bkashWallet',
+    'Nagad': 'accounts.nagadWallet',
+  };
+
+  const getLocalizedType = (accType) => t(typeI18nMap[accType] || '', lang) || accType;
+
   // Localize seed account names for Bengali
   const getLocalizedAccName = (acc) => {
     if (lang !== 'bn') return acc.name;
     const nameMap = {
       'Cash': t('accounts.name.cash', lang),
+      'Cash Ledger': t('accounts.name.cash', lang),
       'Bank Account': t('accounts.name.bankAccount', lang),
       'bKash Wallet': t('accounts.name.bkashWallet', lang),
       'Nagad Wallet': t('accounts.name.nagadWallet', lang),
@@ -98,6 +115,8 @@ export default function AccountManager({
       if (!confirmDelete) return;
     }
 
+    const deletedType = accounts.find(a => a.id === id)?.type;
+    trackAction('delete_account', { accountType: deletedType });
     onDeleteAccount(id);
     setSelectedAccount(null);
   };
@@ -126,7 +145,7 @@ export default function AccountManager({
               ...styles.accountItem, 
               borderLeft: `5px solid ${acc.color || 'var(--accent-color)'}` 
             }}
-            onClick={() => setSelectedAccount(acc)}
+            onClick={() => { setSelectedAccount(acc); trackAction('view_account_details', { accountType: acc.type }); }}
           >
             <div style={styles.itemLeft}>
               <span style={{ ...styles.iconBg, backgroundColor: `${acc.color}22`, color: acc.color }} className="neo-pressed-sm">
@@ -134,7 +153,7 @@ export default function AccountManager({
               </span>
               <div>
                 <h4 style={styles.accName}>{getLocalizedAccName(acc)}</h4>
-                <span style={styles.accType}>{acc.type}</span>
+                <span style={styles.accType}>{getLocalizedType(acc.type)}</span>
               </div>
             </div>
             <div style={styles.itemRight}>
@@ -157,7 +176,7 @@ export default function AccountManager({
                 </span>
                 <div>
                   <h3 style={styles.drawerTitle}>{getLocalizedAccName(selectedAccount)}</h3>
-                  <span style={styles.drawerSubtitle}>{selectedAccount.type} {t('accounts.accountType', lang)}</span>
+                  <span style={styles.drawerSubtitle}>{getLocalizedType(selectedAccount.type)} {t('accounts.accountType', lang)}</span>
                 </div>
               </div>
               <button className="neo-btn neo-btn-round" style={styles.closeBtn} onClick={() => setSelectedAccount(null)}>
@@ -172,13 +191,29 @@ export default function AccountManager({
             </div>
 
             {/* Action Buttons */}
-            <button 
-              className="neo-btn" 
-              style={styles.deleteAccBtn}
-              onClick={() => handleDelete(selectedAccount.id)}
-            >
-              <Trash2 size={14} /> {t('accounts.deleteAccount', lang)}
-            </button>
+            {selectedAccount.system ? (
+              /* System accounts — Edit Balance button instead of Delete */
+              <button 
+                className="neo-btn" 
+                style={styles.editBalanceBtn}
+                onClick={() => {
+                  setEditBalanceValue(String(selectedAccount.balance));
+                  setEditBalanceError('');
+                  setShowEditBalance(true);
+                }}
+              >
+                <Pencil size={14} /> {t('accounts.editBalance', lang)}
+              </button>
+            ) : (
+              /* User accounts — Delete button */
+              <button 
+                className="neo-btn" 
+                style={styles.deleteAccBtn}
+                onClick={() => handleDelete(selectedAccount.id)}
+              >
+                <Trash2 size={14} /> {t('accounts.deleteAccount', lang)}
+              </button>
+            )}
 
             {/* Account Specific Transactions ledger */}
             <h4 style={styles.ledgerHeader}>{t('accounts.subLedger', lang)}</h4>
@@ -207,6 +242,79 @@ export default function AccountManager({
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Edit Balance Drawer (for system accounts) */}
+      {showEditBalance && selectedAccount && (
+        <>
+          <div className="drawer-overlay" onClick={() => setShowEditBalance(false)} />
+          <div className="bottom-drawer" style={styles.modal}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>{t('accounts.editBalance', lang)}</h3>
+              <button className="neo-btn neo-btn-round" style={styles.closeModalBtn} onClick={() => setShowEditBalance(false)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="neo-pressed-sm" style={{
+              padding: '12px',
+              borderRadius: '14px',
+              textAlign: 'center',
+              marginBottom: '16px',
+            }}>
+              <span style={{ fontSize: '9px', fontWeight: '700', color: 'var(--text-secondary)', letterSpacing: '0.8px', display: 'block' }}>
+                {t('accounts.currentBalance', lang)}
+              </span>
+              <h2 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)', marginTop: '2px' }}>
+                ৳{formatNumber(selectedAccount.balance, lang)}
+              </h2>
+            </div>
+
+            {editBalanceError && (
+              <div className="neo-pressed-sm" style={styles.errorBox}>
+                <AlertCircle size={14} style={{ color: 'var(--color-expense)' }} />
+                <span style={styles.errorText}>{editBalanceError}</span>
+              </div>
+            )}
+
+            <div style={styles.form}>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>{t('accounts.walletName', lang)}</label>
+                <p style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
+                  {getLocalizedAccName(selectedAccount)}
+                </p>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>{t('accounts.startingBalance', lang)}</label>
+                <input
+                  type="number"
+                  placeholder={t('accounts.balancePlaceholder', lang)}
+                  value={editBalanceValue}
+                  onChange={(e) => setEditBalanceValue(e.target.value)}
+                  className="neo-input"
+                />
+              </div>
+
+              <button
+                className="neo-btn neo-btn-primary"
+                style={{ height: '42px', marginTop: '10px' }}
+                onClick={() => {
+                  const newBalance = Number(editBalanceValue);
+                  if (isNaN(newBalance)) {
+                    setEditBalanceError(t('accounts.errBalance', lang));
+                    return;
+                  }
+                  setEditBalanceError('');
+                  onUpdateAccount({ ...selectedAccount, balance: newBalance });
+                  setShowEditBalance(false);
+                }}
+              >
+                {t('accounts.saveBalance', lang)}
+              </button>
             </div>
           </div>
         </>
@@ -304,18 +412,10 @@ AccountManager.propTypes = {
   accounts: PropTypes.array,
   transactions: PropTypes.array,
   onAddAccount: PropTypes.func,
+  onUpdateAccount: PropTypes.func,
   onDeleteAccount: PropTypes.func,
   onNavigate: PropTypes.func,
   lang: PropTypes.string,
-};
-
-AccountManager.defaultProps = {
-  accounts: [],
-  transactions: [],
-  onAddAccount: () => {},
-  onDeleteAccount: () => {},
-  onNavigate: () => {},
-  lang: 'en',
 };
 
 const styles = {
@@ -464,6 +564,15 @@ const styles = {
     height: '38px',
     border: '1px solid var(--color-expense)',
     color: 'var(--color-expense)',
+    fontSize: '11px',
+    justifyContent: 'center',
+    marginBottom: '20px',
+  },
+  editBalanceBtn: {
+    width: '100%',
+    height: '38px',
+    border: '1px solid var(--accent-color)',
+    color: 'var(--accent-color)',
     fontSize: '11px',
     justifyContent: 'center',
     marginBottom: '20px',

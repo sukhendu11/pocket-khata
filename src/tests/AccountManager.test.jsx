@@ -58,8 +58,9 @@ describe('AccountManager — Rendering', () => {
 
   it('shows account types', () => {
     render(<AccountManager {...defaultProps} />);
-    expect(screen.getByText('Cash')).toBeTruthy();
-    expect(screen.getByText('Bank')).toBeTruthy();
+    // Account types are now localized via i18n keys (accounts.cashLedger → 'Cash Ledger', accounts.bankAccount → 'Bank Account')
+    expect(screen.getByText('Cash Ledger')).toBeTruthy();
+    expect(screen.getByText('Bank Account')).toBeTruthy();
   });
 
   it('shows account balances', () => {
