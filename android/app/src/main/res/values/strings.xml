@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pocket Khata</string>
+    <string name="title_activity_main">Pocket Khata</string>
+    <string name="package_name">com.pocketkhata.app</string>
+    <string name="custom_url_scheme">com.pocketkhata.app</string>
+</resources>

@@ -1279,6 +1279,8 @@ export const db = {
       transactions: this.getTransactions(),
       reminders: this.getReminders(),
       security: this.getSecuritySettings(),
+      budgets: this.getBudgets(),
+      savingsGoals: this.getSavingsGoals(),
     };
   },
 

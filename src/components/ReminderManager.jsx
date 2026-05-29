@@ -117,32 +117,37 @@ export default function ReminderManager({
       return;
     }
 
-    if (editingReminder) {
-      onUpdateReminder({
-        ...editingReminder,
-        name: name.trim(),
-        amount: parsedAmount,
-        dueDate,
-        categoryId,
-      });
-    } else {
-      onAddReminder({
-        name: name.trim(),
-        amount: parsedAmount,
-        dueDate,
-        categoryId,
-        status: 'unpaid',
-      });
-    }
+    try {
+      if (editingReminder) {
+        onUpdateReminder({
+          ...editingReminder,
+          name: name.trim(),
+          amount: parsedAmount,
+          dueDate,
+          categoryId,
+        });
+      } else {
+        onAddReminder({
+          name: name.trim(),
+          amount: parsedAmount,
+          dueDate,
+          categoryId,
+          status: 'unpaid',
+        });
+      }
 
-    // Reset and close
-    setName('');
-    setAmount('');
-    setDueDate('');
-    setCategoryId('');
-    trackAction(editingReminder ? 'edit_reminder' : 'add_reminder', { categoryId, amount: parsedAmount });
-    setEditingReminder(null);
-    setShowAddModal(false);
+      // Reset and close
+      setName('');
+      setAmount('');
+      setDueDate('');
+      setCategoryId('');
+      trackAction(editingReminder ? 'edit_reminder' : 'add_reminder', { categoryId, amount: parsedAmount });
+      setEditingReminder(null);
+      setShowAddModal(false);
+    } catch (e) {
+      console.error('Failed to save reminder:', e);
+      setFormError('An error occurred while saving. Please try again.');
+    }
   };
 
   // 3. Initiate Quick Pay
@@ -184,10 +189,15 @@ export default function ReminderManager({
       
       {/* Header Bar */}
       <div style={styles.header}>
-        <button className="neo-btn neo-btn-round" style={styles.backBtn} onClick={() => onNavigate('dashboard')}>
-          <ArrowLeft size={18} />
-        </button>
-        <h2 style={styles.title}>{t('reminders.title', lang)}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+          <button className="neo-btn neo-btn-round" style={styles.backBtn} onClick={() => onNavigate('dashboard')}>
+            <ArrowLeft size={18} />
+          </button>
+          <div onClick={() => onNavigate('dashboard')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <img src="/pocket-khata-logo.png" alt="" className="header-logo-sm" />
+          </div>
+          <h2 style={{ ...styles.title, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('reminders.title', lang)}</h2>
+        </div>
         <button className="neo-btn neo-btn-round" style={styles.addBtn} onClick={openNewReminder}>
           <Plus size={18} />
         </button>
@@ -344,12 +354,16 @@ export default function ReminderManager({
         <>
           <div className="drawer-overlay" onClick={() => setShowAddModal(false)} />
           <div className="bottom-drawer" style={styles.modal}>
-            <div style={styles.modalHeader}>
-              <h3 style={styles.modalTitle}>{editingReminder ? t('reminders.newReminder', lang) : t('reminders.newReminder', lang)}</h3>
-              <button className="neo-btn neo-btn-round" style={styles.closeModalBtn} onClick={() => setShowAddModal(false)}>
+            {/* Fixed Header — title + close X button (always visible) */}
+            <div className="drawer-header">
+              <h3 style={styles.modalTitle}>{editingReminder ? t('reminders.editReminder', lang) : t('reminders.newReminder', lang)}</h3>
+              <button className="neo-btn" style={styles.closeModalBtn} onClick={() => setShowAddModal(false)}>
                 <X size={16} />
               </button>
             </div>
+
+            {/* Scrollable Content */}
+            <div className="drawer-scrollable">
 
             {formError && (
               <div className="neo-pressed-sm" style={styles.errorBox}>
@@ -400,7 +414,7 @@ export default function ReminderManager({
                   style={styles.select}
                 >
                   <option value="" disabled style={styles.option}>{t('reminders.selectCategory', lang)}</option>
-                  {categories.map(cat => (
+                  {(categories || []).map(cat => (
                     <option key={cat.id} value={cat.id} style={styles.option}>
                       {cat.name} ({t(cat.type === 'income' ? 'income' : 'expense', lang).toUpperCase()})
                     </option>
@@ -409,8 +423,9 @@ export default function ReminderManager({
               </div>
 
               <button className="neo-btn neo-btn-primary" style={styles.saveFormBtn} onClick={handleSave}>
-                {editingReminder ? t('reminders.createReminder', lang) : t('reminders.createReminder', lang)}
+                {editingReminder ? t('reminders.updateReminder', lang) : t('reminders.createReminder', lang)}
               </button>
+            </div>
             </div>
           </div>
         </>
@@ -421,19 +436,23 @@ export default function ReminderManager({
         <>
           <div className="drawer-overlay" onClick={() => { setShowPaySelectModal(false); setSelectedReminderToPay(null); }} />
           <div className="bottom-drawer" style={styles.paySelectModal}>
-            <div style={styles.modalHeader}>
+            {/* Fixed Header — title + close X button (always visible) */}
+            <div className="drawer-header">
               <h3 style={styles.modalTitle}>{t('reminders.selectPayAccount', lang)}</h3>
-              <button className="neo-btn neo-btn-round" style={styles.closeModalBtn} onClick={() => { setShowPaySelectModal(false); setSelectedReminderToPay(null); }}>
+              <button className="neo-btn" style={styles.closeModalBtn} onClick={() => { setShowPaySelectModal(false); setSelectedReminderToPay(null); }}>
                 <X size={16} />
               </button>
             </div>
+
+            {/* Scrollable Content */}
+            <div className="drawer-scrollable">
             
             <p style={styles.payPromptText}>
               {t('reminders.postExpense', lang)} <strong>৳{formatNumber(selectedReminderToPay.amount, lang)}</strong> {t('reminders.expenseFor', lang)} <strong>{selectedReminderToPay.name}</strong> {t('reminders.from', lang)}
             </p>
 
             <div style={styles.accountsDeck}>
-              {accounts.map(acc => (
+              {(accounts || []).map(acc => (
                 <button
                   key={acc.id}
                   className="neo-btn"
@@ -450,6 +469,7 @@ export default function ReminderManager({
                   <span style={styles.accPayBal}>৳{formatNumber(acc.balance, lang)}</span>
                 </button>
               ))}
+            </div>
             </div>
           </div>
         </>
@@ -501,6 +521,7 @@ const styles = {
     fontSize: '18px',
     fontWeight: '700',
     color: 'var(--text-primary)',
+    minWidth: 0,
   },
   segmentContainer: {
     display: 'flex',
@@ -621,13 +642,6 @@ const styles = {
     minWidth: '50px',
   },
   modal: {
-    paddingBottom: '30px',
-  },
-  modalHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px',
   },
   modalTitle: {
     fontSize: '16px',
@@ -659,6 +673,7 @@ const styles = {
   select: {
     appearance: 'none',
     cursor: 'pointer',
+    color: 'var(--text-primary)',
     backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%237f8c8d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
     backgroundRepeat: 'no-repeat',
     backgroundPosition: 'right 16px center',
@@ -688,7 +703,6 @@ const styles = {
     color: 'var(--color-expense)',
   },
   paySelectModal: {
-    paddingBottom: '30px',
   },
   // Notification banner styles
   notifBanner: {
@@ -753,7 +767,7 @@ const styles = {
   notifDeniedText: {
     fontSize: '10px',
     fontWeight: '600',
-    color: 'var(--color-expense)',
+    color: 'var(--text-secondary)',
   },
   payPromptText: {
     fontSize: '12px',

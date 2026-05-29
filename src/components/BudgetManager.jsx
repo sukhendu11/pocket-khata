@@ -153,10 +153,15 @@ export default function BudgetManager({
     <div style={styles.container}>
       {/* Header */}
       <div style={styles.header}>
-        <button className="neo-btn neo-btn-round" style={styles.backBtn} onClick={() => onNavigate('dashboard')}>
-          <ArrowLeft size={18} />
-        </button>
-        <h2 style={styles.title}>{t('budget.title', lang)}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+          <button className="neo-btn neo-btn-round" style={styles.backBtn} onClick={() => onNavigate('dashboard')}>
+            <ArrowLeft size={18} />
+          </button>
+          <div onClick={() => onNavigate('dashboard')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <img src="/pocket-khata-logo.png" alt="" className="header-logo-sm" />
+          </div>
+          <h2 style={{ ...styles.title, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('budget.title', lang)}</h2>
+        </div>
         <button className="neo-btn neo-btn-round" style={styles.addBtn} onClick={openNew}>
           <Plus size={18} />
         </button>
@@ -381,7 +386,7 @@ const styles = {
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
   backBtn: { width: '36px', height: '36px', borderRadius: '50%', padding: 0 },
   addBtn: { width: '36px', height: '36px', borderRadius: '50%', padding: 0 },
-  title: { fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' },
+  title: { fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)', minWidth: 0 },
   summaryCard: { padding: '16px', marginBottom: '16px', display: 'flex', flexDirection: 'column' },
   summaryRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '12px' },
   summaryItem: { textAlign: 'center', flex: 1 },

@@ -124,6 +124,8 @@ const translations = {
   'reminders.category': { en: 'CATEGORY', bn: 'ক্যাটাগরি' },
   'reminders.selectCategory': { en: 'Select Category', bn: 'ক্যাটাগরি নির্বাচন' },
   'reminders.createReminder': { en: 'Create Reminder', bn: 'রিমাইন্ডার তৈরি করুন' },
+  'reminders.updateReminder': { en: 'Update Reminder', bn: 'রিমাইন্ডার হালনাগাদ করুন' },
+  'reminders.editReminder': { en: 'Edit Reminder', bn: 'রিমাইন্ডার সম্পাদনা করুন' },
   'reminders.selectPayAccount': { en: 'Select Account for Payment', bn: 'পেমেন্টের জন্য একাউন্ট নির্বাচন' },
   'reminders.postExpense': { en: 'Post', bn: 'পোস্ট' },
   'reminders.expenseFor': { en: 'expense for', bn: 'ব্যয় হবে' },
@@ -244,6 +246,11 @@ const translations = {
   'settings.noTransactions': { en: 'No transactions to export.', bn: 'এক্সপোর্ট করার মতো কোনো লেনদেন নেই।' },
   'settings.generatingPDF': { en: 'Generating…', bn: 'উৎপন্ন হচ্ছে…' },
   'settings.resetSuccess': { en: 'Pocket Khata reset to factory defaults.', bn: 'পকেট খাতা ফ্যাক্টরি ডিফল্টে রিসেট হয়েছে।' },
+  'settings.resetData': { en: 'Reset Data', bn: 'ডাটা রিসেট' },
+  'settings.resetDataDesc': { en: 'Permanently erase all accounts, transactions, categories, reminders, budgets, and savings goals. This cannot be undone.', bn: 'সমস্ত একাউন্ট, লেনদেন, ক্যাটাগরি, রিমাইন্ডার, বাজেট ও সঞ্চয় লক্ষ্য স্থায়ীভাবে মুছুন। এটি ফিরিয়ে আনা যাবে না।' },
+  'settings.resetDataConfirm': { en: 'Are you sure? This will permanently delete all data and cannot be undone.', bn: 'আপনি কি নিশ্চিত? এটি সমস্ত ডাটা স্থায়ীভাবে মুছে ফেলবে এবং ফিরিয়ে আনা যাবে না।' },
+  'settings.resetCancel': { en: 'Cancel', bn: 'বাতিল' },
+  'settings.resetConfirmAction': { en: 'Reset Everything', bn: 'সবকিছু রিসেট করুন' },
 
   // ===== ANALYTICS VIEW =====
   'analytics.title': { en: 'Analytics', bn: 'বিশ্লেষণ' },
@@ -403,6 +410,7 @@ const translations = {
   'reports.sectionTransactions': { en: 'Transactions Table', bn: 'লেনদেনের তালিকা' },
   'reports.sectionAnalytics': { en: 'Charts & Insights', bn: 'চার্ট ও অন্তর্দৃষ্টি' },
   'reports.sectionSelect': { en: 'SELECT SECTIONS TO INCLUDE', bn: 'অন্তর্ভুক্ত করার বিভাগ নির্বাচন' },
+  'reports.exportFailed': { en: 'PDF export failed. Please try again.', bn: 'পিডিএফ এক্সপোর্ট ব্যর্থ হয়েছে। আবার চেষ্টা করুন।' },
 
   // ===== NAVIGATION =====
   'nav.incomeExpense': { en: 'Income & Expense', bn: 'আয় ও ব্যয়' },
@@ -429,18 +437,23 @@ const translations = {
   'notif.enabled': { en: 'Notifications Enabled', bn: 'নোটিফিকেশন চালু আছে' },
   'notif.disabled': { en: 'Notifications Disabled', bn: 'নোটিফিকেশন বন্ধ আছে' },
   'notif.desc': { en: 'Get notified when bills are due or overdue. Notifications work even when the app is closed.', bn: 'বিল পরিশোধের তারিখ এলে নোটিফিকেশন পান। অ্যাপ বন্ধ থাকলেও নোটিফিকেশন কাজ করবে।' },
-  'notif.permissionDenied': { en: 'Permission denied. Update in browser settings.', bn: 'অনুমতি দেওয়া হয়নি। ব্রাউজার সেটিংস থেকে আপডেট করুন।' },
-  'notif.permissionUnsupported': { en: 'Notifications not supported on this browser.', bn: 'এই ব্রাউজারে নোটিফিকেশন সমর্থিত নয়।' },
+  'notif.permissionDenied': { en: 'Notifications are disabled. Enable them in your device settings to stay updated.', bn: 'নোটিফিকেশন বন্ধ আছে। আপডেট পেতে ডিভাইস সেটিংস থেকে চালু করুন।' },
+  'notif.permissionUnsupported': { en: 'Notifications are currently unavailable. Please check app settings.', bn: 'নোটিফিকেশন বর্তমানে উপলব্ধ নেই। অ্যাপ সেটিংস চেক করুন।' },
   'notif.checked': { en: 'Checked at', bn: 'চেক করা হয়েছে' },
   'notif.overdueAlert': { en: 'Overdue reminder:', bn: 'মেয়াদোত্তীর্ণ রিমাইন্ডার:' },
   'notif.settingsTitle': { en: 'Notifications', bn: 'নোটিফিকেশন' },
   'notif.settingsDesc': { en: 'Control how and when Pocket Khata sends you notifications about bills and reminders.', bn: 'কিভাবে এবং কখন পকেট খাতা বিল ও রিমাইন্ডার সম্পর্কে নোটিফিকেশন পাঠাবে তা নিয়ন্ত্রণ করুন।' },
   'notif.enableToggle': { en: 'Enable Notifications', bn: 'নোটিফিকেশন চালু করুন' },
-  'notif.enableToggleDesc': { en: 'Receive browser notifications for bill due dates and alerts.', bn: 'বিল পরিশোধের তারিখ ও সতর্কবার্তার জন্য ব্রাউজার নোটিফিকেশন পান।' },
+  'notif.enableToggleDesc': { en: 'Receive alerts for bill due dates and important reminders.', bn: 'বিল পরিশোধের তারিখ ও গুরুত্বপূর্ণ সতর্কবার্তার জন্য নোটিফিকেশন পান।' },
   'notif.reminderAlerts': { en: 'Bill Reminder Alerts', bn: 'বিল রিমাইন্ডার অ্যালার্ট' },
   'notif.reminderAlertsDesc': { en: 'Automatically check and notify for due and overdue reminders on app start.', bn: 'অ্যাপ শুরু হলে স্বয়ংক্রিয়ভাবে বাকি ও মেয়াদোত্তীর্ণ রিমাইন্ডার চেক ও নোটিফাই করুন।' },
-  'notif.noPermission': { en: 'Browser notification permission not granted.', bn: 'ব্রাউজার নোটিফিকেশন অনুমতি দেওয়া হয়নি।' },
+  'notif.noPermission': { en: 'Notification permission is not granted. Tap below to enable.', bn: 'নোটিফিকেশন অনুমতি দেওয়া হয়নি। অনুমতি দিতে নিচের বাটনে ট্যাপ করুন।' },
   'notif.grantPermission': { en: 'Grant Permission', bn: 'অনুমতি দিন' },
+
+  // ===== NOTIFICATION BODY (for checkReminders) =====
+  'notif.dueToday': { en: '"{name}" is due today — ৳{amount}', bn: '"{name}" আজকে পরিশোধ করতে হবে — ৳{amount}' },
+  'notif.dueTomorrow': { en: '"{name}" is due tomorrow — ৳{amount}', bn: '"{name}" আগামীকাল পরিশোধ করতে হবে — ৳{amount}' },
+  'notif.overdueDays': { en: '"{name}" is overdue by {days} day{s} — ৳{amount}', bn: '"{name}" {days} দিন মেয়াদোত্তীর্ণ — ৳{amount}' },
 
   // ===== AUTO BACKUPS =====
   'autobackup.title': { en: 'Auto-Backups', bn: 'অটো-ব্যাকআপ' },

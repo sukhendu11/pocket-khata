@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { 
   ArrowLeft, RefreshCw, Upload,
   Bell, Info, Shield, CheckCircle, XCircle, FileText
@@ -26,6 +26,7 @@ import { isSupabaseConfigured } from '../lib/supabase';
 export default function Settings({
   onExportDatabase,
   onImportDatabase,
+  onResetDatabase,
   transactions,
   accounts,
   categories,
@@ -44,6 +45,16 @@ export default function Settings({
     analytics: true,
   });
 
+  // Toast notification state
+  const [toast, setToast] = useState(null);
+
+  // Auto-dismiss toast after 5 seconds
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
   const handleExportPDF = async () => {
     setIsGeneratingPDF(true);
     try {
@@ -58,7 +69,10 @@ export default function Settings({
       });
     } catch (e) {
       console.error('PDF export failed:', e);
-      alert('PDF export failed: ' + e.message);
+      setToast({
+        type: 'error',
+        message: t('reports.exportFailed', lang) || 'PDF export failed. Please try again.',
+      });
     }
     setIsGeneratingPDF(false);
   };
@@ -133,6 +147,18 @@ export default function Settings({
     document.body.removeChild(link);
   };
 
+  // Reset Data State
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  const handleResetData = () => {
+    setShowResetConfirm(false);
+    if (onResetDatabase) {
+      onResetDatabase();
+      alert(t('settings.resetSuccess', lang));
+      if (onNavigate) onNavigate('dashboard');
+    }
+  };
+
   // JSON Import via file input
   const fileInputRef = useRef(null);
 
@@ -164,10 +190,15 @@ export default function Settings({
       
       {/* Header Bar */}
       <div style={styles.header}>
-        <button className="neo-btn neo-btn-round" style={styles.backBtn} onClick={() => onNavigate('dashboard')}>
-          <ArrowLeft size={18} />
-        </button>
-        <h2 style={styles.title}>{t('settings.title', lang)}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+          <button className="neo-btn neo-btn-round" style={styles.backBtn} onClick={() => onNavigate('dashboard')}>
+            <ArrowLeft size={18} />
+          </button>
+          <div onClick={() => onNavigate('dashboard')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <img src="/pocket-khata-logo.png" alt="" className="header-logo-sm" />
+          </div>
+          <h2 style={{ ...styles.title, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('settings.title', lang)}</h2>
+        </div>
         <div style={{ width: '36px' }} /> {/* alignment placeholder */}
       </div>
 
@@ -282,6 +313,45 @@ export default function Settings({
               {t('settings.importJSON', lang)}
             </button>
           </div>
+
+          {/* Reset Data — divider + button */}
+          <div style={{ marginTop: '14px', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
+            <p style={styles.cardDesc}>
+              {t('settings.resetDataDesc', lang)}
+            </p>
+
+            {!showResetConfirm ? (
+              <button
+                className="neo-btn"
+                style={styles.resetBtn}
+                onClick={() => setShowResetConfirm(true)}
+              >
+                {t('settings.resetData', lang)}
+              </button>
+            ) : (
+              <div className="neo-pressed-sm" style={styles.resetConfirmPanel}>
+                <span style={styles.resetConfirmText}>
+                  {t('settings.resetDataConfirm', lang)}
+                </span>
+                <div style={styles.resetBtnGroup}>
+                  <button
+                    className="neo-btn"
+                    style={styles.resetNoBtn}
+                    onClick={() => setShowResetConfirm(false)}
+                  >
+                    {t('settings.resetCancel', lang)}
+                  </button>
+                  <button
+                    className="neo-btn"
+                    style={styles.resetYesBtn}
+                    onClick={handleResetData}
+                  >
+                    {t('settings.resetConfirmAction', lang)}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* SECTION 3: Notifications */}
@@ -301,12 +371,12 @@ export default function Settings({
               <span style={styles.switchTitle}>{t('notif.enableToggle', lang)}</span>
               <span style={styles.switchDesc}>{t('notif.enableToggleDesc', lang)}</span>
               {!notifSupported && (
-                <span style={{ fontSize: '9px', fontWeight: '600', color: 'var(--color-expense)', marginTop: '2px' }}>
+                <span style={{ fontSize: '9px', fontWeight: '600', color: 'var(--text-secondary)', marginTop: '2px' }}>
                   {t('notif.permissionUnsupported', lang)}
                 </span>
               )}
               {notifSupported && notifPermission !== 'granted' && notificationsEnabled && (
-                <span style={{ fontSize: '9px', fontWeight: '600', color: 'var(--color-expense)', marginTop: '2px' }}>
+                <span style={{ fontSize: '9px', fontWeight: '600', color: 'var(--text-secondary)', marginTop: '2px' }}>
                   {t('notif.noPermission', lang)}
                   <button
                     className="neo-btn"
@@ -495,7 +565,40 @@ export default function Settings({
           </p>
         </div>
 
-      </div>
+    </div>
+
+      {/* Toast notification — outside scroll container so it stays visible */}
+      {toast && (
+        <div style={{
+          position: 'absolute',
+          bottom: '12px',
+          left: 0,
+          right: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          pointerEvents: 'none',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 18px',
+            borderRadius: '12px',
+            backgroundColor: toast.type === 'error' ? '#e74c3c' : '#2ecc71',
+            color: '#fff',
+            fontSize: '12px',
+            fontWeight: '600',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            pointerEvents: 'auto',
+            maxWidth: '90%',
+            animation: 'fadeIn 0.2s ease',
+          }}>
+            {toast.type === 'error' ? <XCircle size={16} /> : <CheckCircle size={16} />}
+            <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
 
     </div>
   );
@@ -504,6 +607,7 @@ export default function Settings({
 Settings.propTypes = {
   onExportDatabase: PropTypes.func,
   onImportDatabase: PropTypes.func,
+  onResetDatabase: PropTypes.func,
   transactions: PropTypes.array,
   accounts: PropTypes.array,
   categories: PropTypes.array,
@@ -537,6 +641,7 @@ const styles = {
     fontSize: '18px',
     fontWeight: '700',
     color: 'var(--text-primary)',
+    minWidth: 0,
   },
   content: {
     display: 'flex',
@@ -623,6 +728,7 @@ const styles = {
   formSelect: {
     appearance: 'none',
     cursor: 'pointer',
+    color: 'var(--text-primary)',
     backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%237f8c8d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
     backgroundRepeat: 'no-repeat',
     backgroundPosition: 'right 16px center',
@@ -717,10 +823,12 @@ const styles = {
     alignItems: 'center',
   },
   resetConfirmText: {
-    fontSize: '12px',
+    fontSize: '11px',
     fontWeight: '600',
     color: 'var(--text-primary)',
-    marginBottom: '10px',
+    marginBottom: '12px',
+    textAlign: 'center',
+    lineHeight: '1.4',
   },
   resetBtnGroup: {
     display: 'flex',
@@ -729,9 +837,22 @@ const styles = {
   },
   resetYesBtn: {
     flex: 1,
+    height: '36px',
+    fontSize: '11px',
+    fontWeight: '600',
+    justifyContent: 'center',
     border: '1px solid var(--color-expense)',
-    backgroundColor: 'var(--bg-color)',
-    color: 'var(--color-expense)',
+    backgroundColor: 'var(--color-expense)',
+    color: '#fff',
+  },
+  resetNoBtn: {
+    flex: 1,
+    height: '36px',
+    fontSize: '11px',
+    fontWeight: '600',
+    justifyContent: 'center',
+    border: '1px solid var(--border-color)',
+    color: 'var(--text-primary)',
   },
   footer: {
     textAlign: 'center',

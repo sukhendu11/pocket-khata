@@ -1,0 +1,9 @@
+{
+  "appId": "com.pocketkhata.app",
+  "appName": "Pocket Khata",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "backgroundColor": "#f0f2f5"
+}

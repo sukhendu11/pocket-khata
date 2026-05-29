@@ -448,10 +448,15 @@ export default function AnalyticsView({
 
       {/* 1. Header Toolbar */}
       <div style={styles.header}>
-        <button className="neo-btn neo-btn-round" style={styles.backBtn} onClick={() => onNavigate('dashboard')}>
-          <ArrowLeft size={18} />
-        </button>
-        <h2 style={styles.title}>{t('analytics.title', lang)}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+          <button className="neo-btn neo-btn-round" style={styles.backBtn} onClick={() => onNavigate('dashboard')}>
+            <ArrowLeft size={18} />
+          </button>
+          <div onClick={() => onNavigate('dashboard')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <img src="/pocket-khata-logo.png" alt="" className="header-logo-sm" />
+          </div>
+          <h2 style={{ ...styles.title, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('analytics.title', lang)}</h2>
+        </div>
         <div style={{ width: '36px' }} />
       </div>
 
@@ -920,6 +925,7 @@ const styles = {
     fontSize: '18px',
     fontWeight: '700',
     color: 'var(--text-primary)',
+    minWidth: 0,
   },
   rangeSelector: {
     display: 'flex',

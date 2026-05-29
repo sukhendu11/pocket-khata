@@ -3,7 +3,7 @@
   "short_name": "Pocket Khata",
   "description": "পকেট খাতা - একটি প্রিমিয়াম নিও-মরফিক পার্সোনাল ফাইন্যান্স ম্যানেজার। আপনার আয়, ব্যয়, অ্যাকাউন্ট এবং বিলের হিসাব রাখুন সুন্দর ও সহজ উপায়ে।",
   "start_url": "/",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "portrait",
   "background_color": "#f0f2f5",
   "theme_color": "#3867d6",
@@ -21,6 +21,12 @@
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/pocket-khata-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "categories": ["finance", "productivity", "utilities"],

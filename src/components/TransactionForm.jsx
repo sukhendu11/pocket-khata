@@ -159,15 +159,18 @@ export default function TransactionForm({
       <div className="drawer-overlay" onClick={onClose} />
       <div className="bottom-drawer" style={styles.drawer}>
         
-        {/* Header */}
-        <div style={styles.header}>
+        {/* Fixed Header — title + close X button (always visible, never scrolls) */}
+        <div className="drawer-header">
           <h3 style={styles.title}>
             {transaction ? t('txForm.editTitle', lang) : t('txForm.addTitle', lang)}
           </h3>
-          <button className="neo-btn neo-btn-round" style={styles.closeBtn} onClick={onClose}>
-            <X size={18} />
+          <button className="neo-btn" style={styles.closeBtn} onClick={onClose}>
+            <X size={16} />
           </button>
         </div>
+
+        {/* Scrollable Content — only this section scrolls */}
+        <div className="drawer-scrollable">
 
         {/* 1. Transaction Type Segment Toggle */}
         <div className="neo-pressed-sm" style={styles.segmentContainer}>
@@ -415,6 +418,8 @@ export default function TransactionForm({
 
         </div>
 
+        </div>
+
       </div>
     </>
   );
@@ -432,13 +437,6 @@ TransactionForm.propTypes = {
 
 const styles = {
   drawer: {
-    paddingBottom: '30px',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px',
   },
   title: {
     fontSize: '18px',
@@ -446,8 +444,8 @@ const styles = {
     color: 'var(--text-primary)',
   },
   closeBtn: {
-    width: '36px',
-    height: '36px',
+    width: '32px',
+    height: '32px',
     borderRadius: '50%',
     padding: 0,
   },

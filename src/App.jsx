@@ -41,7 +41,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 import { t } from './i18n';
 import { Menu, CheckCircle } from 'lucide-react';
-import { checkReminders } from './notifications';
+import { checkReminders, cacheRemindersForSW } from './notifications';
 
 const globalLangStyles = {
   pill: {
@@ -284,10 +284,11 @@ export default function App() {
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [transactionFilter, setTransactionFilter] = useState(null); // 'income', 'expense', or null
   const [isCenterBtnPressed, setIsCenterBtnPressed] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [splashClosing, setSplashClosing] = useState(false);
 
   // 4. System States
   const [theme, setTheme] = useState('light');
-  const [currentTime, setCurrentTime] = useState('');
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
   // Lock screen removed (direct entry)
@@ -331,19 +332,40 @@ export default function App() {
     const savedLang = localStorage.getItem('pocket_khata_lang') || 'en';
     document.documentElement.setAttribute('data-lang', savedLang);
 
-    // clock task
-    const updateTime = () => {
-      const d = new Date();
-      let hours = d.getHours();
-      const minutes = String(d.getMinutes()).padStart(2, '0');
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12;
-      hours = hours ? hours : 12;
-      setCurrentTime(`${hours}:${minutes} ${ampm}`);
+    // Request fullscreen for immersive mode (PWA on Android)
+    const enterFullscreen = async () => {
+      try {
+        if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+          await document.documentElement.requestFullscreen();
+        }
+      } catch (e) {
+        // Fullscreen API not available or denied — silent fallback for non-Android browsers
+      }
     };
-    updateTime();
-    const interval = setInterval(updateTime, 1000 * 60);
-    return () => clearInterval(interval);
+    // Wait for mount animation to settle before requesting fullscreen
+    const fsTimer = setTimeout(enterFullscreen, 1200);
+
+    // Listen for fullscreen exit events (e.g., system gesture swiped from edge)
+    // and automatically re-enter immersive mode
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        // User may have exited via system gesture — re-enter after a short delay
+        setTimeout(enterFullscreen, 500);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    // Cleanup on unmount
+    return () => {
+      clearTimeout(fsTimer);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    // After the logo has been visible for a bit, start the fade-out
+    const splashTimer = setTimeout(() => setSplashClosing(true), 2000);
+    return () => clearTimeout(splashTimer);
   }, []);
 
   // 6. Theme Toggle handler
@@ -515,6 +537,8 @@ export default function App() {
       setCategories(freshDb.categories);
       setTransactions(freshDb.transactions);
       setReminders(freshDb.reminders);
+      setBudgets(freshDb.budgets);
+      setSavingsGoals(freshDb.savingsGoals);
     } catch (e) {
       trackError(e, { handler: 'handleResetDatabase' });
       console.error('Failed to reset database:', e);
@@ -529,6 +553,8 @@ export default function App() {
         setCategories(db.getCategories());
         setTransactions(db.getTransactions());
         setReminders(db.getReminders());
+        setBudgets(db.getBudgets());
+        setSavingsGoals(db.getSavingsGoals());
       }
       return success;
     } catch (e) {
@@ -656,13 +682,52 @@ export default function App() {
     trackAction('open_transaction_form');
   }, []);
 
-  const handleNavigate = (screen) => {
+  // 11. Navigation history stack for Android back button support
+  const navStackRef = useRef(['dashboard']);
+
+  // Wrap handleNavigate to push to browser history
+  const handleNavigate = useCallback((screen) => {
+    if (screen === currentScreen) return;
+    window.history.pushState({ screen }, '');
+    navStackRef.current = [...navStackRef.current, screen];
     setTransactionFilter(null);
     setCurrentScreen(screen);
     trackScreenView(screen);
-  };
+  }, [currentScreen]);
 
-  // 11. Preload TransactionHistory after mount so it's ready for instant navigation
+  // Handle Android system back button via popstate
+  useEffect(() => {
+    const handlePopState = (e) => {
+      const state = e.state;
+      if (state && state.screen && state.screen !== currentScreen) {
+        // Navigate to the screen from history state
+        setTransactionFilter(null);
+        setCurrentScreen(state.screen);
+        navStackRef.current = [...navStackRef.current, state.screen];
+      } else if (navStackRef.current.length > 1) {
+        // Pop from our stack to go back
+        const updated = [...navStackRef.current];
+        updated.pop(); // Remove current
+        const prevScreen = updated[updated.length - 1] || 'dashboard';
+        navStackRef.current = updated;
+        setTransactionFilter(null);
+        setCurrentScreen(prevScreen);
+        // Push forward to prevent the browser from closing the tab
+        window.history.pushState({ screen: prevScreen }, '');
+      } else {
+        // On dashboard root — prevent app/tab close, stay on dashboard
+        window.history.pushState({ screen: 'dashboard' }, '');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    // Push initial state so back button has something to handle
+    window.history.replaceState({ screen: 'dashboard' }, '');
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentScreen]);
+
+
+
+  // 12. Preload TransactionHistory after mount so it's ready for instant navigation
   useEffect(() => {
     preloadTransactionHistory();
   }, []);
@@ -673,6 +738,7 @@ export default function App() {
       trackDeviceInfo();
       trackScreenView(currentScreen);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 12. Notification system — check reminders on mount and periodically
@@ -699,7 +765,7 @@ export default function App() {
     if (reminders.length === 0) return;
 
     const runCheck = () => {
-      const result = checkReminders(reminders, notifiedTags);
+      const result = checkReminders(reminders, notifiedTags, lang);
       if (result.notifiedCount > 0) {
         setNotifiedTags(result.updatedShownTags);
       }
@@ -711,22 +777,28 @@ export default function App() {
     // Then check every 10 minutes
     const interval = setInterval(runCheck, 10 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [reminders, notifiedTags]);
+  }, [reminders, notifiedTags, lang]);
 
   // Also check when a new reminder is added (via the reminders length change)
   const remindersCountRef = reminders.length;
   useEffect(() => {
     if (reminders.length > 0) {
-      const result = checkReminders(reminders, notifiedTags);
+      const result = checkReminders(reminders, notifiedTags, lang);
       if (result.notifiedCount > 0) {
         setNotifiedTags(result.updatedShownTags);
       }
     }
-  }, [remindersCountRef]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remindersCountRef, lang]);
   // Note: we intentionally use remindersCountRef (not reminders) to avoid
   // re-triggering on every render; the dependency array uses the length.
 
-  // 13. Close menu when clicking outside
+  // 13. Cache reminders + lang for the service worker (Periodic Background Sync)
+  useEffect(() => {
+    cacheRemindersForSW(reminders, lang);
+  }, [reminders, lang]);
+
+  // 14. Close menu when clicking outside
   useEffect(() => {
     if (!showMenu) return;
     const handleClickOutside = (e) => {
@@ -893,30 +965,29 @@ export default function App() {
 
   return (
     <div className="phone-shell">
-
-      {/* A. Android Status Bar (Simulated) */}
-      <div className="android-status-bar">
-        <span>{currentTime}</span>
-        <div className="android-status-icons">
-          <svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor">
-            <rect x="0" y="9" width="2" height="3" rx="0.5" />
-            <rect x="3" y="7" width="2" height="5" rx="0.5" />
-            <rect x="6" y="5" width="2" height="7" rx="0.5" />
-            <rect x="9" y="3" width="2" height="9" rx="0.5" />
-            <rect x="12" y="0" width="2" height="12" rx="0.5" />
-          </svg>
-          <svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor">
-            <path d="M7 11.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm-3.5-4a5 5 0 017 0 .5.5 0 01-.7.7 4 4 0 00-5.6 0 .5.5 0 01-.7-.7zm-2.8-2.8a9 9 0 0112.6 0 .5.5 0 01-.7.7 8 8 0 00-11.2 0 .5.5 0 01-.7-.7z" />
-          </svg>
-          <svg width="22" height="12" viewBox="0 0 22 12" fill="currentColor">
-            <rect x="0" y="1" width="18" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1" />
-            <rect x="2" y="3" width="12" height="6" rx="1" />
-            <path d="M20 4v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
+      {showSplash && (
+        <div
+          className={`splash-screen${splashClosing ? ' splash-closing' : ''}`}
+          role="button"
+          tabIndex={0}
+          onClick={() => { if (!splashClosing) setSplashClosing(true); }}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!splashClosing) setSplashClosing(true); } }}
+          onAnimationEnd={(e) => {
+            if (e.animationName === 'splashFadeOut') {
+              setShowSplash(false);
+            }
+          }}
+        >
+          <div className="splash-glow splash-glow-1" />
+          <div className="splash-glow splash-glow-2" />
+          <div className="splash-glow splash-glow-3" />
+          <div className="splash-content">
+            <img className="splash-logo" src="/pocket-khata-logo.png" alt="Pocket Khata logo" />
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* B. Analytics Consent Popup — shown only after usage delay threshold */}
+      {/* A. Analytics Consent Popup — shown only after usage delay threshold */}
       {analyticsConsent === null && (
         <ConsentPopup lang={lang} onConsent={handleConsentResult} />
       )}

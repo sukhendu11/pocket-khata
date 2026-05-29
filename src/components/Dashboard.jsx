@@ -174,11 +174,15 @@ export default function Dashboard({
     <div style={styles.scrollContainer}>
       
       {/* 1. Header Toolbar */}
-      <div style={styles.header}>
-        <div style={styles.userInfo}>
-          <h1 style={styles.title}>{t('dashboard.title', lang)}</h1>
-          <p style={styles.subtext}>{t('dashboard.subtitle', lang)}</p>
-        </div>
+      <div style={styles.header}>          <div style={styles.userInfo}>
+            <div onClick={() => onNavigate('dashboard')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <img src="/pocket-khata-logo.png" alt="" className="header-logo" />
+            </div>
+            <div style={styles.brandRow}>
+              <h1 style={styles.title}>{t('dashboard.title', lang)}</h1>
+              <p style={styles.subtext}>{t('dashboard.subtitle', lang)}</p>
+            </div>
+          </div>
         <div style={styles.actions}>
           {/* Theme Toggle */}
           <button 
@@ -525,17 +529,34 @@ const styles = {
   userInfo: {
     display: 'flex',
     flexDirection: 'column',
+    gap: '4px',
+    minWidth: 0,
+  },
+  brandRow: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '8px',
+    minWidth: 0,
   },
   title: {
-    fontSize: '22px',
+    fontSize: '20px',
     fontWeight: '700',
     color: 'var(--text-primary)',
     letterSpacing: '-0.5px',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    flexShrink: 0,
   },
   subtext: {
-    fontSize: '12px',
+    fontSize: '11px',
     color: 'var(--text-secondary)',
     fontWeight: '500',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    flexShrink: 1,
+    minWidth: 0,
   },
   actions: {
     display: 'flex',

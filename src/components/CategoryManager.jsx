@@ -176,10 +176,15 @@ export default function CategoryManager({
       
       {/* Header Bar */}
       <div style={styles.header}>
-        <button className="neo-btn neo-btn-round" style={styles.backBtn} onClick={() => onNavigate('dashboard')}>
-          <ArrowLeft size={18} />
-        </button>
-        <h2 style={styles.title}>{t('categories.title', lang)}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+          <button className="neo-btn neo-btn-round" style={styles.backBtn} onClick={() => onNavigate('dashboard')}>
+            <ArrowLeft size={18} />
+          </button>
+          <div onClick={() => onNavigate('dashboard')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <img src="/pocket-khata-logo.png" alt="" className="header-logo-sm" />
+          </div>
+          <h2 style={{ ...styles.title, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('categories.title', lang)}</h2>
+        </div>
         <button className="neo-btn neo-btn-round" style={styles.addBtn} onClick={openNewCategory}>
           <Plus size={18} />
         </button>
@@ -259,12 +264,16 @@ export default function CategoryManager({
         <>
           <div className="drawer-overlay" onClick={() => setShowAddModal(false)} />
           <div className="bottom-drawer" style={styles.modal}>
-            <div style={styles.modalHeader}>
+            {/* Fixed Header — title + close X button (always visible) */}
+            <div className="drawer-header">
               <h3 style={styles.modalTitle}>{editingCategory ? t('categories.editCategory', lang) : t('categories.newCategory', lang)}</h3>
-              <button className="neo-btn neo-btn-round" style={styles.closeModalBtn} onClick={() => setShowAddModal(false)}>
+              <button className="neo-btn" style={styles.closeModalBtn} onClick={() => setShowAddModal(false)}>
                 <X size={16} />
               </button>
             </div>
+
+            {/* Scrollable Content */}
+            <div className="drawer-scrollable">
 
             {formError && (
               <div className="neo-pressed-sm" style={styles.errorBox}>
@@ -398,6 +407,7 @@ export default function CategoryManager({
                 {editingCategory ? t('categories.saveCategory', lang) : t('categories.saveCategory', lang)}
               </button>
             </div>
+            </div>
           </div>
         </>
       )}
@@ -446,6 +456,7 @@ const styles = {
     fontSize: '18px',
     fontWeight: '700',
     color: 'var(--text-primary)',
+    minWidth: 0,
   },
   segmentContainer: {
     display: 'flex',
@@ -550,13 +561,6 @@ const styles = {
     marginTop: '2px',
   },
   modal: {
-    paddingBottom: '30px',
-  },
-  modalHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px',
   },
   modalTitle: {
     fontSize: '16px',

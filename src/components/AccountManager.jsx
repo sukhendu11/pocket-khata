@@ -126,10 +126,15 @@ export default function AccountManager({
       
       {/* Header Bar */}
       <div style={styles.header}>
-        <button className="neo-btn neo-btn-round" style={styles.backBtn} onClick={() => onNavigate('dashboard')}>
-          <ArrowLeft size={18} />
-        </button>
-        <h2 style={styles.title}>{t('accounts.title', lang)}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+          <button className="neo-btn neo-btn-round" style={styles.backBtn} onClick={() => onNavigate('dashboard')}>
+            <ArrowLeft size={18} />
+          </button>
+          <div onClick={() => onNavigate('dashboard')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <img src="/pocket-khata-logo.png" alt="" className="header-logo-sm" />
+          </div>
+          <h2 style={{ ...styles.title, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('accounts.title', lang)}</h2>
+        </div>
         <button className="neo-btn neo-btn-round" style={styles.addBtn} onClick={() => setShowAddModal(true)}>
           <Plus size={18} />
         </button>
@@ -169,7 +174,8 @@ export default function AccountManager({
         <>
           <div className="drawer-overlay" onClick={() => setSelectedAccount(null)} />
           <div className="bottom-drawer" style={styles.drawer}>
-            <div style={styles.drawerHeader}>
+            {/* Fixed Header — title + close X button (always visible) */}
+            <div className="drawer-header">
               <div style={styles.drawerHeaderTitle}>
                 <span style={{ ...styles.iconBg, backgroundColor: `${selectedAccount.color}22`, color: selectedAccount.color }}>
                   {getAccountIcon(selectedAccount.type)}
@@ -179,10 +185,13 @@ export default function AccountManager({
                   <span style={styles.drawerSubtitle}>{getLocalizedType(selectedAccount.type)} {t('accounts.accountType', lang)}</span>
                 </div>
               </div>
-              <button className="neo-btn neo-btn-round" style={styles.closeBtn} onClick={() => setSelectedAccount(null)}>
+              <button className="neo-btn" style={styles.closeBtn} onClick={() => setSelectedAccount(null)}>
                 <X size={16} />
               </button>
             </div>
+
+            {/* Scrollable Content */}
+            <div className="drawer-scrollable">
 
             {/* Large Balance Display */}
             <div className="neo-pressed-sm" style={styles.drawerBalanceCard}>
@@ -243,6 +252,7 @@ export default function AccountManager({
                 ))
               )}
             </div>
+            </div>
           </div>
         </>
       )}
@@ -252,12 +262,16 @@ export default function AccountManager({
         <>
           <div className="drawer-overlay" onClick={() => setShowEditBalance(false)} />
           <div className="bottom-drawer" style={styles.modal}>
-            <div style={styles.modalHeader}>
+            {/* Fixed Header — title + close X button (always visible) */}
+            <div className="drawer-header">
               <h3 style={styles.modalTitle}>{t('accounts.editBalance', lang)}</h3>
-              <button className="neo-btn neo-btn-round" style={styles.closeModalBtn} onClick={() => setShowEditBalance(false)}>
+              <button className="neo-btn" style={styles.closeModalBtn} onClick={() => setShowEditBalance(false)}>
                 <X size={16} />
               </button>
             </div>
+
+            {/* Scrollable Content */}
+            <div className="drawer-scrollable">
 
             <div className="neo-pressed-sm" style={{
               padding: '12px',
@@ -316,6 +330,7 @@ export default function AccountManager({
                 {t('accounts.saveBalance', lang)}
               </button>
             </div>
+            </div>
           </div>
         </>
       )}
@@ -325,12 +340,16 @@ export default function AccountManager({
         <>
           <div className="drawer-overlay" onClick={() => setShowAddModal(false)} />
           <div className="bottom-drawer" style={styles.modal}>
-            <div style={styles.modalHeader}>
+            {/* Fixed Header — title + close X button (always visible) */}
+            <div className="drawer-header">
               <h3 style={styles.modalTitle}>{t('accounts.addTitle', lang)}</h3>
-              <button className="neo-btn neo-btn-round" style={styles.closeModalBtn} onClick={() => setShowAddModal(false)}>
+              <button className="neo-btn" style={styles.closeModalBtn} onClick={() => setShowAddModal(false)}>
                 <X size={16} />
               </button>
             </div>
+
+            {/* Scrollable Content */}
+            <div className="drawer-scrollable">
 
             {formError && (
               <div className="neo-pressed-sm" style={styles.errorBox}>
@@ -400,6 +419,7 @@ export default function AccountManager({
                 {t('accounts.createWallet', lang)}
               </button>
             </div>
+            </div>
           </div>
         </>
       )}
@@ -448,6 +468,7 @@ const styles = {
     fontSize: '18px',
     fontWeight: '700',
     color: 'var(--text-primary)',
+    minWidth: 0,
   },
   listContainer: {
     flex: 1,
@@ -511,13 +532,6 @@ const styles = {
     fontWeight: '600',
   },
   drawer: {
-    paddingBottom: '30px',
-  },
-  drawerHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px',
   },
   drawerHeaderTitle: {
     display: 'flex',
@@ -627,13 +641,6 @@ const styles = {
     fontWeight: '700',
   },
   modal: {
-    paddingBottom: '30px',
-  },
-  modalHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px',
   },
   modalTitle: {
     fontSize: '16px',
