@@ -233,7 +233,7 @@ const translations = {
   'settings.formatApp': { en: 'Format Application Data', bn: 'অ্যাপ ডাটা ফরম্যাট করুন' },
   'settings.irreversible': { en: 'This action is irreversible. Proceed?', bn: 'এই পদক্ষেপ ফিরিয়ে আনা যাবে না। চালিয়ে যেতে চান?' },
   'settings.yesFormat': { en: 'Yes, Format App', bn: 'হ্যাঁ, ফরম্যাট করুন' },
-  'settings.version': { en: 'Pocket Khata Vault v2.2.0', bn: 'পকেট খাতা ভল্ট v2.2.0' },
+  'settings.version': { en: 'Pocket Khata Vault v2.4.0', bn: 'পকেট খাতা ভল্ট v2.4.0' },
   'settings.dbInfo': { en: 'Local Storage Secured', bn: 'লোকাল স্টোরেজ সুরক্ষিত' },
   'settings.noBackupFound': { en: 'No backup found. Run Backup first.', bn: 'কোনো ব্যাকআপ পাওয়া যায়নি! আগে ব্যাকআপ নিন।' },
   'settings.restoreSuccess': { en: 'Database successfully restored from backup!', bn: 'ব্যাকআপ থেকে ডাটাবেজ সফলভাবে পুনরুদ্ধার হয়েছে!' },

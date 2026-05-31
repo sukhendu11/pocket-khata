@@ -47,7 +47,7 @@ const CURRENT_SCHEMA_VERSION = 7;
  * Semantic version string shown in the UI.
  * Increment this for human-readable version releases.
  */
-const APP_VERSION = '2.2.0';
+const APP_VERSION = '2.4.0';
 
 const SEED_TIMESTAMP = new Date().toISOString();
 

@@ -282,7 +282,7 @@ describe('schema versioning', () => {
 
   it('returns schema version info from the API', () => {
     expect(db.getSchemaVersion()).toBe(7);
-    expect(db.getAppVersion()).toBe('2.2.0');
+    expect(db.getAppVersion()).toBe('2.4.0');
   });
 
   it('migrates v1 data (missing timestamps) to v2', () => {

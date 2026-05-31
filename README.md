@@ -799,7 +799,7 @@ Please open an issue or pull request on the [GitHub repository](https://github.c
 
 ## 📌 Version
 
-Current version: **2.2.0** (schema v5)
+Current version: **2.4.0** (schema v5)
 
 ---
 
