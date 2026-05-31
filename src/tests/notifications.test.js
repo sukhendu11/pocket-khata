@@ -154,7 +154,21 @@ describe('cacheRemindersForSW', () => {
     expect(result).toBeUndefined();
   });
 
+  it('returns undefined when isNotificationSupported returns false', async () => {
+    delete window.Notification;
+    const result = await cacheRemindersForSW([], 'en');
+    expect(result).toBeUndefined();
+    vi.stubGlobal('Notification', { permission: 'granted', requestPermission: vi.fn() });
+  });
 
+  it('does not call caches.open when not supported', async () => {
+    const openSpy = vi.fn();
+    vi.stubGlobal('caches', { open: openSpy });
+    delete window.Notification;
+    await cacheRemindersForSW([], 'en');
+    expect(openSpy).not.toHaveBeenCalled();
+    vi.stubGlobal('Notification', { permission: 'granted', requestPermission: vi.fn() });
+  });
 });
 
 // ==============================================================================
@@ -255,6 +269,22 @@ describe('registerPeriodicSync', () => {
   it('returns undefined (void function)', async () => {
     const result = await registerPeriodicSync();
     expect(result).toBeUndefined();
+  });
+
+  it('returns undefined when isNotificationSupported returns false', async () => {
+    delete window.Notification;
+    const result = await registerPeriodicSync();
+    expect(result).toBeUndefined();
+    vi.stubGlobal('Notification', {});
+  });
+
+  it('does not call getRegistrations when not supported', async () => {
+    const getRegSpy = vi.fn();
+    vi.stubGlobal('navigator', { serviceWorker: { getRegistrations: getRegSpy } });
+    delete window.Notification;
+    await registerPeriodicSync();
+    expect(getRegSpy).not.toHaveBeenCalled();
+    vi.stubGlobal('Notification', {});
   });
 });
 
@@ -546,7 +576,7 @@ describe('checkReminders', () => {
     expect(msg.payload.tag).toContain('reminder-due-tomorrow-rem_2-2026-06-16');
   });
 
-  it('notifies for overdue reminders', async () => {
+  it('notifies for overdue reminders (5 days)', async () => {
     const reminders = [
       { id: 'rem_3', name: 'Water Bill', dueDate: '2026-06-10', amount: 800, status: 'unpaid' },
     ];
@@ -558,6 +588,20 @@ describe('checkReminders', () => {
     expect(msg.payload.body).toContain('overdue by 5 days');
     expect(msg.payload.body).toContain('Water Bill');
     expect(msg.payload.tag).toContain('reminder-overdue-rem_3-2026-06-15');
+  });
+
+  it('notifies for overdue by exactly 1 day (singular)', async () => {
+    const reminders = [
+      { id: 'rem_sing', name: 'Gas Bill', dueDate: '2026-06-14', amount: 600, status: 'unpaid' },
+    ];
+    const result = checkReminders(reminders, new Set(), 'en');
+    await Promise.resolve();
+
+    expect(result.notifiedCount).toBe(1);
+    const msg = mockPostMessage.mock.calls[0][0];
+    expect(msg.payload.body).toContain('overdue by 1 day');
+    expect(msg.payload.body).not.toContain('1 days');
+    expect(msg.payload.tag).toContain('reminder-overdue-rem_sing-2026-06-15');
   });
 
   it('skips paid reminders', () => {
@@ -610,14 +654,50 @@ describe('checkReminders', () => {
     expect(mockPostMessage).toHaveBeenCalledTimes(3);
   });
 
-  it('formats amount in Bengali locale when lang is bn', async () => {
+  it('formats due-today body in Bengali locale', async () => {
     const reminders = [
       { id: 'rem_11', name: 'বিদ্যুৎ বিল', dueDate: '2026-06-15', amount: 1500, status: 'unpaid' },
     ];
     const result = checkReminders(reminders, new Set(), 'bn');
     await Promise.resolve();
     expect(result.notifiedCount).toBe(1);
-    expect(mockPostMessage).toHaveBeenCalled();
+    const msg = mockPostMessage.mock.calls[0][0];
+    expect(msg.payload.body).toContain('বিদ্যুৎ বিল');
+    expect(msg.payload.body).toContain('আজকে পরিশোধ');
+    // Bengali digits: ১,৫০০
+    expect(msg.payload.body).toMatch(/[০-৯]+/);
+  });
+
+  it('formats overdue body in Bengali locale', async () => {
+    const reminders = [
+      { id: 'rem_bn_over', name: 'ভাড়া', dueDate: '2026-06-10', amount: 12000, status: 'unpaid' },
+    ];
+    const result = checkReminders(reminders, new Set(), 'bn');
+    await Promise.resolve();
+    expect(result.notifiedCount).toBe(1);
+    const msg = mockPostMessage.mock.calls[0][0];
+    expect(msg.payload.body).toContain('ভাড়া');
+    // {days} uses String() — Western digits for the day count
+    expect(msg.payload.body).toContain('5 দিন মেয়াদোত্তীর্ণ');
+    // {amount} uses toLocaleString('bn-BD') — should have Bengali digits
+    expect(msg.payload.body).toMatch(/[০-৯]+/);
+    expect(msg.payload.tag).toContain('reminder-overdue-rem_bn_over-2026-06-15');
+  });
+
+  it('uses correct {s} handling: Bengali overdue has no plural suffix', async () => {
+    // For Bengali, the {s} replacement should be empty string
+    // The Bengali template 'notif.overdueDays' does NOT contain {s},
+    // so the replace('{s}', '') is effectively a no-op
+    const reminders = [
+      { id: 'rem_bn_1d', name: 'বই', dueDate: '2026-06-14', amount: 500, status: 'unpaid' },
+    ];
+    const result = checkReminders(reminders, new Set(), 'bn');
+    await Promise.resolve();
+    expect(result.notifiedCount).toBe(1);
+    const msg = mockPostMessage.mock.calls[0][0];
+    expect(msg.payload.body).toContain('বই');
+    // {days} uses String() — Western digit for the day count
+    expect(msg.payload.body).toContain('1 দিন মেয়াদোত্তীর্ণ');
   });
 
   it('uses default empty Set when shownTags is not provided', () => {
