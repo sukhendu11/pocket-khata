@@ -53,3 +53,20 @@
 | `.kilo/kilo.jsonc` | **Deleted** |
 | `.kilo/plans/1780194052280-proud-otter.md` | **Deleted** |
 | `.kilo/sessions/1780216673-session-snapshot.md` | **Deleted** (previous snapshot cleaned up) |
+
+
+
+## RESUME RULE (CRITICAL)
+
+This file is the ONLY source of session continuity.
+
+When starting a new session:
+- Read this file first
+- Do NOT re-scan full codebase
+- Do NOT restart architecture analysis
+- Continue ONLY from "What Is Pending"
+
+When ending a session:
+- Update this file first
+- Then commit to git
+- Then stop execution
