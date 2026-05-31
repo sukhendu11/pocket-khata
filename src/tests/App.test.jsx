@@ -240,11 +240,6 @@ describe('App — Initial Render', () => {
     expect(screen.getByTestId('dashboard-screen')).toBeTruthy();
   });
 
-  it('renders the splash screen on mount', () => {
-    render(<App />);
-    expect(document.querySelector('.splash-screen')).toBeTruthy();
-  });
-
   it('renders the language toggle pill buttons', () => {
     render(<App />);
     const enBtns = screen.getAllByText('EN');
@@ -656,84 +651,6 @@ describe('App — Error Handling', () => {
       expect.objectContaining({ message: 'Save failed' }),
       expect.objectContaining({ handler: 'handleSaveTransaction' }),
     );
-  });
-});
-
-// ==============================================================================
-// 9. Splash Screen
-// ==============================================================================
-
-describe('App — Splash Screen', () => {
-  it('shows splash on mount', () => {
-    render(<App />);
-    const splash = document.querySelector('.splash-screen');
-    expect(splash).toBeTruthy();
-    expect(splash.classList.contains('splash-closing')).toBe(false);
-  });
-
-  it('closes splash when clicked', () => {
-    render(<App />);
-    const splash = document.querySelector('.splash-screen');
-    fireEvent.click(splash);
-    expect(splash.classList.contains('splash-closing')).toBe(true);
-  });
-
-  it('closes splash when Enter is pressed', () => {
-    render(<App />);
-    const splash = document.querySelector('.splash-screen');
-    fireEvent.keyDown(splash, { key: 'Enter' });
-    expect(splash.classList.contains('splash-closing')).toBe(true);
-  });
-
-  it('closes splash when Space is pressed', () => {
-    render(<App />);
-    const splash = document.querySelector('.splash-screen');
-    fireEvent.keyDown(splash, { key: ' ' });
-    expect(splash.classList.contains('splash-closing')).toBe(true);
-  });
-
-  it('sets splashClosing after 2 seconds via timer', () => {
-    vi.useFakeTimers();
-    render(<App />);
-    const splash = document.querySelector('.splash-screen');
-    expect(splash.classList.contains('splash-closing')).toBe(false);
-    advanceTimers(2500);
-    expect(splash.classList.contains('splash-closing')).toBe(true);
-  });
-
-  it('hides splash on animationEnd with splashFadeOut', () => {
-    render(<App />);
-    const splash = document.querySelector('.splash-screen');
-    fireEvent.click(splash);
-    act(() => {
-      // jsdom doesn't support AnimationEvent, so use a plain Event
-      // Must set bubbles:true so React's root-level delegation catches it
-      const event = new Event('animationend', { bubbles: true });
-      Object.defineProperty(event, 'animationName', { value: 'splashFadeOut', writable: false });
-      splash.dispatchEvent(event);
-    });
-    expect(document.querySelector('.splash-screen')).toBeNull();
-  });
-
-  it('does not hide splash on other animationEnd events', () => {
-    render(<App />);
-    const splash = document.querySelector('.splash-screen');
-    act(() => {
-      const event = new Event('animationend', { bubbles: true });
-      Object.defineProperty(event, 'animationName', { value: 'otherAnimation', writable: false });
-      splash.dispatchEvent(event);
-    });
-    expect(document.querySelector('.splash-screen')).toBeTruthy();
-  });
-
-  it('ignores second click on splash after closing started', () => {
-    render(<App />);
-    const splash = document.querySelector('.splash-screen');
-    fireEvent.click(splash);
-    expect(splash.classList.contains('splash-closing')).toBe(true);
-    // Second click should not throw
-    fireEvent.click(splash);
-    expect(splash.classList.contains('splash-closing')).toBe(true);
   });
 });
 

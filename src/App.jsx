@@ -180,9 +180,6 @@ export default function App() {
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [transactionFilter, setTransactionFilter] = useState(null); // 'income', 'expense', or null
   const [isCenterBtnPressed, setIsCenterBtnPressed] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
-  const [splashClosing, setSplashClosing] = useState(false);
-
   // 4. System States
   const [theme, setTheme] = useState('light');
   const [showMenu, setShowMenu] = useState(false);
@@ -258,12 +255,6 @@ export default function App() {
       clearTimeout(fsTimer);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, []);
-
-  useEffect(() => {
-    // After the logo has been visible for a bit, start the fade-out
-    const splashTimer = setTimeout(() => setSplashClosing(true), 2000);
-    return () => clearTimeout(splashTimer);
   }, []);
 
   // 6. Theme Toggle handler
@@ -735,28 +726,6 @@ export default function App() {
 
   return (
     <div className="phone-shell">
-      {showSplash && (
-        <div
-          className={`splash-screen${splashClosing ? ' splash-closing' : ''}`}
-          role="button"
-          tabIndex={0}
-          onClick={() => { if (!splashClosing) setSplashClosing(true); }}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!splashClosing) setSplashClosing(true); } }}
-          onAnimationEnd={(e) => {
-            if (e.animationName === 'splashFadeOut') {
-              setShowSplash(false);
-            }
-          }}
-        >
-          <div className="splash-glow splash-glow-1" />
-          <div className="splash-glow splash-glow-2" />
-          <div className="splash-glow splash-glow-3" />
-          <div className="splash-content">
-            <img className="splash-logo" src="/pocket-khata-logo.png" alt="Pocket Khata logo" />
-          </div>
-        </div>
-      )}
-
       {/* C. App Context Content Container */}
       <div className="app-container" style={{ position: 'relative' }}>
         {/* Toast notification overlay */}

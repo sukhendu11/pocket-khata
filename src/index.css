@@ -34,18 +34,9 @@
 
   --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-bangla: 'Noto Serif Bengali', 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, serif;
-
-
-
-  /* Splash glow colors (theme-adaptive) */
-  --splash-glow-1: rgba(56, 103, 214, 0.25);
-  --splash-glow-2: rgba(84, 160, 255, 0.18);
-  --splash-glow-3: rgba(56, 103, 214, 0.12);
-  --splash-glow-shadow-soft: rgba(56, 103, 214, 0.12);
-  --splash-glow-shadow-strong: rgba(56, 103, 214, 0.35);
 }
 
-/* Bangla language font override — applied to text elements only, not SVGs/inputs */
+/* Bangla font override — applied to text elements only, not SVGs/inputs */
 [data-lang="bn"] h1,
 [data-lang="bn"] h2,
 [data-lang="bn"] h3,
@@ -100,25 +91,15 @@
   --color-expense: #EF4444;
   --color-transfer: #54a0ff;
 
-  /* Splash glow colors (theme-adaptive) */
-  --splash-glow-1: rgba(84, 160, 255, 0.25);
-  --splash-glow-2: rgba(112, 161, 255, 0.18);
-  --splash-glow-3: rgba(84, 160, 255, 0.12);
-  --splash-glow-shadow-soft: rgba(84, 160, 255, 0.15);
-  --splash-glow-shadow-strong: rgba(84, 160, 255, 0.40);
 }
 
-/* Dark mode logo adjustments — brightness boost for the single PNG asset */
+/* Dark mode brightness boost for the single PNG asset */
 [data-theme="dark"] .header-logo {
   filter: drop-shadow(0 2px 6px rgba(84, 160, 255, 0.35)) brightness(1.06);
 }
 
 [data-theme="dark"] .header-logo:hover {
   filter: drop-shadow(0 4px 12px rgba(84, 160, 255, 0.5)) brightness(1.08);
-}
-
-[data-theme="dark"] .splash-content {
-  filter: brightness(1.05);
 }
 
 /* Reset & Scaffold */
@@ -466,119 +447,6 @@ body {
 @keyframes countUp {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-/* Splash screen */
-.splash-screen {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-color);
-  z-index: 50;
-  pointer-events: auto;
-  cursor: pointer;
-  overflow: hidden;
-}
-
-.splash-screen.splash-closing {
-  animation: splashFadeOut 0.4s ease forwards;
-}
-
-.splash-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-  z-index: 2;
-}
-
-/* Decorative background glow blobs — staggered entrance */
-.splash-glow {
-  position: absolute;
-  border-radius: 50%;
-  opacity: 0;
-  filter: blur(60px);
-  pointer-events: none;
-  z-index: 1;
-}
-
-.splash-glow-1 {
-  width: 320px;
-  height: 320px;
-  top: -80px;
-  right: -100px;
-  background: radial-gradient(circle, var(--splash-glow-1), transparent 70%);
-  animation: splashGlowEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
-}
-
-.splash-glow-2 {
-  width: 260px;
-  height: 260px;
-  bottom: -60px;
-  left: -80px;
-  background: radial-gradient(circle, var(--splash-glow-2), transparent 70%);
-  animation: splashGlowEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards;
-}
-
-.splash-glow-3 {
-  width: 200px;
-  height: 200px;
-  top: 36%;
-  right: -80px;
-  background: radial-gradient(circle, var(--splash-glow-3), transparent 70%);
-  animation: splashGlowEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
-}
-
-@keyframes splashGlowEntry {
-  from {
-    opacity: 0;
-    transform: scale(0.4);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.splash-logo {
-  width: min(440px, 90vw);
-  max-width: 480px;
-  height: auto;
-  max-height: 200px;
-  object-fit: contain;
-  opacity: 0;
-  animation:
-    splashLogoEntry 0.85s ease-out forwards,
-    splashLogoFloat 3s ease-in-out infinite 0.85s,
-    splashLogoGlow 3s ease-in-out infinite 0.85s;
-}
-
-@keyframes splashLogoEntry {
-  from { opacity: 0; transform: scale(0.7); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes splashLogoFloat {
-  0%, 100% { transform: scale(1) translateY(0); }
-  50% { transform: scale(1) translateY(-4px); }
-}
-
-@keyframes splashLogoGlow {
-  0%, 100% { filter: drop-shadow(0 2px 8px var(--splash-glow-shadow-soft)); }
-  50% { filter: drop-shadow(0 8px 18px var(--splash-glow-shadow-strong)); }
-}
-
-@keyframes splashFadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-
-/* Icon bounce */
-@keyframes iconBounce {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
 }
 
 /* Pulse ring for active elements */

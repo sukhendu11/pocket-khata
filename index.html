@@ -33,10 +33,9 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="/pocket-khata-logo.png" />
     
-    <!-- Match the Android splash background color so there is zero flash
-         between the system splash screen and the WebView content loading.
-         The actual app bg (--bg-color in index.css) is also #E5EAF2, so
-         the transition is seamless. -->
+    <!-- Prevent white flash before CSS loads: bg-color matches the
+         Android windowBackground (#E5EAF2 from colors.xml) so the
+         transition from system splash → WebView is seamless. -->
     <style>
       html, body, #root { background-color: #E5EAF2; margin: 0; padding: 0; height: 100%; }
     </style>
