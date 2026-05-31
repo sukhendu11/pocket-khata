@@ -4,6 +4,7 @@ import {
   Bell, Info, Shield, CheckCircle, XCircle, FileText
 } from 'lucide-react';
 import { generatePDFReport } from '../lib/pdf';
+import { saveString } from '../lib/download';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { trackAction, trackError } from '../lib/analytics';
@@ -66,6 +67,17 @@ export default function Settings({
         budgets,
         lang,
         sections: reportSections,
+      });
+      const periodLabel = {
+        thisMonth: t('reports.thisMonth', lang),
+        lastMonth: t('reports.lastMonth', lang),
+        last3Months: t('reports.last3Months', lang),
+        last6Months: t('reports.last6Months', lang),
+        thisYear: t('reports.thisYear', lang),
+      }[reportPeriod] || reportPeriod;
+      setToast({
+        type: 'success',
+        message: `${periodLabel} ${t('reports.exportedPDF', lang) || 'PDF saved to Documents'}`,
       });
     } catch (e) {
       console.error('PDF export failed:', e);
@@ -134,17 +146,23 @@ export default function Settings({
   };
 
   // JSON Export download
-  const handleExportJSON = () => {
+  const handleExportJSON = async () => {
     const jsonStr = onExportDatabase();
-    const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
     trackAction('export_json', { transactionCount: transactions.length });
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `Pocket_Khata_Backup_${new Date().toISOString().split('T')[0]}.json`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const filename = `Pocket_Khata_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    try {
+      await saveString(jsonStr, filename);
+      setToast({
+        type: 'success',
+        message: `${t('settings.exportedJSON', lang) || 'Backup saved to Documents'}: ${filename}`,
+      });
+    } catch (e) {
+      console.error('JSON export failed:', e);
+      setToast({
+        type: 'error',
+        message: t('settings.exportFailed', lang) || 'Backup export failed. Please try again.',
+      });
+    }
   };
 
   // Reset Data State

@@ -339,22 +339,19 @@ describe('Settings — PDF Export', () => {
     expect(screen.getByText('Generating…')).toBeTruthy();
   });
 
-  it('shows error alert when PDF generation fails', async () => {
+  it('shows error toast when PDF generation fails', async () => {
     const { generatePDFReport } = await import('../lib/pdf');
     generatePDFReport.mockRejectedValue(new Error('Test error'));
-
-    // Mock window.alert
-    const alertMock = vi.fn();
-    vi.stubGlobal('alert', alertMock);
 
     render(<Settings {...defaultProps} />);
 
     fireEvent.click(screen.getByText('Export PDF Report'));
 
-    // Wait for the promise rejection
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // Wait for the promise rejection and React state update
+    await new Promise(resolve => setTimeout(resolve, 50));
 
-    expect(alertMock).toHaveBeenCalledWith('PDF export failed: Test error');
+    // Component shows a styled toast with the translated error message
+    expect(screen.getByText('PDF export failed. Please try again.')).toBeTruthy();
   });
 
   it('passes Bangla language param to generatePDFReport', async () => {

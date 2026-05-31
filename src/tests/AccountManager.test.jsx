@@ -116,8 +116,8 @@ describe('AccountManager — Account Drawer', () => {
     expect(screen.getByText('CURRENT BALANCE')).toBeTruthy();
 
     // Click X close button in the drawer header
-    const xButton = screen.getByText('Delete Account').closest('div')
-      ?.querySelector('button:last-child');
+    const drawerHeader = document.querySelector('.drawer-header');
+    const xButton = drawerHeader?.querySelector('button');
     if (xButton) fireEvent.click(xButton);
 
     // After closing, drawer should be gone

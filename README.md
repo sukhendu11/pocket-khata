@@ -15,6 +15,37 @@ Track expenses, manage multiple accounts, set budgets, and stay on top of your f
 
 </div>
 
+### ℹ️ About
+
+**Pocket Khata** is a neo-morphic, offline-first personal finance manager built with React + Vite. It enables users to track expenses, manage multiple accounts, set budgets, and monitor savings — all stored securely on-device.
+
+- **Privacy-First Architecture**: Local-first design; all data remains in the browser's localStorage with zero network transmission, no backend, and no cloud dependency.
+- **Dual-Language Support**: Full English and Bangla (বাংলা) localization built into the core interface.
+- **Financial Tracking**: Income, expense, and transfer transactions with 17+ default categories and custom category creation.
+- **Planning Tools**: Monthly budget planners, savings goals, and recurring/one-time bill reminders.
+- **Analytics & Reports**: Interactive pie charts, calendar views, and client-side PDF/CSV exports for financial reporting.
+- **Data Portability**: Schema-versioned JSON export/import with automatic migrations and rotating auto-backups.
+- **Cross-Platform Access**: Responsive smartphone-shell UI with PWA capabilities and native Android/iOS packaging via Capacitor.
+
+### Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | React 18 |
+| **Build Tool** | Vite 5 |
+| **Styling** | Custom CSS (neo-morphic design with CSS custom properties) |
+| **Storage** | Browser `localStorage` with schema migrations |
+| **Icons** | Lucide React |
+| **PDF Generation** | jsPDF (client-side) |
+| **Testing** | Vitest + React Testing Library (480+ tests) |
+| **CI** | GitHub Actions |
+| **Mobile** | Capacitor |
+| **Linting** | ESLint 8 |
+
+### License
+
+MIT © Sukhendu Chakma
+
 ---
 
 ## 📋 Table of Contents

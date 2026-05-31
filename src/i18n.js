@@ -243,6 +243,8 @@ const translations = {
   'settings.importDesc': { en: 'Restore your full database from a previously exported JSON backup file.', bn: 'পূর্বে এক্সপোর্ট করা JSON ব্যাকআপ ফাইল থেকে সম্পূর্ণ ডাটাবেজ রিস্টোর করুন।' },
   'settings.importSuccess': { en: 'Database imported successfully!', bn: 'ডাটাবেজ সফলভাবে ইম্পোর্ট হয়েছে!' },
   'settings.importError': { en: 'Invalid JSON file. Please select a valid export file.', bn: 'অবৈধ JSON ফাইল। অনুগ্রহ করে সঠিক এক্সপোর্ট ফাইল নির্বাচন করুন।' },
+  'settings.exportedJSON': { en: 'Backup saved to Documents', bn: 'ডকুমেন্টসে ব্যাকআপ সংরক্ষিত' },
+  'settings.exportFailed': { en: 'Backup export failed. Please try again.', bn: 'ব্যাকআপ এক্সপোর্ট ব্যর্থ হয়েছে। আবার চেষ্টা করুন।' },
   'settings.noTransactions': { en: 'No transactions to export.', bn: 'এক্সপোর্ট করার মতো কোনো লেনদেন নেই।' },
   'settings.generatingPDF': { en: 'Generating…', bn: 'উৎপন্ন হচ্ছে…' },
   'settings.resetSuccess': { en: 'Pocket Khata reset to factory defaults.', bn: 'পকেট খাতা ফ্যাক্টরি ডিফল্টে রিসেট হয়েছে।' },
@@ -410,6 +412,7 @@ const translations = {
   'reports.sectionTransactions': { en: 'Transactions Table', bn: 'লেনদেনের তালিকা' },
   'reports.sectionAnalytics': { en: 'Charts & Insights', bn: 'চার্ট ও অন্তর্দৃষ্টি' },
   'reports.sectionSelect': { en: 'SELECT SECTIONS TO INCLUDE', bn: 'অন্তর্ভুক্ত করার বিভাগ নির্বাচন' },
+  'reports.exportedPDF': { en: 'PDF saved to Documents', bn: 'ডকুমেন্টসে পিডিএফ সংরক্ষিত' },
   'reports.exportFailed': { en: 'PDF export failed. Please try again.', bn: 'পিডিএফ এক্সপোর্ট ব্যর্থ হয়েছে। আবার চেষ্টা করুন।' },
 
   // ===== NAVIGATION =====

@@ -48,7 +48,6 @@ describe('cacheRemindersForSW', () => {
     };
 
     vi.stubGlobal('Notification', { permission: 'granted', requestPermission: vi.fn() });
-    vi.stubGlobal('PushManager', class MockPushManager {});
 
     vi.stubGlobal('caches', {
       open: vi.fn(async () => mockCache),
@@ -161,7 +160,6 @@ describe('registerPeriodicSync', () => {
     };
 
     vi.stubGlobal('Notification', { permission: 'granted', requestPermission: vi.fn() });
-    vi.stubGlobal('PushManager', class MockPushManager {});
 
     stubNavigatorServiceWorker({
       getRegistrations: vi.fn().mockResolvedValue([]),

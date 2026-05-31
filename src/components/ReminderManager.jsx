@@ -11,7 +11,8 @@ import {
   getNotificationPermission, 
   requestNotificationPermission, 
   isNotificationSupported,
-  isServiceWorkerActive 
+  isServiceWorkerActive,
+  registerServiceWorker 
 } from '../notifications';
 
 export default function ReminderManager({
@@ -44,9 +45,18 @@ export default function ReminderManager({
     supported: isNotificationSupported(),
     swActive: false,
   });
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    const stored = localStorage.getItem('pocket_khata_notifications_enabled');
+    return stored === null ? true : stored === 'true';
+  });
+  const [reminderAlertsEnabled, setReminderAlertsEnabled] = useState(() => {
+    const stored = localStorage.getItem('pocket_khata_reminder_alerts_enabled');
+    return stored === null ? true : stored === 'true';
+  });
 
   useEffect(() => {
-    // Check service worker status asynchronously
+    // Register service worker and check status asynchronously
+    registerServiceWorker();
     isServiceWorkerActive().then((active) => {
       setNotifState((prev) => ({ ...prev, swActive: active }));
     });
@@ -56,6 +66,25 @@ export default function ReminderManager({
     const result = await requestNotificationPermission();
     setNotifState((prev) => ({ ...prev, permission: result }));
     trackAction('request_notification_permission', { result });
+  };
+
+  const handleToggleNotifications = async () => {
+    if (!notificationsEnabled && notifState.permission !== 'granted') {
+      await requestNotificationPermission();
+      setNotifState((prev) => ({ ...prev, permission: getNotificationPermission() }));
+      if (getNotificationPermission() !== 'granted') return;
+    }
+    const newVal = !notificationsEnabled;
+    setNotificationsEnabled(newVal);
+    localStorage.setItem('pocket_khata_notifications_enabled', String(newVal));
+    trackAction('toggle_notifications', { enabled: newVal });
+  };
+
+  const handleToggleReminderAlerts = () => {
+    const newVal = !reminderAlertsEnabled;
+    setReminderAlertsEnabled(newVal);
+    localStorage.setItem('pocket_khata_reminder_alerts_enabled', String(newVal));
+    trackAction('toggle_reminder_alerts', { enabled: newVal });
   };
 
   // 2. Filtered lists
@@ -92,33 +121,33 @@ export default function ReminderManager({
     }
   }, [editingReminder]);
 
-  // 2. Form submission
+  // 2. Form submission — wrapped in extra try/catch to prevent white screen
   const handleSave = () => {
-    setFormError('');
-
-    if (!name.trim()) {
-      setFormError(t('reminders.errName', lang));
-      return;
-    }
-
-    const parsedAmount = Number(amount);
-    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
-      setFormError(t('reminders.errAmount', lang));
-      return;
-    }
-
-    if (!dueDate) {
-      setFormError(t('reminders.errDate', lang));
-      return;
-    }
-
-    if (!categoryId) {
-      setFormError(t('reminders.errCategory', lang));
-      return;
-    }
-
     try {
-      if (editingReminder) {
+      setFormError('');
+
+      if (!name.trim()) {
+        setFormError(t('reminders.errName', lang));
+        return;
+      }
+
+      const parsedAmount = Number(amount);
+      if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+        setFormError(t('reminders.errAmount', lang));
+        return;
+      }
+
+      if (!dueDate) {
+        setFormError(t('reminders.errDate', lang));
+        return;
+      }
+
+      if (!categoryId) {
+        setFormError(t('reminders.errCategory', lang));
+        return;
+      }
+
+      if (editingReminder && editingReminder.id) {
         onUpdateReminder({
           ...editingReminder,
           name: name.trim(),
@@ -157,13 +186,28 @@ export default function ReminderManager({
   };
 
   const openNewReminder = () => {
-    setEditingReminder(null);
-    setName('');
-    setAmount('');
-    setDueDate('');
-    setCategoryId('');
-    setFormError('');
-    setShowAddModal(true);
+    try {
+      setEditingReminder(null);
+      setName('');
+      setAmount('');
+      setDueDate('');
+      setCategoryId('');
+      setFormError('');
+      setShowAddModal(true);
+    } catch (e) {
+      console.error('Error opening reminder form:', e);
+      // If the drawer crashes, force close and reopen
+      setShowAddModal(false);
+      setTimeout(() => {
+        setEditingReminder(null);
+        setName('');
+        setAmount('');
+        setDueDate('');
+        setCategoryId('');
+        setFormError('');
+        setShowAddModal(true);
+      }, 50);
+    }
   };
 
   const handleEdit = (rem) => {
@@ -235,13 +279,56 @@ export default function ReminderManager({
         </div>
       )}
 
-      {/* Unsupported browser warning */}
+      {/* Unsupported browser warning — try service worker registration anyway */}
       {!notifState.supported && (
         <div className="neo-pressed-sm" style={styles.notifBannerDenied}>
           <BellOff size={12} style={{ color: 'var(--color-expense)' }} />
           <span style={styles.notifDeniedText}>{t('notif.permissionUnsupported', lang)}</span>
+          <button
+            className="neo-btn"
+            style={{ marginLeft: 'auto', fontSize: '9px', padding: '4px 8px', height: '24px', borderRadius: '6px' }}
+            onClick={() => { registerServiceWorker(); window.location.reload(); }}
+          >
+            Retry
+          </button>
         </div>
       )}
+
+      {/* Notification toggle switches */}
+      <div className="neo-raised-sm" style={styles.notifToggleSection}>
+        {/* Enable Notifications toggle */}
+        <label style={styles.toggleRow}>
+          <div style={styles.toggleLabelGroup}>
+            <span style={styles.toggleTitle}>{t('notif.enableToggle', lang)}</span>
+            <span style={styles.toggleDesc}>{t('notif.enableToggleDesc', lang)}</span>
+          </div>
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={notificationsEnabled}
+              onChange={handleToggleNotifications}
+            />
+            <span className="toggle-slider" />
+          </label>
+        </label>
+
+        {/* Reminder Alerts toggle */}
+        <label style={{ ...styles.toggleRow, marginTop: '4px' }}>
+          <div style={styles.toggleLabelGroup}>
+            <span style={styles.toggleTitle}>{t('notif.reminderAlerts', lang)}</span>
+            <span style={styles.toggleDesc}>{t('notif.reminderAlertsDesc', lang)}</span>
+          </div>
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={reminderAlertsEnabled}
+              onChange={handleToggleReminderAlerts}
+              disabled={!notificationsEnabled}
+            />
+            <span className="toggle-slider" />
+          </label>
+        </label>
+      </div>
 
       {/* Tabs segment controller */}
       <div className="neo-pressed-sm" style={styles.segmentContainer}>          {['unpaid', 'paid', 'all'].map(tab => (
@@ -318,14 +405,14 @@ export default function ReminderManager({
                     <button 
                       className="neo-btn neo-btn-primary" 
                       style={styles.payBtn}
-                      onClick={() => triggerQuickPay(rem)}
+                      onClick={(e) => { e.stopPropagation(); triggerQuickPay(rem); }}
                     >
                       <CheckCircle size={12} /> {t('pay', lang)}
                     </button>
                     <button 
                       className="neo-btn" 
                       style={styles.deleteCardBtn}
-                      onClick={() => { onDeleteReminder(rem.id); trackAction('delete_reminder', { reminderId: rem.id }); }}
+                      onClick={(e) => { e.stopPropagation(); onDeleteReminder(rem.id); trackAction('delete_reminder', { reminderId: rem.id }); }}
                     >
                       <Trash2 size={12} />
                     </button>
@@ -337,7 +424,7 @@ export default function ReminderManager({
                     <button 
                       className="neo-btn" 
                       style={styles.deleteCardBtnMuted}
-                      onClick={() => { onDeleteReminder(rem.id); trackAction('delete_reminder', { reminderId: rem.id }); }}
+                      onClick={(e) => { e.stopPropagation(); onDeleteReminder(rem.id); trackAction('delete_reminder', { reminderId: rem.id }); }}
                     >
                       <Trash2 size={10} />
                     </button>
@@ -768,6 +855,39 @@ const styles = {
     fontSize: '10px',
     fontWeight: '600',
     color: 'var(--text-secondary)',
+  },
+  notifToggleSection: {
+    padding: '10px 12px',
+    borderRadius: '16px',
+    marginBottom: '12px',
+    backgroundColor: 'var(--bg-color)',
+  },
+  toggleRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    cursor: 'pointer',
+    padding: '6px 2px',
+  },
+  toggleLabelGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1px',
+    flex: 1,
+    minWidth: 0,
+    paddingRight: '10px',
+  },
+  toggleTitle: {
+    fontSize: '11px',
+    fontWeight: '700',
+    color: 'var(--text-primary)',
+    lineHeight: '1.3',
+  },
+  toggleDesc: {
+    fontSize: '9px',
+    fontWeight: '400',
+    color: 'var(--text-secondary)',
+    lineHeight: '1.3',
   },
   payPromptText: {
     fontSize: '12px',

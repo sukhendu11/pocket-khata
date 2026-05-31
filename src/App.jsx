@@ -1,14 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react';
 import { db } from './db';
-import ConsentPopup from './components/ConsentPopup';
-import {
-  getConsent,
-  trackScreenView,
-  trackAction,
-  trackError,
-  trackDeviceInfo,
-  startAutoSync,
-} from './lib/analytics';
+import { trackScreenView, trackAction, trackError } from './lib/analytics';
 
 // Dashboard is the default screen — eager import eliminates the initial loading spinner
 import Dashboard from './components/Dashboard';
@@ -39,9 +31,11 @@ const SavingsTracker = lazy(() => import('./components/SavingsTracker'));
 // and must always be available to catch errors
 import ErrorBoundary from './components/ErrorBoundary';
 
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
 import { t } from './i18n';
 import { Menu, CheckCircle } from 'lucide-react';
-import { checkReminders, cacheRemindersForSW } from './notifications';
+import { checkReminders, cacheRemindersForSW, registerServiceWorker } from './notifications';
 
 const globalLangStyles = {
   pill: {
@@ -154,99 +148,6 @@ export default function App() {
   const [savingsGoals, setSavingsGoals] = useState([]);
   // Security (lock screen) removed
 
-  // 2. Analytics consent state — with usage-delayed popup
-  const CONSENT_DELAY_DAYS = 3;           // Calendar days before consent popup appears
-  const CONSENT_DELAY_ACTIVE_MS = 30 * 60 * 1000; // OR 30 minutes of active usage
-
-  // Usage-tracking keys
-  const FIRST_OPEN_KEY = 'pocket_khata_first_open';
-  const ACTIVE_TIME_KEY = 'pocket_khata_active_time';
-
-  const [analyticsConsent, setAnalyticsConsent] = useState(() => {
-    const stored = getConsent();
-    // If user already made a choice, respect it immediately
-    if (stored !== null) return stored;
-
-    // Check usage-delay thresholds
-    const firstOpen = localStorage.getItem(FIRST_OPEN_KEY);
-    if (!firstOpen) {
-      // First-ever open — record timestamp, DO NOT show popup yet
-      localStorage.setItem(FIRST_OPEN_KEY, String(Date.now()));
-      return null;
-    }
-
-    const daysSince = (Date.now() - Number(firstOpen)) / (1000 * 60 * 60 * 24);
-    const activeTime = Number(localStorage.getItem(ACTIVE_TIME_KEY) || 0);
-
-    // Only show consent popup if user has been using the app for a while
-    if (daysSince >= CONSENT_DELAY_DAYS || activeTime >= CONSENT_DELAY_ACTIVE_MS) {
-      return null; // Show popup
-    }
-
-    // Not enough usage yet — suppress popup
-    return 'deferred';
-  });
-
-  // Track total active usage time (excluding time when tab is hidden)
-  useEffect(() => {
-    // If consent is already granted/denied, no need to track defferal
-    if (getConsent() !== null) return;
-    if (analyticsConsent !== 'deferred' && analyticsConsent !== null) return;
-
-    let sessionStart = Date.now();
-    let isVisible = true;
-
-    const handleVisibility = () => {
-      if (document.hidden) {
-        // Tab hidden — record elapsed active time
-        if (isVisible) {
-          const elapsed = Date.now() - sessionStart;
-          const prev = Number(localStorage.getItem(ACTIVE_TIME_KEY) || 0);
-          localStorage.setItem(ACTIVE_TIME_KEY, String(prev + elapsed));
-          isVisible = false;
-        }
-      } else {
-        // Tab visible again — reset session start
-        isVisible = true;
-        sessionStart = Date.now();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibility);
-
-    // Also save on beforeunload
-    const handleUnload = () => {
-      if (isVisible) {
-        const elapsed = Date.now() - sessionStart;
-        const prev = Number(localStorage.getItem(ACTIVE_TIME_KEY) || 0);
-        localStorage.setItem(ACTIVE_TIME_KEY, String(prev + elapsed));
-      }
-    };
-    window.addEventListener('beforeunload', handleUnload);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibility);
-      window.removeEventListener('beforeunload', handleUnload);
-      // Save remaining time on unmount
-      if (isVisible) {
-        const elapsed = Date.now() - sessionStart;
-        const prev = Number(localStorage.getItem(ACTIVE_TIME_KEY) || 0);
-        localStorage.setItem(ACTIVE_TIME_KEY, String(prev + elapsed));
-      }
-    };
-  }, [analyticsConsent]);
-
-  const handleConsentResult = (consentStatus) => {
-    setAnalyticsConsent(consentStatus);
-    if (consentStatus === 'granted') {
-      // Track initial device info + first screen view
-      trackDeviceInfo();
-      trackScreenView(currentScreen);
-      // Start auto-sync
-      startAutoSync();
-    }
-  };
-
   // 3. Toast notification for auto-created recurring transactions etc.
   const [toast, setToast] = useState(null);
 
@@ -256,15 +157,6 @@ export default function App() {
     const timer = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(timer);
   }, [toast]);
-
-  // When consent becomes null on mount, do nothing (popup will show)
-  // When consent is granted, start tracking
-  useEffect(() => {
-    if (getConsent() === 'granted') {
-      const cleanup = startAutoSync();
-      return cleanup;
-    }
-  }, []);
 
   // 4. Language State
   const [lang, setLang] = useState(() => {
@@ -682,63 +574,51 @@ export default function App() {
     trackAction('open_transaction_form');
   }, []);
 
-  // 11. Navigation history stack for Android back button support
-  const navStackRef = useRef(['dashboard']);
-
   // Wrap handleNavigate to push to browser history
   const handleNavigate = useCallback((screen) => {
     if (screen === currentScreen) return;
     window.history.pushState({ screen }, '');
-    navStackRef.current = [...navStackRef.current, screen];
     setTransactionFilter(null);
     setCurrentScreen(screen);
     trackScreenView(screen);
   }, [currentScreen]);
 
-  // Handle Android system back button via popstate
+  // Handle back button: registered ONCE — uses refs for current values to avoid stale closures
   useEffect(() => {
+    const goBack = () => {
+      // If history has a screen state that isn't dashboard, use browser back
+      const state = window.history.state;
+      if (state && state.screen && state.screen !== 'dashboard') {
+        window.history.back();
+      } else if (Capacitor.isNativePlatform()) {
+        CapacitorApp.exitApp();
+      }
+    };
+
+    // Browser back/forward navigation — follow history state
     const handlePopState = (e) => {
-      const state = e.state;
-      if (state && state.screen && state.screen !== currentScreen) {
-        // Navigate to the screen from history state
+      if (e.state && e.state.screen) {
         setTransactionFilter(null);
-        setCurrentScreen(state.screen);
-        navStackRef.current = [...navStackRef.current, state.screen];
-      } else if (navStackRef.current.length > 1) {
-        // Pop from our stack to go back
-        const updated = [...navStackRef.current];
-        updated.pop(); // Remove current
-        const prevScreen = updated[updated.length - 1] || 'dashboard';
-        navStackRef.current = updated;
-        setTransactionFilter(null);
-        setCurrentScreen(prevScreen);
-        // Push forward to prevent the browser from closing the tab
-        window.history.pushState({ screen: prevScreen }, '');
-      } else {
-        // On dashboard root — prevent app/tab close, stay on dashboard
-        window.history.pushState({ screen: 'dashboard' }, '');
+        setCurrentScreen(e.state.screen);
       }
     };
     window.addEventListener('popstate', handlePopState);
-    // Push initial state so back button has something to handle
     window.history.replaceState({ screen: 'dashboard' }, '');
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [currentScreen]);
+
+    // Expose goBack for native onBackPressed (MainActivity.java)
+    window.__androidBackCallback = goBack;
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      delete window.__androidBackCallback;
+    };
+  }, []);
 
 
 
   // 12. Preload TransactionHistory after mount so it's ready for instant navigation
   useEffect(() => {
     preloadTransactionHistory();
-  }, []);
-
-  // Track the initial screen view on mount (if consent already granted)
-  useEffect(() => {
-    if (getConsent() === 'granted') {
-      trackDeviceInfo();
-      trackScreenView(currentScreen);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 12. Notification system — check reminders on mount and periodically
@@ -797,6 +677,11 @@ export default function App() {
   useEffect(() => {
     cacheRemindersForSW(reminders, lang);
   }, [reminders, lang]);
+
+  // Register service worker on mount for notification support
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
 
   // 14. Close menu when clicking outside
   useEffect(() => {
@@ -985,11 +870,6 @@ export default function App() {
             <img className="splash-logo" src="/pocket-khata-logo.png" alt="Pocket Khata logo" />
           </div>
         </div>
-      )}
-
-      {/* A. Analytics Consent Popup — shown only after usage delay threshold */}
-      {analyticsConsent === null && (
-        <ConsentPopup lang={lang} onConsent={handleConsentResult} />
       )}
 
       {/* C. App Context Content Container */}

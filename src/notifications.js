@@ -8,7 +8,7 @@ import { t } from './i18n';
  * Check if the browser supports the Notification API and service workers.
  */
 export function isNotificationSupported() {
-  return 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+  return 'Notification' in window && 'serviceWorker' in navigator;
 }
 
 /**

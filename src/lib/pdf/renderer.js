@@ -5,6 +5,7 @@
 
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import { saveBlob } from '../download';
 
 /**
  * Render a styled HTML string to a PDF document.
@@ -109,7 +110,7 @@ export async function renderHTMLToPDF(htmlContent, filename) {
     }
 
     const pdfBlob = doc.output('blob');
-    await saveBlobAsFile(pdfBlob, `${filename}.pdf`);
+    await saveBlob(pdfBlob, `${filename}.pdf`);
   } catch (err) {
     console.error('PDF generation failed:', err);
     // Preserve the original error message for better user feedback
@@ -124,73 +125,4 @@ export async function renderHTMLToPDF(htmlContent, filename) {
       document.body.removeChild(container);
     }
   }
-}
-
-async function saveBlobAsFile(blob, filename) {
-  const file = new File([blob], filename, { type: blob.type });
-
-  // Prefer native save file picker where available
-  if (window.showSaveFilePicker) {
-    try {
-      const handle = await window.showSaveFilePicker({
-        suggestedName: filename,
-        types: [{ description: 'PDF file', accept: { 'application/pdf': ['.pdf'] } }],
-      });
-      const writable = await handle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-      return;
-    } catch (err) {
-      // User may cancel the file picker; fall back to other methods.
-      console.warn('Save file picker cancelled or unavailable:', err);
-    }
-  }
-
-  // Use native share on eligible mobile PWAs/devices
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({
-        files: [file],
-        title: 'Pocket Khata Report',
-        text: 'Exported report from Pocket Khata',
-      });
-      return;
-    } catch (err) {
-      console.warn('Native share failed or cancelled:', err);
-    }
-  }
-
-  // Fallback download via anchor click.
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  // For environments where download is not supported (some installed PWAs, Android WebView),
-  // open the blob URL in a new tab — this works more reliably on Android Chrome for PDFs
-  // than the download attribute approach.
-  // Check: Android Chrome + Samsung Internet often lack reliable `download` attr for blobs,
-  // so we always open as a secondary fallback.
-  const needsTabFallback =
-    !('download' in HTMLAnchorElement.prototype) ||
-    /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-  if (needsTabFallback) {
-    // Small delay to let the click() fire first
-    setTimeout(() => {
-      try {
-        window.open(url, '_blank');
-      } catch (e) {
-        // Some Android WebViews block window.open — try as last resort
-        window.location.href = url;
-      }
-    }, 200);
-  }
-
-  // Keep the blob URL alive longer for Android which may need time to start the download
-  const revokeDelay = /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 10000 : 2000;
-  setTimeout(() => URL.revokeObjectURL(url), revokeDelay);
 }

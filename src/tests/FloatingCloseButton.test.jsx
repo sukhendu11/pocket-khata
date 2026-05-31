@@ -43,6 +43,7 @@ vi.mock('../notifications', () => ({
   isNotificationSupported: () => false,
   getNotificationPermission: () => 'default',
   requestNotificationPermission: vi.fn().mockResolvedValue('denied'),
+  registerServiceWorker: vi.fn().mockResolvedValue(null),
   isServiceWorkerActive: vi.fn(() => ({ then: (cb) => { cb(false); } })),
   checkReminders: vi.fn().mockReturnValue({ notifiedCount: 0, updatedShownTags: new Set() }),
   cacheRemindersForSW: vi.fn().mockResolvedValue(undefined),
