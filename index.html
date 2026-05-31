@@ -33,6 +33,14 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="/pocket-khata-logo.png" />
     
+    <!-- Match the Android splash background color so there is zero flash
+         between the system splash screen and the WebView content loading.
+         The actual app bg (--bg-color in index.css) is also #E5EAF2, so
+         the transition is seamless. -->
+    <style>
+      html, body, #root { background-color: #E5EAF2; margin: 0; padding: 0; height: 100%; }
+    </style>
+
     <!-- Google Fonts: Outfit + Noto Serif Bengali -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

@@ -15,12 +15,23 @@
         <item name="android:background">@null</item>
     </style>
 
-    <!-- Starting window shows the full splash (background + logo) immediately,
-         before the WebView loads. The custom SplashOverlay in App.jsx takes
-         over seamlessly once the WebView content renders. This eliminates the
-         low-res launcher icon flash that appears with a transparent/plain background. -->
+    <!-- Starting window / Splash screen.
+         
+         On Android 12+ (API 31+): The native framework attributes below
+         customize the mandatory system splash screen to show our branded
+         background color (#E5EAF2) + logo icon — no default launcher icon flash.
+         
+         Pre-Android 12: Falls back to the solid-color windowBackground
+         instantly (no bitmap decoding delay).
+         
+         After splash exits → WebView loads → CSS splash overlay renders
+         (logo + animations) → fades into app content. -->
     <style name="AppTheme.NoActionBarLaunch" parent="AppTheme.NoActionBar">
-        <item name="android:windowBackground">@drawable/splash_background</item>
+        <!-- Android 12+ native system splash screen customization -->
+        <item name="android:windowSplashScreenBackground">@color/splashBackground</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <!-- Pre-Android 12 fallback: solid color, zero decoding delay -->
+        <item name="android:windowBackground">@color/splashBackground</item>
         <item name="android:windowFullscreen">true</item>
     </style>
 </resources>

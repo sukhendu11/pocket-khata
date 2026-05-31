@@ -125,6 +125,27 @@ export default function Settings({
   };
 
   // Reset Data State
+  // [REMINDERS] Notification permission state — kept for future implementation
+  // const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
+
+  // [REMINDERS] Request notification permission
+  // const handleRequestNotificationPermission = async () => {
+  //   const result = await requestNotificationPermission();
+  //   setNotificationPermission(result);
+  // };
+
+  // [REMINDERS] Schedule a test reminder notification
+  // const handleScheduleReminder = async () => {
+  //   try {
+  //     const { scheduleNotification } = await import('../notifications');
+  //     await scheduleNotification('Test Reminder', 'This is a test notification from Pocket Khata', new Date(Date.now() + 5000));
+  //     alert('Test notification scheduled for 5 seconds from now.');
+  //   } catch (e) {
+  //     console.error('Failed to schedule test notification:', e);
+  //     alert('Failed to schedule test notification.');
+  //   }
+  // };
+
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const handleResetData = () => {
@@ -247,6 +268,39 @@ export default function Settings({
             )}
           </button>
         </div>
+
+        {/* [REMINDERS] SECTION: Notification Settings — kept for future implementation */}
+        {/* <div className="neo-raised" style={styles.card}>
+          <div style={styles.cardHeader}>
+            <Bell size={16} style={{ color: 'var(--accent-color)' }} />
+            <h3 style={styles.cardTitle}>{t('notif.title', lang)}</h3>
+          </div>
+          <p style={styles.cardDesc}>{t('notif.notificationDesc', lang)}</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('notif.permission', lang)}</span>
+            <span style={{
+              fontSize: '10px', fontWeight: '700', padding: '2px 10px', borderRadius: '20px',
+              backgroundColor: notificationPermission === 'granted'
+                ? 'color-mix(in srgb, var(--color-income) 15%, transparent)'
+                : 'color-mix(in srgb, var(--text-secondary) 15%, transparent)',
+              color: notificationPermission === 'granted' ? 'var(--color-income)' : 'var(--text-secondary)',
+            }}>
+              {notificationPermission === 'granted' ? t('notif.granted', lang) : notificationPermission === 'denied' ? t('notif.denied', lang) : '—'}
+            </span>
+          </div>
+          {notificationPermission !== 'granted' && (
+            <button className="neo-btn" style={{ width: '100%', height: '36px', fontSize: '11px', justifyContent: 'center' }}
+              onClick={handleRequestNotificationPermission}>
+              {t('notif.requestPermission', lang)}
+            </button>
+          )}
+          {notificationPermission === 'granted' && (
+            <button className="neo-btn" style={{ width: '100%', height: '36px', fontSize: '11px', justifyContent: 'center', marginTop: '8px' }}
+              onClick={handleScheduleReminder}>
+              {t('notif.testNotification', lang)}
+            </button>
+          )}
+        </div> */}
 
         {/* SECTION 2: Data Portability */}
         <div className="neo-raised" style={styles.card}>

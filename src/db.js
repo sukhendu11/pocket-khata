@@ -9,6 +9,8 @@ const KEYS = {
   SECURITY: 'pocket_khata_security',
   BUDGETS: 'pocket_khata_budgets',
   SAVINGS_GOALS: 'pocket_khata_savings_goals',
+  // [REMINDERS] Bill reminder data — kept for future implementation
+  // REMINDERS: 'pocket_khata_reminders',
 };
 
 // ========== SCHEMA VERSIONING ==========
@@ -138,6 +140,11 @@ const DEFAULT_SECURITY = {
 const DEFAULT_BUDGETS = [];
 
 const DEFAULT_SAVINGS_GOALS = [];
+
+// [REMINDERS] Default bill reminders — kept for future implementation
+// const DEFAULT_REMINDERS = [
+//   { id: 'rem_rent', title: 'Pay Rent', amount: 15000, dueDate: '2025-01-01', accountId: 'acc_bank', categoryId: 'cat_rent', paid: false, recurring: true, createdAt: '', updatedAt: '' },
+// ];
 
 // ========== SCHEMA MIGRATION ==========
 
@@ -482,6 +489,8 @@ function readAllData() {
     security: getOrSeed(KEYS.SECURITY, DEFAULT_SECURITY),
     budgets: getOrSeed(KEYS.BUDGETS, DEFAULT_BUDGETS),
     savingsGoals: getOrSeed(KEYS.SAVINGS_GOALS, DEFAULT_SAVINGS_GOALS),
+    // [REMINDERS] Include reminders in full data snapshot
+    // reminders: getOrSeed(KEYS.REMINDERS, DEFAULT_REMINDERS),
   };
 }
 
@@ -1169,6 +1178,43 @@ export const db = {
     return processRecurringTransactions();
   },
 
+  // [REMINDERS] Bill reminder methods — kept for future implementation
+  // getReminders() {
+  //   return getOrSeed(KEYS.REMINDERS, DEFAULT_REMINDERS);
+  // },
+  // saveReminders(reminders) {
+  //   save(KEYS.REMINDERS, reminders);
+  // },
+  // addReminder(reminder) {
+  //   const reminders = this.getReminders();
+  //   const ts = nowISO();
+  //   const newReminder = { ...reminder, id: 'rem_' + Date.now(), paid: false, createdAt: ts, updatedAt: ts };
+  //   reminders.push(newReminder);
+  //   this.saveReminders(reminders);
+  //   return newReminder;
+  // },
+  // updateReminder(updatedReminder) {
+  //   const reminders = this.getReminders();
+  //   const idx = reminders.findIndex(r => r.id === updatedReminder.id);
+  //   if (idx !== -1) {
+  //     reminders[idx] = { ...updatedReminder, updatedAt: nowISO() };
+  //     this.saveReminders(reminders);
+  //   }
+  // },
+  // deleteReminder(id) {
+  //   const reminders = this.getReminders();
+  //   this.saveReminders(reminders.filter(r => r.id !== id));
+  // },
+  // payReminder(id) {
+  //   const reminders = this.getReminders();
+  //   const idx = reminders.findIndex(r => r.id === id);
+  //   if (idx !== -1) {
+  //     reminders[idx].paid = true;
+  //     reminders[idx].updatedAt = nowISO();
+  //     this.saveReminders(reminders);
+  //   }
+  // },
+
   // ---- Demo Data ----
   clearDemoData() {
     return clearDemoData();
@@ -1182,6 +1228,8 @@ export const db = {
     localStorage.removeItem(KEYS.SECURITY);
     localStorage.removeItem(KEYS.BUDGETS);
     localStorage.removeItem(KEYS.SAVINGS_GOALS);
+    // [REMINDERS] Clear reminders on DB reset
+    // localStorage.removeItem(KEYS.REMINDERS);
     localStorage.removeItem(SCHEMA_VERSION_KEY);
     clearAutoBackups();
     // Re-run migration after reset to set version
@@ -1193,6 +1241,8 @@ export const db = {
       security: this.getSecuritySettings(),
       budgets: this.getBudgets(),
       savingsGoals: this.getSavingsGoals(),
+      // [REMINDERS] Include reminders in reset result
+      // reminders: this.getReminders(),
     };
   },
 

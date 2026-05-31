@@ -52,6 +52,45 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// [REMINDERS] Reminder notification cache name — kept for future implementation
+// const REMINDER_CACHE = 'pocket-khata-reminders-v1';
+
+// [REMINDERS] Check stored reminders and notify if any are overdue
+// async function checkAndNotifyReminders() {
+//   try {
+//     const cache = await caches.open(REMINDER_CACHE);
+//     const cachedRequests = await cache.keys();
+//     for (const request of cachedRequests) {
+//       const response = await cache.match(request);
+//       if (response) {
+//         const reminder = await response.json();
+//         if (!reminder.paid) {
+//           const dueDate = new Date(reminder.dueDate);
+//           const today = new Date();
+//           const daysOverdue = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
+//           if (daysOverdue > 0) {
+//             self.registration.showNotification('Bill Reminder', {
+//               body: `${reminder.title}: ৳${reminder.amount} overdue by ${daysOverdue} day(s)`,
+//               icon: '/pwa-icon-192.png',
+//               tag: `reminder-${reminder.id}`,
+//               data: { reminderId: reminder.id, url: self.location.origin + '/' },
+//             });
+//           }
+//         }
+//       }
+//     }
+//   } catch (e) {
+//     console.error('[SW] Reminder check failed:', e);
+//   }
+// }
+
+// [REMINDERS] Periodic sync event for checking reminders (kept for future use)
+// self.addEventListener('periodicsync', (event) => {
+//   if (event.tag === 'check-reminders') {
+//     event.waitUntil(checkAndNotifyReminders());
+//   }
+// });
+
 // ─── Fetch: Network-first in dev, cache-first in production ──────────────────
 self.addEventListener('fetch', (event) => {
   // Only handle GET requests
@@ -72,23 +111,18 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-// ─── Notification click: Open the app and focus existing window ──────────────
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-
-  // Use the SW scope as the app's base URL (works for root + subfolder deployments)
-  const appUrl = BASE_URL;
-
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // Try to find an existing client under our scope
-      for (const client of windowClients) {
-        if (client.url.startsWith(appUrl)) {
-          return client.focus();
-        }
-      }
-      // Otherwise, open a new window
-      return clients.openWindow(appUrl);
-    })
-  );
-});
+// [REMINDERS] Notification click: Open the app on reminder notification — kept for future implementation
+// self.addEventListener('notificationclick', (event) => {
+//   event.notification.close();
+//   const appUrl = BASE_URL;
+//   event.waitUntil(
+//     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+//       for (const client of windowClients) {
+//         if (client.url.startsWith(appUrl)) {
+//           return client.focus();
+//         }
+//       }
+//       return clients.openWindow(appUrl);
+//     })
+//   );
+// });

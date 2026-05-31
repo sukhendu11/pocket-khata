@@ -16,6 +16,8 @@ export default function Dashboard({
   categories,
   budgets,
   savingsGoals,
+  // [REMINDERS] Reminders data — kept for future implementation
+  // reminders, // prop for bill reminders
   onNavigate, 
   theme, 
   onToggleTheme,
@@ -490,6 +492,15 @@ Dashboard.propTypes = {
   categories: PropTypes.array,
   budgets: PropTypes.array,
   savingsGoals: PropTypes.array,
+  // [REMINDERS] Reminders prop — kept for future use
+  // reminders: PropTypes.array,
+  // [REMINDERS] Calculate overdue count — kept for future implementation
+  // const overdueCount = useMemo(() => {
+  //   if (!reminders) return 0;
+  //   const today = new Date();
+  //   today.setHours(0, 0, 0, 0);
+  //   return reminders.filter(r => !r.paid && new Date(r.dueDate) < today).length;
+  // }, [reminders]);
   onNavigate: PropTypes.func,
   theme: PropTypes.string,
   onToggleTheme: PropTypes.func,
@@ -546,6 +557,12 @@ const styles = {
     display: 'flex',
     gap: '12px',
   },
+  // [REMINDERS] Bell icon badge dot style — kept for future use
+  // badgeDot: {
+  //   width: '8px', height: '8px', borderRadius: '50%',
+  //   backgroundColor: 'var(--color-expense)', position: 'absolute',
+  //   top: '2px', right: '2px', border: '2px solid var(--bg-color)',
+  // },
   actionBtn: {
     width: '40px',
     height: '40px',

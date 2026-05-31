@@ -21,6 +21,11 @@ function preloadTransactionHistory() {
 const AnalyticsView = lazy(() => import('./components/AnalyticsView'));
 const CalendarView = lazy(() => import('./components/CalendarView'));
 const Settings = lazy(() => import('./components/Settings'));
+// [REMINDERS] Lazy import for ReminderManager — kept for future use
+// const ReminderManager = lazy(() => import('./components/ReminderManager'));
+
+// [NOTIFICATIONS] Service worker registration for reminder notifications
+// import { registerServiceWorker, requestNotificationPermission } from './notifications';
 const AccountManager = lazy(() => import('./components/AccountManager'));
 const CategoryManager = lazy(() => import('./components/CategoryManager'));
 const BudgetManager = lazy(() => import('./components/BudgetManager'));
@@ -143,6 +148,8 @@ export default function App() {
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [savingsGoals, setSavingsGoals] = useState([]);
+  // [REMINDERS] Bill reminder state — kept for future implementation
+  // const [reminders, setReminders] = useState([]);
   // Security (lock screen) removed
 
   // 3. Toast notification for auto-created recurring transactions etc.
@@ -191,6 +198,10 @@ export default function App() {
     const loadedTransactions = db.getTransactions();
     const loadedBudgets = db.getBudgets();
     const loadedSavingsGoals = db.getSavingsGoals();
+    // [REMINDERS] Load reminders when DB is initialized
+    // const loadedReminders = db.getReminders();
+    // setReminders(loadedReminders);
+    // registerServiceWorker();
     setAccounts(loadedAccounts);
     setCategories(loadedCategories);
     setTransactions(loadedTransactions);
@@ -382,6 +393,8 @@ export default function App() {
       setTransactions(freshDb.transactions);
       setBudgets(freshDb.budgets);
       setSavingsGoals(freshDb.savingsGoals);
+      // [REMINDERS] Reset reminder state on DB reset
+      // setReminders(freshDb.reminders);
     } catch (e) {
       trackError(e, { handler: 'handleResetDatabase' });
       console.error('Failed to reset database:', e);
