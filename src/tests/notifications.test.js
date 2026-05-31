@@ -1,7 +1,17 @@
 // src/tests/notifications.test.js — Tests for cacheRemindersForSW and registerPeriodicSync
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { cacheRemindersForSW, registerPeriodicSync } from '../notifications';
+import {
+  cacheRemindersForSW,
+  registerPeriodicSync,
+  isNotificationSupported,
+  requestNotificationPermission,
+  getNotificationPermission,
+  registerServiceWorker,
+  showNotification,
+  checkReminders,
+  isServiceWorkerActive,
+} from '../notifications';
 
 // ==============================================================================
 // Mock dependencies
@@ -245,5 +255,427 @@ describe('registerPeriodicSync', () => {
   it('returns undefined (void function)', async () => {
     const result = await registerPeriodicSync();
     expect(result).toBeUndefined();
+  });
+});
+
+// ==============================================================================
+// isNotificationSupported
+// ==============================================================================
+
+describe('isNotificationSupported', () => {
+  beforeEach(() => {
+    vi.stubGlobal('Notification', {});
+    vi.stubGlobal('navigator', { serviceWorker: {} });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('returns true when Notification and serviceWorker are available', () => {
+    expect(isNotificationSupported()).toBe(true);
+  });
+
+  it('returns false when Notification is missing', () => {
+    // Delete the property entirely so 'Notification' in window returns false
+    delete window.Notification;
+    expect(isNotificationSupported()).toBe(false);
+    // Restore for other tests
+    vi.stubGlobal('Notification', {});
+  });
+
+  it('returns false when serviceWorker is missing', () => {
+    // Delete serviceWorker from navigator so 'serviceWorker' in navigator returns false
+    delete globalThis.navigator.serviceWorker;
+    expect(isNotificationSupported()).toBe(false);
+    // Restore for other tests
+    globalThis.navigator.serviceWorker = {};
+  });
+});
+
+// ==============================================================================
+// requestNotificationPermission
+// ==============================================================================
+
+describe('requestNotificationPermission', () => {
+  beforeEach(() => {
+    vi.stubGlobal('Notification', { requestPermission: vi.fn() });
+    vi.stubGlobal('navigator', { serviceWorker: {} });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('returns the permission result when user grants', async () => {
+    Notification.requestPermission.mockResolvedValue('granted');
+    const result = await requestNotificationPermission();
+    expect(result).toBe('granted');
+  });
+
+  it('returns denied when user denies', async () => {
+    Notification.requestPermission.mockResolvedValue('denied');
+    const result = await requestNotificationPermission();
+    expect(result).toBe('denied');
+  });
+
+  it('returns default when user dismisses', async () => {
+    Notification.requestPermission.mockResolvedValue('default');
+    const result = await requestNotificationPermission();
+    expect(result).toBe('default');
+  });
+
+  it('returns denied when not supported', async () => {
+    delete window.Notification;
+    const result = await requestNotificationPermission();
+    expect(result).toBe('denied');
+    vi.stubGlobal('Notification', { requestPermission: vi.fn() });
+  });
+
+  it('returns denied when requestPermission throws', async () => {
+    Notification.requestPermission.mockRejectedValue(new Error('Permission error'));
+    const result = await requestNotificationPermission();
+    expect(result).toBe('denied');
+  });
+});
+
+// ==============================================================================
+// getNotificationPermission
+// ==============================================================================
+
+describe('getNotificationPermission', () => {
+  beforeEach(() => {
+    vi.stubGlobal('Notification', { permission: 'granted' });
+    vi.stubGlobal('navigator', { serviceWorker: {} });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('returns granted when permission is granted', () => {
+    expect(getNotificationPermission()).toBe('granted');
+  });
+
+  it('returns denied when permission is denied', () => {
+    vi.stubGlobal('Notification', { permission: 'denied' });
+    expect(getNotificationPermission()).toBe('denied');
+  });
+
+  it('returns default when permission is default', () => {
+    vi.stubGlobal('Notification', { permission: 'default' });
+    expect(getNotificationPermission()).toBe('default');
+  });
+
+  it('returns unsupported when Notification is unavailable', () => {
+    delete window.Notification;
+    expect(getNotificationPermission()).toBe('unsupported');
+    vi.stubGlobal('Notification', { permission: 'granted' });
+  });
+});
+
+// ==============================================================================
+// registerServiceWorker
+// ==============================================================================
+
+describe('registerServiceWorker', () => {
+  let mockRegister;
+
+  beforeEach(() => {
+    mockRegister = vi.fn().mockResolvedValue({ scope: '/' });
+    vi.stubGlobal('Notification', {});
+    vi.stubGlobal('navigator', { serviceWorker: { register: mockRegister } });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('registers /sw.js with root scope', async () => {
+    await registerServiceWorker();
+    expect(mockRegister).toHaveBeenCalledWith('/sw.js', { scope: '/' });
+  });
+
+  it('returns the registration on success', async () => {
+    const result = await registerServiceWorker();
+    expect(result).toEqual({ scope: '/' });
+  });
+
+  it('returns null when not supported', async () => {
+    vi.stubGlobal('navigator', {});
+    const result = await registerServiceWorker();
+    expect(result).toBeNull();
+  });
+
+  it('returns null when registration fails', async () => {
+    mockRegister.mockRejectedValue(new Error('Registration failed'));
+    const result = await registerServiceWorker();
+    expect(result).toBeNull();
+  });
+});
+
+// ==============================================================================
+// showNotification
+// ==============================================================================
+
+describe('showNotification', () => {
+  let mockPostMessage;
+
+  beforeEach(() => {
+    mockPostMessage = vi.fn();
+    vi.stubGlobal('Notification', { permission: 'granted' });
+    vi.stubGlobal('navigator', {
+      serviceWorker: {
+        ready: Promise.resolve({ active: { postMessage: mockPostMessage } }),
+      },
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('does nothing when not supported', async () => {
+    vi.stubGlobal('navigator', {});
+    await showNotification('Title', 'Body', 'tag');
+    expect(mockPostMessage).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when permission is not granted', async () => {
+    vi.stubGlobal('Notification', { permission: 'denied' });
+    await showNotification('Title', 'Body', 'tag');
+    expect(mockPostMessage).not.toHaveBeenCalled();
+  });
+
+  it('sends a SHOW_NOTIFICATION message to the active service worker', async () => {
+    await showNotification('Test Bill', 'Due today!', 'tag-123', { reminderId: 'rem_1' });
+    expect(mockPostMessage).toHaveBeenCalledWith({
+      type: 'SHOW_NOTIFICATION',
+      payload: { title: 'Test Bill', body: 'Due today!', tag: 'tag-123', data: { reminderId: 'rem_1' } },
+    });
+  });
+
+  it('works without a tag', async () => {
+    await showNotification('Title', 'Body');
+    expect(mockPostMessage).toHaveBeenCalledWith({
+      type: 'SHOW_NOTIFICATION',
+      payload: { title: 'Title', body: 'Body', tag: undefined, data: {} },
+    });
+  });
+
+  it('does not throw when postMessage fails', async () => {
+    mockPostMessage.mockImplementation(() => { throw new Error('postMessage error'); });
+    await expect(showNotification('Title', 'Body', 'tag')).resolves.toBeUndefined();
+  });
+
+  it('does not throw when navigator.serviceWorker.ready rejects', async () => {
+    vi.stubGlobal('navigator', {
+      serviceWorker: { ready: Promise.reject(new Error('Ready error')) },
+    });
+    await expect(showNotification('Title', 'Body', 'tag')).resolves.toBeUndefined();
+  });
+});
+
+// ==============================================================================
+// checkReminders
+// ==============================================================================
+
+describe('checkReminders', () => {
+  let mockPostMessage;
+
+  beforeEach(() => {
+    mockPostMessage = vi.fn();
+
+    vi.stubGlobal('Notification', { permission: 'granted' });
+    vi.stubGlobal('navigator', {
+      serviceWorker: {
+        ready: Promise.resolve({ active: { postMessage: mockPostMessage } }),
+      },
+    });
+
+    // Pin today to 2026-06-15 so tests are deterministic
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-15T10:00:00Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('returns zero count when reminders is not an array', () => {
+    const result = checkReminders(null, new Set(), 'en');
+    expect(result.notifiedCount).toBe(0);
+  });
+
+  it('returns zero count when permission is not granted', () => {
+    vi.stubGlobal('Notification', { permission: 'denied' });
+    const result = checkReminders([{ id: 'rem_1', name: 'Bill', dueDate: '2026-06-15', amount: 100, status: 'unpaid' }], new Set(), 'en');
+    expect(result.notifiedCount).toBe(0);
+  });
+
+  it('notifies for reminders due today', async () => {
+    const reminders = [
+      { id: 'rem_1', name: 'Electric Bill', dueDate: '2026-06-15', amount: 1500, status: 'unpaid' },
+    ];
+    const result = checkReminders(reminders, new Set(), 'en');
+    // Flush microtasks so the async showNotification promise resolves
+    await Promise.resolve();
+
+    expect(result.notifiedCount).toBe(1);
+    expect(mockPostMessage).toHaveBeenCalled();
+    const msg = mockPostMessage.mock.calls[0][0];
+    expect(msg.type).toBe('SHOW_NOTIFICATION');
+    expect(msg.payload.title).toContain('📋');
+    expect(msg.payload.body).toContain('Electric Bill');
+    expect(msg.payload.body).toContain('due today');
+    expect(msg.payload.tag).toContain('reminder-due-rem_1-2026-06-15');
+    expect(msg.payload.data).toEqual({ reminderId: 'rem_1' });
+  });
+
+  it('notifies for reminders due tomorrow', async () => {
+    const reminders = [
+      { id: 'rem_2', name: 'Rent', dueDate: '2026-06-16', amount: 12000, status: 'unpaid' },
+    ];
+    const result = checkReminders(reminders, new Set(), 'en');
+    await Promise.resolve();
+
+    expect(result.notifiedCount).toBe(1);
+    const msg = mockPostMessage.mock.calls[0][0];
+    expect(msg.payload.body).toContain('due tomorrow');
+    expect(msg.payload.tag).toContain('reminder-due-tomorrow-rem_2-2026-06-16');
+  });
+
+  it('notifies for overdue reminders', async () => {
+    const reminders = [
+      { id: 'rem_3', name: 'Water Bill', dueDate: '2026-06-10', amount: 800, status: 'unpaid' },
+    ];
+    const result = checkReminders(reminders, new Set(), 'en');
+    await Promise.resolve();
+
+    expect(result.notifiedCount).toBe(1);
+    const msg = mockPostMessage.mock.calls[0][0];
+    expect(msg.payload.body).toContain('overdue by 5 days');
+    expect(msg.payload.body).toContain('Water Bill');
+    expect(msg.payload.tag).toContain('reminder-overdue-rem_3-2026-06-15');
+  });
+
+  it('skips paid reminders', () => {
+    const reminders = [
+      { id: 'rem_4', name: 'Paid Bill', dueDate: '2026-06-15', amount: 500, status: 'paid' },
+    ];
+    const result = checkReminders(reminders, new Set(), 'en');
+    expect(result.notifiedCount).toBe(0);
+    expect(mockPostMessage).not.toHaveBeenCalled();
+  });
+
+  it('does not duplicate notifications for already-shown tags', () => {
+    const reminders = [
+      { id: 'rem_5', name: 'Duplicate', dueDate: '2026-06-15', amount: 100, status: 'unpaid' },
+    ];
+    const shownTags = new Set(['reminder-due-rem_5-2026-06-15']);
+    const result = checkReminders(reminders, shownTags, 'en');
+    expect(result.notifiedCount).toBe(0);
+    expect(mockPostMessage).not.toHaveBeenCalled();
+  });
+
+  it('returns updatedShownTags with the new tag added', () => {
+    const reminders = [
+      { id: 'rem_6', name: 'New Tag', dueDate: '2026-06-15', amount: 100, status: 'unpaid' },
+    ];
+    const result = checkReminders(reminders, new Set(), 'en');
+    expect(result.updatedShownTags.has('reminder-due-rem_6-2026-06-15')).toBe(true);
+  });
+
+  it('trims shownTags set to 200 entries maximum', () => {
+    const largeShown = new Set(
+      Array.from({ length: 250 }, (_, i) => `old-tag-${i}`),
+    );
+    const reminders = [
+      { id: 'rem_7', name: 'Trim', dueDate: '2026-06-15', amount: 100, status: 'unpaid' },
+    ];
+    const result = checkReminders(reminders, largeShown, 'en');
+    expect(result.updatedShownTags.size).toBeLessThanOrEqual(200);
+  });
+
+  it('handles multiple due reminders in the same check', async () => {
+    const reminders = [
+      { id: 'rem_8', name: 'Bill A', dueDate: '2026-06-15', amount: 100, status: 'unpaid' },
+      { id: 'rem_9', name: 'Bill B', dueDate: '2026-06-16', amount: 200, status: 'unpaid' },
+      { id: 'rem_10', name: 'Bill C', dueDate: '2026-06-10', amount: 300, status: 'unpaid' },
+    ];
+    const result = checkReminders(reminders, new Set(), 'en');
+    await Promise.resolve();
+    expect(result.notifiedCount).toBe(3);
+    expect(mockPostMessage).toHaveBeenCalledTimes(3);
+  });
+
+  it('formats amount in Bengali locale when lang is bn', async () => {
+    const reminders = [
+      { id: 'rem_11', name: 'বিদ্যুৎ বিল', dueDate: '2026-06-15', amount: 1500, status: 'unpaid' },
+    ];
+    const result = checkReminders(reminders, new Set(), 'bn');
+    await Promise.resolve();
+    expect(result.notifiedCount).toBe(1);
+    expect(mockPostMessage).toHaveBeenCalled();
+  });
+
+  it('uses default empty Set when shownTags is not provided', () => {
+    const reminders = [
+      { id: 'rem_12', name: 'Default', dueDate: '2026-06-15', amount: 100, status: 'unpaid' },
+    ];
+    const result = checkReminders(reminders, undefined, 'en');
+    expect(result.notifiedCount).toBe(1);
+    expect(result.updatedShownTags.has('reminder-due-rem_12-2026-06-15')).toBe(true);
+  });
+
+  it('handles empty reminders array', () => {
+    const result = checkReminders([], new Set(), 'en');
+    expect(result.notifiedCount).toBe(0);
+    expect(result.updatedShownTags.size).toBe(0);
+  });
+});
+
+// ==============================================================================
+// isServiceWorkerActive
+// ==============================================================================
+
+describe('isServiceWorkerActive', () => {
+  let mockGetRegistrations;
+
+  beforeEach(() => {
+    mockGetRegistrations = vi.fn();
+    vi.stubGlobal('Notification', {});
+    vi.stubGlobal('navigator', {
+      serviceWorker: { getRegistrations: mockGetRegistrations },
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('returns true when service worker registrations exist', async () => {
+    mockGetRegistrations.mockResolvedValue([{ scope: '/' }]);
+    const result = await isServiceWorkerActive();
+    expect(result).toBe(true);
+  });
+
+  it('returns false when no registrations exist', async () => {
+    mockGetRegistrations.mockResolvedValue([]);
+    const result = await isServiceWorkerActive();
+    expect(result).toBe(false);
+  });
+
+  it('returns false when not supported', async () => {
+    vi.stubGlobal('navigator', {});
+    const result = await isServiceWorkerActive();
+    expect(result).toBe(false);
+  });
+
+  it('returns false when getRegistrations fails', async () => {
+    mockGetRegistrations.mockRejectedValue(new Error('SW error'));
+    const result = await isServiceWorkerActive();
+    expect(result).toBe(false);
   });
 });
