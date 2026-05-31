@@ -113,29 +113,6 @@ const translations = {
     bn: ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহঃ', 'শুক্র', 'শনি']
   },
 
-  // ===== REMINDER MANAGER =====
-  'reminders.title': { en: 'Bill Reminders', bn: 'বিল রিমাইন্ডার' },
-  'reminders.noReminders': { en: 'No reminders in this category.', bn: 'এই ক্যাটাগরিতে কোনো রিমাইন্ডার নেই।' },
-  'reminders.newReminder': { en: 'New Bill Reminder', bn: 'নতুন বিল রিমাইন্ডার' },
-  'reminders.billName': { en: 'BILL NAME / PAYEE', bn: 'বিলের নাম / প্রাপক' },
-  'reminders.billNamePlaceholder': { en: 'E.g., Dhaka Electric Supply, Spotify', bn: 'যেমন, ঢাকা বিদ্যুৎ, স্পটিফাই' },
-  'reminders.billAmount': { en: 'BILL AMOUNT (৳)', bn: 'বিলের পরিমাণ (৳)' },
-  'reminders.dueDate': { en: 'DUE DATE', bn: 'পরিশোধের তারিখ' },
-  'reminders.category': { en: 'CATEGORY', bn: 'ক্যাটাগরি' },
-  'reminders.selectCategory': { en: 'Select Category', bn: 'ক্যাটাগরি নির্বাচন' },
-  'reminders.createReminder': { en: 'Create Reminder', bn: 'রিমাইন্ডার তৈরি করুন' },
-  'reminders.updateReminder': { en: 'Update Reminder', bn: 'রিমাইন্ডার হালনাগাদ করুন' },
-  'reminders.editReminder': { en: 'Edit Reminder', bn: 'রিমাইন্ডার সম্পাদনা করুন' },
-  'reminders.selectPayAccount': { en: 'Select Account for Payment', bn: 'পেমেন্টের জন্য একাউন্ট নির্বাচন' },
-  'reminders.postExpense': { en: 'Post', bn: 'পোস্ট' },
-  'reminders.expenseFor': { en: 'expense for', bn: 'ব্যয় হবে' },
-  'reminders.from': { en: 'from:', bn: 'থেকে:' },
-  'reminders.due': { en: 'Due:', bn: 'পরিশোধ:' },
-  'reminders.errName': { en: 'Please enter a bill name.', bn: 'অনুগ্রহ করে বিলের নাম লিখুন।' },
-  'reminders.errAmount': { en: 'Please enter a valid amount.', bn: 'অনুগ্রহ করে সঠিক পরিমাণ লিখুন।' },
-  'reminders.errDate': { en: 'Please select a due date.', bn: 'অনুগ্রহ করে তারিখ নির্বাচন করুন।' },
-  'reminders.errCategory': { en: 'Please select a category.', bn: 'অনুগ্রহ করে ক্যাটাগরি নির্বাচন করুন।' },
-
   // ===== ACCOUNT MANAGER =====
   'accounts.title': { en: 'Manage Accounts', bn: 'একাউন্ট ব্যবস্থাপনা' },
   'accounts.tapForDetails': { en: 'Tap for details', bn: 'বিস্তারিত দেখুন' },
@@ -393,10 +370,6 @@ const translations = {
   'dashboard.createFirst': { en: 'Create first', bn: 'প্রথম তৈরি করুন' },
 
   // ===== GLOBAL SEARCH =====
-  'search.title': { en: 'Search', bn: 'অনুসন্ধান' },
-  'search.placeholder': { en: 'Search transactions, accounts, categories, reminders...', bn: 'লেনদেন, একাউন্ট, ক্যাটাগরি, রিমাইন্ডার খুঁজুন...' },
-  'search.noResults': { en: 'No results found for', bn: 'কোনো ফলাফল পাওয়া যায়নি' },
-
   // ===== PDF REPORTS =====
   'reports.title': { en: 'Financial Reports', bn: 'আর্থিক প্রতিবেদন' },
   'reports.exportPDF': { en: 'Export PDF Report', bn: 'পিডিএফ রিপোর্ট এক্সপোর্ট' },
@@ -433,30 +406,6 @@ const translations = {
   'common.manualEntry': { en: 'Manual Entry', bn: 'ম্যানুয়াল এন্ট্রি' },
   'common.quickLedger': { en: 'Quick Ledger', bn: 'দ্রুত লেজার' },
   'common.manualLedger': { en: 'Manual Ledger', bn: 'ম্যানুয়াল লেজার' },
-
-  // ===== NOTIFICATIONS =====
-  'notif.title': { en: 'Notifications', bn: 'নোটিফিকেশন' },
-  'notif.enable': { en: 'Enable Notifications', bn: 'নোটিফিকেশন চালু করুন' },
-  'notif.enabled': { en: 'Notifications Enabled', bn: 'নোটিফিকেশন চালু আছে' },
-  'notif.disabled': { en: 'Notifications Disabled', bn: 'নোটিফিকেশন বন্ধ আছে' },
-  'notif.desc': { en: 'Get notified when bills are due or overdue. Notifications work even when the app is closed.', bn: 'বিল পরিশোধের তারিখ এলে নোটিফিকেশন পান। অ্যাপ বন্ধ থাকলেও নোটিফিকেশন কাজ করবে।' },
-  'notif.permissionDenied': { en: 'Notifications are disabled. Enable them in your device settings to stay updated.', bn: 'নোটিফিকেশন বন্ধ আছে। আপডেট পেতে ডিভাইস সেটিংস থেকে চালু করুন।' },
-  'notif.permissionUnsupported': { en: 'Notifications are currently unavailable. Please check app settings.', bn: 'নোটিফিকেশন বর্তমানে উপলব্ধ নেই। অ্যাপ সেটিংস চেক করুন।' },
-  'notif.checked': { en: 'Checked at', bn: 'চেক করা হয়েছে' },
-  'notif.overdueAlert': { en: 'Overdue reminder:', bn: 'মেয়াদোত্তীর্ণ রিমাইন্ডার:' },
-  'notif.settingsTitle': { en: 'Notifications', bn: 'নোটিফিকেশন' },
-  'notif.settingsDesc': { en: 'Control how and when Pocket Khata sends you notifications about bills and reminders.', bn: 'কিভাবে এবং কখন পকেট খাতা বিল ও রিমাইন্ডার সম্পর্কে নোটিফিকেশন পাঠাবে তা নিয়ন্ত্রণ করুন।' },
-  'notif.enableToggle': { en: 'Enable Notifications', bn: 'নোটিফিকেশন চালু করুন' },
-  'notif.enableToggleDesc': { en: 'Receive alerts for bill due dates and important reminders.', bn: 'বিল পরিশোধের তারিখ ও গুরুত্বপূর্ণ সতর্কবার্তার জন্য নোটিফিকেশন পান।' },
-  'notif.reminderAlerts': { en: 'Bill Reminder Alerts', bn: 'বিল রিমাইন্ডার অ্যালার্ট' },
-  'notif.reminderAlertsDesc': { en: 'Automatically check and notify for due and overdue reminders on app start.', bn: 'অ্যাপ শুরু হলে স্বয়ংক্রিয়ভাবে বাকি ও মেয়াদোত্তীর্ণ রিমাইন্ডার চেক ও নোটিফাই করুন।' },
-  'notif.noPermission': { en: 'Notification permission is not granted. Tap below to enable.', bn: 'নোটিফিকেশন অনুমতি দেওয়া হয়নি। অনুমতি দিতে নিচের বাটনে ট্যাপ করুন।' },
-  'notif.grantPermission': { en: 'Grant Permission', bn: 'অনুমতি দিন' },
-
-  // ===== NOTIFICATION BODY (for checkReminders) =====
-  'notif.dueToday': { en: '"{name}" is due today — ৳{amount}', bn: '"{name}" আজকে পরিশোধ করতে হবে — ৳{amount}' },
-  'notif.dueTomorrow': { en: '"{name}" is due tomorrow — ৳{amount}', bn: '"{name}" আগামীকাল পরিশোধ করতে হবে — ৳{amount}' },
-  'notif.overdueDays': { en: '"{name}" is overdue by {days} day{s} — ৳{amount}', bn: '"{name}" {days} দিন মেয়াদোত্তীর্ণ — ৳{amount}' },
 
   // ===== AUTO BACKUPS =====
   'autobackup.title': { en: 'Auto-Backups', bn: 'অটো-ব্যাকআপ' },

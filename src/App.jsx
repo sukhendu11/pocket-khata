@@ -20,7 +20,6 @@ function preloadTransactionHistory() {
 }
 const AnalyticsView = lazy(() => import('./components/AnalyticsView'));
 const CalendarView = lazy(() => import('./components/CalendarView'));
-const ReminderManager = lazy(() => import('./components/ReminderManager'));
 const Settings = lazy(() => import('./components/Settings'));
 const AccountManager = lazy(() => import('./components/AccountManager'));
 const CategoryManager = lazy(() => import('./components/CategoryManager'));
@@ -35,7 +34,6 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { t } from './i18n';
 import { Menu, CheckCircle } from 'lucide-react';
-import { checkReminders, cacheRemindersForSW, registerServiceWorker } from './notifications';
 
 const globalLangStyles = {
   pill: {
@@ -143,7 +141,6 @@ export default function App() {
   const [accounts, setAccounts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [reminders, setReminders] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [savingsGoals, setSavingsGoals] = useState([]);
   // Security (lock screen) removed
@@ -192,13 +189,11 @@ export default function App() {
     const loadedAccounts = db.getAccounts();
     const loadedCategories = db.getCategories();
     const loadedTransactions = db.getTransactions();
-    const loadedReminders = db.getReminders();
     const loadedBudgets = db.getBudgets();
     const loadedSavingsGoals = db.getSavingsGoals();
     setAccounts(loadedAccounts);
     setCategories(loadedCategories);
     setTransactions(loadedTransactions);
-    setReminders(loadedReminders);
     setBudgets(loadedBudgets);
     setSavingsGoals(loadedSavingsGoals);
 
@@ -378,49 +373,6 @@ export default function App() {
     }
   };
 
-  // -- Reminders
-  const handleAddReminder = (rem) => {
-    try {
-      db.addReminder(rem);
-      setReminders(db.getReminders());
-    } catch (e) {
-      trackError(e, { handler: 'handleAddReminder' });
-      console.error('Failed to add reminder:', e);
-    }
-  };
-
-  const handleUpdateReminder = (rem) => {
-    try {
-      db.updateReminder(rem);
-      setReminders(db.getReminders());
-    } catch (e) {
-      trackError(e, { handler: 'handleUpdateReminder', reminderId: rem?.id });
-      console.error('Failed to update reminder:', e);
-    }
-  };
-
-  const handleDeleteReminder = (id) => {
-    try {
-      db.deleteReminder(id);
-      setReminders(db.getReminders());
-    } catch (e) {
-      trackError(e, { handler: 'handleDeleteReminder', reminderId: id });
-      console.error('Failed to delete reminder:', e);
-    }
-  };
-
-  const handlePayReminder = (id, sourceAccountId) => {
-    try {
-      db.payReminder(id, sourceAccountId);
-      setReminders(db.getReminders());
-      setTransactions(db.getTransactions());
-      setAccounts(db.getAccounts());
-    } catch (e) {
-      trackError(e, { handler: 'handlePayReminder', reminderId: id });
-      console.error('Failed to pay reminder:', e);
-    }
-  };
-
   // -- Backup Restores
   const handleResetDatabase = () => {
     try {
@@ -428,7 +380,6 @@ export default function App() {
       setAccounts(freshDb.accounts);
       setCategories(freshDb.categories);
       setTransactions(freshDb.transactions);
-      setReminders(freshDb.reminders);
       setBudgets(freshDb.budgets);
       setSavingsGoals(freshDb.savingsGoals);
     } catch (e) {
@@ -444,7 +395,6 @@ export default function App() {
         setAccounts(db.getAccounts());
         setCategories(db.getCategories());
         setTransactions(db.getTransactions());
-        setReminders(db.getReminders());
         setBudgets(db.getBudgets());
         setSavingsGoals(db.getSavingsGoals());
       }
@@ -621,69 +571,7 @@ export default function App() {
     preloadTransactionHistory();
   }, []);
 
-  // 12. Notification system — check reminders on mount and periodically
-  const [notifiedTags, setNotifiedTags] = useState(() => {
-    try {
-      const saved = localStorage.getItem('pocket_khata_notified_tags');
-      return saved ? new Set(JSON.parse(saved)) : new Set();
-    } catch {
-      return new Set();
-    }
-  });
-
-  // Persist notified tags to localStorage so they survive refreshes
-  useEffect(() => {
-    try {
-      localStorage.setItem('pocket_khata_notified_tags', JSON.stringify([...notifiedTags]));
-    } catch {
-      // localStorage full or unavailable — that's fine
-    }
-  }, [notifiedTags]);
-
-  // Check reminders on mount and every 10 minutes
-  useEffect(() => {
-    if (reminders.length === 0) return;
-
-    const runCheck = () => {
-      const result = checkReminders(reminders, notifiedTags, lang);
-      if (result.notifiedCount > 0) {
-        setNotifiedTags(result.updatedShownTags);
-      }
-    };
-
-    // Check immediately on mount
-    runCheck();
-
-    // Then check every 10 minutes
-    const interval = setInterval(runCheck, 10 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [reminders, notifiedTags, lang]);
-
-  // Also check when a new reminder is added (via the reminders length change)
-  const remindersCountRef = reminders.length;
-  useEffect(() => {
-    if (reminders.length > 0) {
-      const result = checkReminders(reminders, notifiedTags, lang);
-      if (result.notifiedCount > 0) {
-        setNotifiedTags(result.updatedShownTags);
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [remindersCountRef, lang]);
-  // Note: we intentionally use remindersCountRef (not reminders) to avoid
-  // re-triggering on every render; the dependency array uses the length.
-
-  // 13. Cache reminders + lang for the service worker (Periodic Background Sync)
-  useEffect(() => {
-    cacheRemindersForSW(reminders, lang);
-  }, [reminders, lang]);
-
-  // Register service worker on mount for notification support
-  useEffect(() => {
-    registerServiceWorker();
-  }, []);
-
-  // 14. Close menu when clicking outside
+  // 12. Close menu when clicking outside
   useEffect(() => {
     if (!showMenu) return;
     const handleClickOutside = (e) => {
@@ -706,7 +594,6 @@ export default function App() {
             accounts={accounts}
             transactions={transactions}
             categories={categories}
-            reminders={reminders}
             budgets={budgets}
             savingsGoals={savingsGoals}
             onNavigate={handleNavigate}
@@ -748,20 +635,6 @@ export default function App() {
             categories={categories}
             onNavigate={handleNavigate}
             onEditTransaction={handleEditTransactionClick}
-            lang={lang}
-          />
-        );
-      case 'reminders':
-        return (
-          <ReminderManager
-            reminders={reminders}
-            accounts={accounts}
-            categories={categories}
-            onAddReminder={handleAddReminder}
-            onUpdateReminder={handleUpdateReminder}
-            onPayReminder={handlePayReminder}
-            onDeleteReminder={handleDeleteReminder}
-            onNavigate={handleNavigate}
             lang={lang}
           />
         );
@@ -836,7 +709,6 @@ export default function App() {
             accounts={accounts}
             transactions={transactions}
             categories={categories}
-            reminders={reminders}
             budgets={budgets}
             savingsGoals={savingsGoals}
             onNavigate={handleNavigate}

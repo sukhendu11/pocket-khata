@@ -34,15 +34,6 @@ const mockTransactions = [
     accountId: 'acc_cash', categoryId: 'cat_food', notes: 'Old Xmas meal' },
 ];
 
-const mockReminders = [
-  // Overdue: due before May 15, 2025, unpaid
-  { id: 'rem_1', name: 'Electric Bill', amount: 3000, dueDate: '2025-04-28',
-    status: 'unpaid', categoryId: 'cat_rent' },
-  // Not overdue: due after May 15
-  { id: 'rem_2', name: 'Internet', amount: 1500, dueDate: '2025-06-01',
-    status: 'unpaid', categoryId: 'cat_food' },
-];
-
 const mockBudgets = [
   { id: 'budget_1', categoryId: 'cat_food', limit: 5000 },
 ];
@@ -77,7 +68,6 @@ const defaultProps = {
   accounts: mockAccounts,
   transactions: mockTransactions,
   categories: mockCategories,
-  reminders: mockReminders,
   budgets: mockBudgets,
   savingsGoals: mockSavingsGoals,
   onNavigate: () => {},
@@ -106,12 +96,12 @@ describe('Dashboard — Rendering', () => {
     expect(screen.getByText('Your Smart Vault')).toBeTruthy();
   });
 
-  it('renders the theme toggle and reminders buttons', () => {
+  it('renders buttons', () => {
     useFixedDate();
     render(<Dashboard {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    // Should have at least: theme toggle, reminders bell, Manage, See All, Clear selection... many buttons
-    expect(buttons.length).toBeGreaterThan(3);
+    // Should have at least: Manage, See All, Clear selection
+    expect(buttons.length).toBeGreaterThan(2);
   });
 });
 
@@ -367,22 +357,6 @@ describe('Dashboard — Recent Transactions', () => {
 });
 
 // ==============================================================================
-// Reminders Bell
-// ==============================================================================
-
-describe('Dashboard — Reminders Bell', () => {
-  it('navigates to reminders on bell click', () => {
-    useFixedDate();
-    const handleNavigate = vi.fn();
-    render(<Dashboard {...defaultProps} onNavigate={handleNavigate} />);
-    // buttons[0]=bell, [1]=theme, [2]=Manage, [3]=See All
-    const allButtons = screen.getAllByRole('button');
-    fireEvent.click(allButtons[0]);
-    expect(handleNavigate).toHaveBeenCalledWith('reminders');
-  });
-});
-
-// ==============================================================================
 // Navigation Buttons
 // ==============================================================================
 
@@ -407,43 +381,10 @@ describe('Dashboard — Navigation', () => {
     useFixedDate();
     const handleToggleTheme = vi.fn();
     render(<Dashboard {...defaultProps} onToggleTheme={handleToggleTheme} />);
-    // buttons[0]=bell, [1]=theme toggle
+    // buttons[0]=theme toggle (bell icon was removed)
     const allButtons = screen.getAllByRole('button');
-    fireEvent.click(allButtons[1]);
+    fireEvent.click(allButtons[0]);
     expect(handleToggleTheme).toHaveBeenCalledOnce();
-  });
-});
-
-// ==============================================================================
-// Overdue Reminders Indicator
-// ==============================================================================
-
-describe('Dashboard — Overdue Indicator', () => {
-  it('shows badge dot when there are overdue reminders', () => {
-    useFixedDate();
-    const { container } = render(<Dashboard {...defaultProps} />);
-    // The badge dot is an absolutely positioned div inside the bell button
-    const badgeDots = container.querySelectorAll('[style*="border-radius: 50%"][style*="position: absolute"]');
-    expect(badgeDots.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('hides badge dot when no overdue reminders', () => {
-    useFixedDate();
-    const paidReminders = mockReminders.map(r => ({ ...r, status: 'paid' }));
-    const { container } = render(
-      <Dashboard {...defaultProps} reminders={paidReminders} />
-    );
-    const badgeDots = container.querySelectorAll('[style*="border-radius: 50%"][style*="position: absolute"]');
-    expect(badgeDots.length).toBe(0);
-  });
-
-  it('hides badge dot when reminders are empty', () => {
-    useFixedDate();
-    const { container } = render(
-      <Dashboard {...defaultProps} reminders={[]} />
-    );
-    const badgeDots = container.querySelectorAll('[style*="border-radius: 50%"][style*="position: absolute"]');
-    expect(badgeDots.length).toBe(0);
   });
 });
 
@@ -513,12 +454,6 @@ describe('Dashboard — Edge Cases', () => {
     expect(generalItems.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('handles empty reminders', () => {
-    useFixedDate();
-    render(<Dashboard {...defaultProps} reminders={[]} />);
-    expect(screen.getByText('Pocket Khata')).toBeTruthy();
-  });
-
   it('handles all data empty', () => {
     useFixedDate();
     render(
@@ -526,7 +461,6 @@ describe('Dashboard — Edge Cases', () => {
         accounts={[]}
         transactions={[]}
         categories={[]}
-        reminders={[]}
         budgets={[]}
         savingsGoals={[]}
         onNavigate={() => {}}
@@ -549,7 +483,6 @@ describe('Dashboard — Edge Cases', () => {
         accounts={mockAccounts}
         transactions={mockTransactions}
         categories={mockCategories}
-        reminders={mockReminders}
         onNavigate={() => {}}
         theme="light"
         onToggleTheme={() => {}}

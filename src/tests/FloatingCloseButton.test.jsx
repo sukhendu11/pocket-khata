@@ -3,7 +3,7 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import TransactionForm from '../components/TransactionForm';
 import AccountManager from '../components/AccountManager';
 import CategoryManager from '../components/CategoryManager';
-import ReminderManager from '../components/ReminderManager';
+
 
 // ==============================================================================
 // Mock Data
@@ -29,28 +29,8 @@ const mockTransactions = [
   { id: 'tx_4', type: 'income', amount: 80000, date: '2025-05-01', accountId: 'acc_bank', categoryId: 'cat_salary', notes: 'Salary' },
 ];
 
-const mockReminders = [
-  { id: 'rem_1', name: 'Electric Bill', amount: 3000, dueDate: '2025-04-28', status: 'unpaid', categoryId: 'cat_rent' },
-  { id: 'rem_2', name: 'Internet', amount: 1500, dueDate: '2025-06-01', status: 'unpaid', categoryId: 'cat_food' },
-];
-
 beforeEach(() => { cleanup(); vi.clearAllMocks(); });
-afterEach(() => { vi.unstubAllGlobals(); });
-
-// Mock the notifications module so ReminderManager's async isServiceWorkerActive()
-// resolves synchronously — preventing "not wrapped in act(...)" warnings.
-vi.mock('../notifications', () => ({
-  isNotificationSupported: () => false,
-  getNotificationPermission: () => 'default',
-  requestNotificationPermission: vi.fn().mockResolvedValue('denied'),
-  registerServiceWorker: vi.fn().mockResolvedValue(null),
-  isServiceWorkerActive: vi.fn(() => ({ then: (cb) => { cb(false); } })),
-  checkReminders: vi.fn().mockReturnValue({ notifiedCount: 0, updatedShownTags: new Set() }),
-  cacheRemindersForSW: vi.fn().mockResolvedValue(undefined),
-}));
-
-// ==============================================================================
-// Helper: Find the floating close button inside a rendered container
+afterEach(() => { vi.unstubAllGlobals(); });// ==============================================================================//  Helper: Find the floating close button inside a rendered container
 // ==============================================================================
 
 /** Get the close X button from inside the drawer header */
@@ -402,171 +382,6 @@ describe('Floating Close Button - CategoryManager', () => {
     const closeBtn = getDrawerCloseBtn(container);
     expect(closeBtn).toBeTruthy();
     expect(closeBtn.querySelector('svg')).toBeTruthy();
-  });
-});
-
-// ==============================================================================
-// Floating Close Button — ReminderManager Drawers (2 drawers)
-// ==============================================================================
-
-describe('Floating Close Button - ReminderManager', () => {
-  it('renders floating close button in add/edit reminder drawer', () => {
-    const { container } = render(
-      <ReminderManager
-        reminders={mockReminders}
-        accounts={mockAccounts}
-        categories={mockCategories}
-        onAddReminder={() => {}}
-        onUpdateReminder={() => {}}
-        onPayReminder={() => {}}
-        onDeleteReminder={() => {}}
-        onNavigate={() => {}}
-        lang="en"
-      />
-    );
-
-    // Click the + button to open the add reminder modal
-    const addBtn = screen.getAllByRole('button')[1]; // + add button
-    fireEvent.click(addBtn);
-    expect(screen.getByText('New Bill Reminder')).toBeTruthy();
-
-    const closeBtn = getDrawerCloseBtn(container);
-    expect(closeBtn).toBeTruthy();
-    expect(closeBtn.tagName).toBe('BUTTON');
-    expect(closeBtn.querySelector('svg')).toBeTruthy();
-  });
-
-  it('clicking close button closes the reminder drawer', () => {
-    const { container } = render(
-      <ReminderManager
-        reminders={mockReminders}
-        accounts={mockAccounts}
-        categories={mockCategories}
-        onAddReminder={() => {}}
-        onUpdateReminder={() => {}}
-        onPayReminder={() => {}}
-        onDeleteReminder={() => {}}
-        onNavigate={() => {}}
-        lang="en"
-      />
-    );
-
-    const addBtn = screen.getAllByRole('button')[1];
-    fireEvent.click(addBtn);
-    expect(screen.getByText('New Bill Reminder')).toBeTruthy();
-
-    const closeBtn = getDrawerCloseBtn(container);
-    fireEvent.click(closeBtn);
-    expect(screen.queryByText('New Bill Reminder')).toBeNull();
-  });
-
-  it('renders floating close button in quick pay account selection drawer', () => {
-    const { container } = render(
-      <ReminderManager
-        reminders={mockReminders}
-        accounts={mockAccounts}
-        categories={mockCategories}
-        onAddReminder={() => {}}
-        onUpdateReminder={() => {}}
-        onPayReminder={() => {}}
-        onDeleteReminder={() => {}}
-        onNavigate={() => {}}
-        lang="en"
-      />
-    );
-
-    // Find an unpaid reminder and click its Pay button
-    const payButtons = screen.getAllByText('Pay');
-    expect(payButtons.length).toBeGreaterThanOrEqual(1);
-    fireEvent.click(payButtons[0]);
-
-    // The pay select modal should now be visible with account list
-    expect(screen.getByText('Select Account for Payment')).toBeTruthy();
-
-    // Each open drawer has its own close button
-    const closeBtns = container.querySelectorAll('.bottom-drawer .drawer-header button:last-child');
-    expect(closeBtns.length).toBeGreaterThanOrEqual(1);
-    expect(closeBtns[closeBtns.length - 1].querySelector('svg')).toBeTruthy();
-  });
-
-  it('quick pay drawer close button closes the drawer', () => {
-    const { container } = render(
-      <ReminderManager
-        reminders={mockReminders}
-        accounts={mockAccounts}
-        categories={mockCategories}
-        onAddReminder={() => {}}
-        onUpdateReminder={() => {}}
-        onPayReminder={() => {}}
-        onDeleteReminder={() => {}}
-        onNavigate={() => {}}
-        lang="en"
-      />
-    );
-
-    const payButtons = screen.getAllByText('Pay');
-    fireEvent.click(payButtons[0]);
-    expect(screen.getByText('Select Account for Payment')).toBeTruthy();
-
-    // Click the last close button (the one in the pay select drawer)
-    const closeBtns = container.querySelectorAll('.bottom-drawer .drawer-header button:last-child');
-    fireEvent.click(closeBtns[closeBtns.length - 1]);
-    expect(screen.queryByText('Select Account for Payment')).toBeNull();
-  });
-
-  it('close button is inside .drawer-header in reminder drawer', () => {
-    const { container } = render(
-      <ReminderManager
-        reminders={mockReminders}
-        accounts={mockAccounts}
-        categories={mockCategories}
-        onAddReminder={() => {}}
-        onUpdateReminder={() => {}}
-        onPayReminder={() => {}}
-        onDeleteReminder={() => {}}
-        onNavigate={() => {}}
-        lang="en"
-      />
-    );
-
-    const addBtn = screen.getAllByRole('button')[1];
-    fireEvent.click(addBtn);
-
-    const drawer = container.querySelector('.bottom-drawer');
-    const header = drawer.querySelector('.drawer-header');
-    const closeBtn = getDrawerCloseBtn(container);
-    expect(header.contains(closeBtn)).toBe(true);
-  });
-
-  it('floating close button handles edit reminder mode correctly', () => {
-    const { container } = render(
-      <ReminderManager
-        reminders={mockReminders}
-        accounts={mockAccounts}
-        categories={mockCategories}
-        onAddReminder={() => {}}
-        onUpdateReminder={() => {}}
-        onPayReminder={() => {}}
-        onDeleteReminder={() => {}}
-        onNavigate={() => {}}
-        lang="en"
-      />
-    );
-
-    // Click on a reminder card to switch to edit mode
-    const reminderCards = screen.getAllByText('Electric Bill');
-    fireEvent.click(reminderCards[0].closest('div'));
-
-    // Edit reminder modal should show "Edit Reminder" title
-    expect(screen.getByText('Edit Reminder')).toBeTruthy();
-
-    const closeBtn = getDrawerCloseBtn(container);
-    expect(closeBtn).toBeTruthy();
-    expect(closeBtn.querySelector('svg')).toBeTruthy();
-
-    // Click closes the drawer
-    fireEvent.click(closeBtn);
-    expect(screen.queryByText('Edit Reminder')).toBeNull();
   });
 });
 

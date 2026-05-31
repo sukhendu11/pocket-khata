@@ -5,15 +5,17 @@
  * Android WebViews.
  *
  * Strategy (in order of preference):
- *   1. [Capacitor Native] Filesystem.writeFile() to Documents — saves
- *      directly to the device Documents/Downloads folder.
- *   2. [Desktop] File System Access API — native "Save As" dialog.
- *   3. [Android 12+] Web Share API — share sheet with the file.
+ *   1. [Android / iOS] Native Capacitor Share plugin — opens system share
+ *      sheet with "Save to Files" option that opens the SAF folder picker.
+ *   2. [Android / iOS] Capacitor Filesystem.writeFile() to Documents —
+ *      direct save if the share sheet is cancelled or unavailable.
+ *   3. [Desktop] File System Access API — native "Save As" dialog.
  *   4. [Fallback] <a> download with blob URL — works on most browsers.
  */
 
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 
 /**
  * Convert a Blob to a raw base64 string (required by the native
@@ -36,10 +38,11 @@ function blobToBase64(blob) {
 /**
  * Save a Blob as a file on the device.
  *
- * On Android (Capacitor native) the file is written to the Documents
- * directory, which appears in the user's Downloads/ folder. On iOS it
- * is written to the app's documents folder. Then we try to open the
- * system share sheet so the user can save/share the file.
+ * On Android (Capacitor native), we first save the blob to Cache and
+ * then open the native Share plugin, which shows the system share
+ * sheet with a "Save to Files" option — this lets the user pick the
+ * target folder via Android's SAF picker. If the share sheet is
+ * cancelled, we fall back to writing directly to Documents.
  *
  * @param {Blob} blob - The blob to save.
  * @param {string} filename - Suggested filename (e.g. 'report.pdf').
@@ -47,39 +50,61 @@ function blobToBase64(blob) {
  */
 export async function saveBlob(blob, filename) {
   const isNative = Capacitor.isNativePlatform();
+  const mimeType = blob.type || (filename.endsWith('.pdf') ? 'application/pdf' : 'application/json');
 
-  // ── Method 1: Capacitor Filesystem plugin (Android / iOS) ────────────
+  // ── Method 1: Native Share plugin (Android / iOS) — shows folder picker ─
+  // Uses the native Capacitor Share plugin to open the system share sheet.
+  // On Android this includes a "Save to Files" option that opens the SAF
+  // (Storage Access Framework) folder picker, letting the user choose
+  // exactly where to save the file. The Web Share API (navigator.share)
+  // doesn't work reliably in Capacitor WebViews, so we use the native
+  // plugin instead.
   if (isNative) {
     try {
+      // 1. Save blob to Cache first (we need a file on disk to share)
       const base64Data = await blobToBase64(blob);
-      const mimeType = blob.type || (filename.endsWith('.pdf') ? 'application/pdf' : 'application/json');
+      await Filesystem.writeFile({
+        path: filename,
+        data: base64Data,
+        directory: Directory.Cache,
+      });
 
-      // Write directly to Documents folder — this is the primary save
+      // 2. Get the file URI for the native Share plugin
+      const fileUri = await Filesystem.getUri({
+        path: filename,
+        directory: Directory.Cache,
+      });
+
+      // 3. Open native share sheet — includes "Save to Files" → SAF folder picker
+      await Share.share({
+        files: [fileUri.uri],
+        title: filename,
+      });
+
+      // 4. Share completed — user already chose a save location via the
+      //    folder picker ("Save to Files"), so no need to write to Documents.
+      //    Clean up by deleting the temp file from Cache.
+      try {
+        await Filesystem.deleteFile({
+          path: filename,
+          directory: Directory.Cache,
+        });
+      } catch (_) { /* best effort */ }
+      return;
+    } catch (_shareErr) {
+      // Share cancelled or failed — fall through to direct Documents save
+    }
+
+    // ── Method 2: Capacitor Filesystem plugin (Android / iOS) ────────────
+    // Falls back to saving directly to Documents if the user cancelled the
+    // share sheet or the Share plugin is unavailable.
+    try {
+      const base64Data = await blobToBase64(blob);
       await Filesystem.writeFile({
         path: filename,
         data: base64Data,
         directory: Directory.Documents,
       });
-
-      // Try Web Share API to let the user share/save the file
-      // Works on Chrome-based WebViews (Android 12+)
-      try {
-        const byteString = atob(base64Data);
-        const ab = new Uint8Array(byteString.length);
-        for (let i = 0; i < byteString.length; i++) {
-          ab[i] = byteString.charCodeAt(i);
-        }
-        const shareBlob = new Blob([ab], { type: mimeType });
-        const shareFile = new File([shareBlob], filename, { type: mimeType });
-
-        if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
-          await navigator.share({ files: [shareFile], title: filename });
-        }
-      } catch (_webShareErr) {
-        // Web Share not supported or user cancelled — file is already saved to Documents
-      }
-
-      // File is already saved to Documents — return success
       return;
     } catch (fsErr) {
       console.error('Filesystem save failed, falling back:', fsErr);

@@ -19,12 +19,9 @@ const mockCategories = [
 const mockTransactions = [
   { id: 'tx_1', type: 'expense', amount: 1500, date: '2026-05-10', accountId: 'acc_1', categoryId: 'cat_1', notes: 'Lunch' },
 ];
-const mockReminders = [
-  { id: 'rem_1', name: 'Electric Bill', amount: 3000, dueDate: '2026-05-20', status: 'unpaid', categoryId: 'cat_1' },
-];
 const mockBudgets = [{ id: 'budget_1', categoryId: 'cat_1', limit: 5000 }];
 const mockSavingsGoals = [{ id: 'goal_1', name: 'Laptop', targetAmount: 100000, currentAmount: 30000 }];
-const initialFreshData = { accounts: [], categories: [], transactions: [], reminders: [], budgets: [], savingsGoals: [] };
+const initialFreshData = { accounts: [], categories: [], transactions: [], budgets: [], savingsGoals: [] };
 
 // ==============================================================================
 // Mock variables — MUST use vi.hoisted() so vi.mock factories can reference them
@@ -32,9 +29,6 @@ const initialFreshData = { accounts: [], categories: [], transactions: [], remin
 
 const {
   mockDb,
-  mockCheckReminders,
-  mockCacheRemindersForSW,
-  mockRegisterServiceWorker,
   mockTrackScreenView,
   mockTrackAction,
   mockTrackError,
@@ -43,7 +37,6 @@ const {
     getAccounts: vi.fn(() => [...mockAccounts]),
     getCategories: vi.fn(() => [...mockCategories]),
     getTransactions: vi.fn(() => [...mockTransactions]),
-    getReminders: vi.fn(() => [...mockReminders]),
     getBudgets: vi.fn(() => [...mockBudgets]),
     getSavingsGoals: vi.fn(() => [...mockSavingsGoals]),
     processRecurringTransactions: vi.fn(() => ({ count: 0, createdTransactions: [] })),
@@ -56,10 +49,6 @@ const {
     addCategory: vi.fn(),
     updateCategory: vi.fn(),
     deleteCategory: vi.fn(),
-    addReminder: vi.fn(),
-    updateReminder: vi.fn(),
-    deleteReminder: vi.fn(),
-    payReminder: vi.fn(() => ({ id: 'tx_pay_1', type: 'expense', amount: 3000 })),
     addBudget: vi.fn(),
     updateBudget: vi.fn(),
     deleteBudget: vi.fn(),
@@ -73,9 +62,6 @@ const {
   };
   return {
     mockDb: db,
-    mockCheckReminders: vi.fn(() => ({ notifiedCount: 0, updatedShownTags: new Set() })),
-    mockCacheRemindersForSW: vi.fn(),
-    mockRegisterServiceWorker: vi.fn(),
     mockTrackScreenView: vi.fn(),
     mockTrackAction: vi.fn(),
     mockTrackError: vi.fn(),
@@ -133,7 +119,6 @@ function makeLazyMock(name) {
 vi.mock('../components/TransactionHistory', () => makeLazyMock('TransactionHistory'));
 vi.mock('../components/AnalyticsView', () => makeLazyMock('AnalyticsView'));
 vi.mock('../components/CalendarView', () => makeLazyMock('CalendarView'));
-vi.mock('../components/ReminderManager', () => makeLazyMock('ReminderManager'));
 vi.mock('../components/Settings', () => makeLazyMock('Settings'));
 vi.mock('../components/AccountManager', () => makeLazyMock('AccountManager'));
 vi.mock('../components/CategoryManager', () => makeLazyMock('CategoryManager'));
@@ -166,16 +151,6 @@ vi.mock('@capacitor/app', () => ({
 // ==============================================================================
 
 vi.mock('../db', () => ({ db: mockDb }));
-
-// ==============================================================================
-// Mock notifications
-// ==============================================================================
-
-vi.mock('../notifications', () => ({
-  checkReminders: mockCheckReminders,
-  cacheRemindersForSW: mockCacheRemindersForSW,
-  registerServiceWorker: mockRegisterServiceWorker,
-}));
 
 // ==============================================================================
 // Mock analytics
@@ -220,15 +195,12 @@ beforeEach(() => {
   mockDb.getAccounts.mockReturnValue([...mockAccounts]);
   mockDb.getCategories.mockReturnValue([...mockCategories]);
   mockDb.getTransactions.mockReturnValue([...mockTransactions]);
-  mockDb.getReminders.mockReturnValue([...mockReminders]);
   mockDb.getBudgets.mockReturnValue([...mockBudgets]);
   mockDb.getSavingsGoals.mockReturnValue([...mockSavingsGoals]);
   mockDb.processRecurringTransactions.mockReturnValue({ count: 0, createdTransactions: [] });
   mockDb.resetDatabase.mockReturnValue({ ...initialFreshData });
   mockDb.importDatabaseJSON.mockReturnValue(true);
   mockDb.exportDatabaseJSON.mockReturnValue(JSON.stringify({ version: 1 }));
-  // Reset notification mock return value
-  mockCheckReminders.mockReturnValue({ notifiedCount: 0, updatedShownTags: new Set() });
   // Reset localStorage
   localStorage.clear();
 });
@@ -305,12 +277,11 @@ describe('App — Initial Render', () => {
 // ==============================================================================
 
 describe('App — Data Loading on Mount', () => {
-  it('loads accounts, categories, transactions, reminders, budgets, and savings goals', () => {
+  it('loads accounts, categories, transactions, budgets, and savings goals', () => {
     render(<App />);
     expect(mockDb.getAccounts).toHaveBeenCalledOnce();
     expect(mockDb.getCategories).toHaveBeenCalledOnce();
     expect(mockDb.getTransactions).toHaveBeenCalledOnce();
-    expect(mockDb.getReminders).toHaveBeenCalledOnce();
     expect(mockDb.getBudgets).toHaveBeenCalledOnce();
     expect(mockDb.getSavingsGoals).toHaveBeenCalledOnce();
   });
@@ -325,16 +296,6 @@ describe('App — Data Loading on Mount', () => {
   it('calls processRecurringTransactions on mount', () => {
     render(<App />);
     expect(mockDb.processRecurringTransactions).toHaveBeenCalledOnce();
-  });
-
-  it('registers service worker on mount', () => {
-    render(<App />);
-    expect(mockRegisterServiceWorker).toHaveBeenCalledOnce();
-  });
-
-  it('caches reminders for service worker', () => {
-    render(<App />);
-    expect(mockCacheRemindersForSW).toHaveBeenCalledWith(mockReminders, 'en');
   });
 
   it('shows toast when recurring transactions are created', () => {
@@ -872,60 +833,6 @@ describe('App — Back Button / History', () => {
     const { unmount } = render(<App />);
     unmount();
     expect(window.__androidBackCallback).toBeUndefined();
-  });
-});
-
-// ==============================================================================
-// 13. Notification System
-// ==============================================================================
-
-describe('App — Notification System', () => {
-  it('checks reminders on mount when reminders exist', () => {
-    render(<App />);
-    // Two effects both call checkReminders:
-    // 1. The interval effect (reminders, notifiedTags, lang deps)
-    // 2. The remindersCountRef effect (length ref + lang deps)
-    expect(mockCheckReminders).toHaveBeenCalledTimes(2);
-  });
-
-  it('does not check reminders when reminders array is empty', () => {
-    mockDb.getReminders.mockReturnValue([]);
-    render(<App />);
-    expect(mockCheckReminders).not.toHaveBeenCalled();
-  });
-
-  it('updates notifiedTags when checkReminders returns results', async () => {
-    mockCheckReminders.mockReturnValue({
-      notifiedCount: 1,
-      updatedShownTags: new Set(['tag_1']),
-    });
-    render(<App />);
-    await waitFor(() => {
-      const stored = localStorage.getItem('pocket_khata_notified_tags');
-      expect(stored).toBeTruthy();
-      expect(JSON.parse(stored)).toContain('tag_1');
-    });
-  });
-
-  it('persists initial notified tags to localStorage', () => {
-    render(<App />);
-    expect(localStorage.getItem('pocket_khata_notified_tags')).toBe('[]');
-  });
-
-  it('persists notified tags across re-renders', async () => {
-    mockCheckReminders.mockReturnValue({
-      notifiedCount: 1,
-      updatedShownTags: new Set(['tag_a', 'tag_b']),
-    });
-    const { unmount } = render(<App />);
-    await waitFor(() => {
-      const stored = JSON.parse(localStorage.getItem('pocket_khata_notified_tags'));
-      expect(stored).toContain('tag_a');
-    });
-    unmount();
-    // Tags persist after unmount
-    const stored = JSON.parse(localStorage.getItem('pocket_khata_notified_tags'));
-    expect(stored).toContain('tag_a');
   });
 });
 

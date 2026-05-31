@@ -336,18 +336,6 @@ describe('schema versioning', () => {
     expect(transactions[0].updatedAt).toBeDefined();
   });
 
-  it('migrates v1 reminders (missing timestamps) to v2', () => {
-    const v1Reminders = [
-      { id: 'rem_v1', name: 'V1 Reminder', amount: 100, dueDate: '2025-06-01', categoryId: 'cat_utilities', status: 'unpaid' },
-    ];
-    localStorage.setItem('pocket_khata_reminders', JSON.stringify(v1Reminders));
-
-    const reminders = db.getReminders();
-    expect(reminders).toHaveLength(1);
-    expect(reminders[0].createdAt).toBeDefined();
-    expect(reminders[0].updatedAt).toBeDefined();
-  });
-
   it('migrates v1 empty budgets/savings goals gracefully', () => {
     localStorage.setItem('pocket_khata_budgets', JSON.stringify([]));
     localStorage.setItem('pocket_khata_savings_goals', JSON.stringify([]));
@@ -484,7 +472,7 @@ describe('schema versioning', () => {
     // Reset
     const result = db.resetDatabase();
 
-    // Should be back to defaults (accounts has 4 system accounts, transactions/reminders empty)
+    // Should be back to defaults (accounts has 4 system accounts, transactions empty)
     expect(result.accounts.length).toBeGreaterThanOrEqual(4); // system accounts always present
     expect(result.categories).toHaveLength(17);
     expect(db.getBudgets()).toHaveLength(0);

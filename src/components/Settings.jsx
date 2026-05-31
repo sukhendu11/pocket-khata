@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { 
   ArrowLeft, RefreshCw, Upload,
-  Bell, Info, Shield, CheckCircle, XCircle, FileText
+  Info, Shield, CheckCircle, XCircle, FileText
 } from 'lucide-react';
 import { generatePDFReport } from '../lib/pdf';
 import { saveString } from '../lib/download';
@@ -9,11 +9,6 @@ import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { trackAction, trackError } from '../lib/analytics';
 import { db } from '../db';
-import {
-  isNotificationSupported,
-  getNotificationPermission,
-  requestNotificationPermission,
-} from '../notifications';
 import {
   getConsent,
   resetConsent,
@@ -89,19 +84,6 @@ export default function Settings({
     setIsGeneratingPDF(false);
   };
 
-  // Notification State
-  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
-    const stored = localStorage.getItem('pocket_khata_notifications_enabled');
-    return stored === null ? true : stored === 'true';
-  });
-  const [reminderAlertsEnabled, setReminderAlertsEnabled] = useState(() => {
-    const stored = localStorage.getItem('pocket_khata_reminder_alerts_enabled');
-    return stored === null ? true : stored === 'true';
-  });
-
-  const notifSupported = isNotificationSupported();
-  const notifPermission = getNotificationPermission();
-
   // Sync Now state
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState(null); // null | 'success' | 'error'
@@ -120,29 +102,6 @@ export default function Settings({
       setTimeout(() => setSyncResult(null), 3000);
     }
     setIsSyncing(false);
-  };
-
-  const handleToggleNotifications = async () => {
-    if (!notificationsEnabled && notifPermission !== 'granted') {
-      // Turning on — request permission first
-      await requestNotificationPermission();
-      // Re-check permission after user responds
-      if (getNotificationPermission() !== 'granted') {
-        // User denied the request — don't toggle on
-        return;
-      }
-    }
-    const newVal = !notificationsEnabled;
-    setNotificationsEnabled(newVal);
-    localStorage.setItem('pocket_khata_notifications_enabled', String(newVal));
-    trackAction('toggle_notifications', { enabled: newVal });
-  };
-
-  const handleToggleReminderAlerts = () => {
-    const newVal = !reminderAlertsEnabled;
-    setReminderAlertsEnabled(newVal);
-    localStorage.setItem('pocket_khata_reminder_alerts_enabled', String(newVal));
-    trackAction('toggle_reminder_alerts', { enabled: newVal });
   };
 
   // JSON Export download
@@ -372,69 +331,7 @@ export default function Settings({
           </div>
         </div>
 
-        {/* SECTION 3: Notifications */}
-        <div className="neo-raised" style={styles.card}>
-          <div style={styles.cardHeader}>
-            <Bell size={16} style={{ color: 'var(--accent-color)' }} />
-            <h3 style={styles.cardTitle}>{t('notif.settingsTitle', lang)}</h3>
-          </div>
-
-          <p style={styles.cardDesc}>
-            {t('notif.settingsDesc', lang)}
-          </p>
-
-          {/* Notification enable toggle */}
-          <label style={styles.switchRow}>
-            <div style={styles.switchLabelGroup}>
-              <span style={styles.switchTitle}>{t('notif.enableToggle', lang)}</span>
-              <span style={styles.switchDesc}>{t('notif.enableToggleDesc', lang)}</span>
-              {!notifSupported && (
-                <span style={{ fontSize: '9px', fontWeight: '600', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                  {t('notif.permissionUnsupported', lang)}
-                </span>
-              )}
-              {notifSupported && notifPermission !== 'granted' && notificationsEnabled && (
-                <span style={{ fontSize: '9px', fontWeight: '600', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                  {t('notif.noPermission', lang)}
-                  <button
-                    className="neo-btn"
-                    style={{ marginLeft: '6px', fontSize: '9px', padding: '2px 8px', height: '20px', borderRadius: '6px', border: '1px solid var(--accent-color)', color: 'var(--accent-color)' }}
-                    onClick={(e) => { e.stopPropagation(); requestNotificationPermission(); }}
-                  >
-                    {t('notif.grantPermission', lang)}
-                  </button>
-                </span>
-              )}
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={notificationsEnabled}
-                onChange={handleToggleNotifications}
-              />
-              <span className="toggle-slider" />
-            </label>
-          </label>
-
-          {/* Reminder alerts toggle */}
-          <label style={{ ...styles.switchRow, marginTop: '4px' }}>
-            <div style={styles.switchLabelGroup}>
-              <span style={styles.switchTitle}>{t('notif.reminderAlerts', lang)}</span>
-              <span style={styles.switchDesc}>{t('notif.reminderAlertsDesc', lang)}</span>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={reminderAlertsEnabled}
-                onChange={handleToggleReminderAlerts}
-                disabled={!notificationsEnabled}
-              />
-              <span className="toggle-slider" />
-            </label>
-          </label>
-        </div>
-
-        {/* SECTION 4: Privacy & Analytics */}
+        {/* SECTION 3: Privacy & Analytics */}
         <div className="neo-raised" style={styles.card}>
           <div style={styles.cardHeader}>
             <Shield size={16} style={{ color: 'var(--accent-color)' }} />

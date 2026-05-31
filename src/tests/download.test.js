@@ -14,6 +14,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // ==============================================================================
 
 const mockWriteFile = vi.fn();
+const mockGetUri = vi.fn();
+const mockSharePlugin = vi.fn();
 const mockIsNativePlatform = vi.fn();
 
 vi.mock('@capacitor/core', () => ({
@@ -25,9 +27,17 @@ vi.mock('@capacitor/core', () => ({
 vi.mock('@capacitor/filesystem', () => ({
   Filesystem: {
     writeFile: mockWriteFile,
+    getUri: mockGetUri,
   },
   Directory: {
     Documents: 'DOCUMENTS',
+    Cache: 'CACHE',
+  },
+}));
+
+vi.mock('@capacitor/share', () => ({
+  Share: {
+    share: mockSharePlugin,
   },
 }));
 
@@ -118,21 +128,29 @@ describe('saveBlob — Capacitor Native path', () => {
 
   it('writes file via Filesystem plugin on native platform', async () => {
     mockWriteFile.mockResolvedValue(undefined);
+    mockGetUri.mockResolvedValue({ uri: 'file:///cache/report.pdf' });
+    mockSharePlugin.mockResolvedValue(undefined);
 
     const { saveBlob } = await getModule();
     const blob = makeBlob('test pdf content', 'application/pdf');
     await saveBlob(blob, 'report.pdf');
 
-    expect(mockWriteFile).toHaveBeenCalledOnce();
-    expect(mockWriteFile).toHaveBeenCalledWith({
+    // Writes to Cache only (for sharing via Share plugin), no Documents write
+    // because the user already chose the save location via the folder picker
+    expect(mockWriteFile).toHaveBeenCalledTimes(1);
+    expect(mockWriteFile).toHaveBeenNthCalledWith(1, {
       path: 'report.pdf',
       data: 'AAECAwQFBgcICQo=',
-      directory: 'DOCUMENTS',
+      directory: 'CACHE',
     });
+    expect(mockGetUri).toHaveBeenCalledOnce();
+    expect(mockSharePlugin).toHaveBeenCalledOnce();
   });
 
   it('returns without falling through on success', async () => {
     mockWriteFile.mockResolvedValue(undefined);
+    mockGetUri.mockResolvedValue({ uri: 'file:///cache/test.txt' });
+    mockSharePlugin.mockResolvedValue(undefined);
 
     // Stub showSaveFilePicker to detect if we fall through
     const showSaveFilePicker = vi.fn();
@@ -141,12 +159,17 @@ describe('saveBlob — Capacitor Native path', () => {
     const { saveBlob } = await getModule();
     await saveBlob(makeBlob('data', 'text/plain'), 'test.txt');
 
-    expect(mockWriteFile).toHaveBeenCalledOnce();
+    // 1 write to Cache only (Share succeeded, user chose save location)
+    expect(mockWriteFile).toHaveBeenCalledTimes(1);
+    expect(mockGetUri).toHaveBeenCalledOnce();
+    expect(mockSharePlugin).toHaveBeenCalledOnce();
     expect(showSaveFilePicker).not.toHaveBeenCalled();
   });
 
   it('falls through when Filesystem.writeFile throws', async () => {
     mockWriteFile.mockRejectedValue(new Error('Storage full'));
+    mockGetUri.mockResolvedValue({ uri: 'file:///cache/test.txt' });
+    mockSharePlugin.mockResolvedValue(undefined);
 
     // Stub FSAA so we can detect fallthrough reached it
     const showSaveFilePicker = vi.fn().mockRejectedValue(new Error('Cancel'));
@@ -165,8 +188,8 @@ describe('saveBlob — Capacitor Native path', () => {
     const { saveBlob } = await getModule();
     await saveBlob(makeBlob('data', 'text/plain'), 'test.txt');
 
-    // Should have tried Filesystem, then FSAA (cancelled), then blob fallback
-    expect(mockWriteFile).toHaveBeenCalledOnce();
+    // Cache write throws → catch → Documents fallback also throws → browser methods
+    expect(mockWriteFile).toHaveBeenCalledTimes(2);
     expect(showSaveFilePicker).toHaveBeenCalledOnce();
     expect(URL.createObjectURL).toHaveBeenCalledOnce();
   });
@@ -631,6 +654,8 @@ describe('Edge Cases', () => {
       fakeFileReaderSuccess('data:text/plain;base64,SGVsbG8='),
     );
     mockWriteFile.mockRejectedValue(new Error('Disk full'));
+    mockGetUri.mockResolvedValue({ uri: 'file:///cache/file.txt' });
+    mockSharePlugin.mockResolvedValue(undefined);
 
     // Fallback: no FSAA, no Share
     vi.stubGlobal('window', { ...window, showSaveFilePicker: undefined });
@@ -642,7 +667,8 @@ describe('Edge Cases', () => {
       saveBlob(makeBlob('data', 'text/plain'), 'native-fallback.txt'),
     ).resolves.toBeUndefined();
 
-    expect(mockWriteFile).toHaveBeenCalledOnce();
+    // Cache write fails → Documents fallback also fails → browser methods
+    expect(mockWriteFile).toHaveBeenCalledTimes(2);
     expect(URL.createObjectURL).toHaveBeenCalledOnce();
   });
 });

@@ -29,16 +29,6 @@ vi.mock('lucide-react', () => ({
 }));
 
 // ==============================================================================
-// Mock notification modules
-// ==============================================================================
-
-vi.mock('../notifications', () => ({
-  isNotificationSupported: () => true,
-  getNotificationPermission: () => 'granted',
-  requestNotificationPermission: () => Promise.resolve('granted'),
-}));
-
-// ==============================================================================
 // Mock analytics module
 // ==============================================================================
 
@@ -72,7 +62,6 @@ vi.mock('../db', () => ({
     getAccounts: () => [],
     getCategories: () => [],
     getTransactions: () => [],
-    getReminders: () => [],
     getAutoBackups: () => [],
     getAutoBackupCount: () => 0,
     getLatestBackupTimestamp: () => null,
@@ -148,11 +137,6 @@ describe('Settings — Rendering', () => {
   it('renders Data Portability card', () => {
     render(<Settings {...defaultProps} />);
     expect(screen.getByText('Data Portability')).toBeTruthy();
-  });
-
-  it('renders Notifications card', () => {
-    render(<Settings {...defaultProps} />);
-    expect(screen.getByText('Notifications')).toBeTruthy();
   });
 
   it('renders Privacy & Analytics card', () => {

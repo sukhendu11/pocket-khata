@@ -6,7 +6,6 @@ const KEYS = {
   ACCOUNTS: 'pocket_khata_accounts',
   CATEGORIES: 'pocket_khata_categories',
   TRANSACTIONS: 'pocket_khata_transactions',
-  REMINDERS: 'pocket_khata_reminders',
   SECURITY: 'pocket_khata_security',
   BUDGETS: 'pocket_khata_budgets',
   SAVINGS_GOALS: 'pocket_khata_savings_goals',
@@ -128,27 +127,6 @@ const DEFAULT_TRANSACTIONS = [
   },
 ];
 
-const DEFAULT_REMINDERS = [
-  {
-    id: 'rem_1', name: 'Electricity Bill', amount: 1850,
-    dueDate: new Date(new Date().setDate(new Date().getDate() + 4)).toISOString().split('T')[0],
-    categoryId: 'cat_utilities', status: 'unpaid',
-    createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP, demo: true,
-  },
-  {
-    id: 'rem_2', name: 'Internet Subscription', amount: 950,
-    dueDate: new Date(new Date().setDate(new Date().getDate() + 9)).toISOString().split('T')[0],
-    categoryId: 'cat_utilities', status: 'unpaid',
-    createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP, demo: true,
-  },
-  {
-    id: 'rem_3', name: 'Gym Membership', amount: 1500,
-    dueDate: new Date(new Date().setDate(new Date().getDate() - 2)).toISOString().split('T')[0],
-    categoryId: 'cat_entertainment', status: 'paid',
-    createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP, demo: true,
-  },
-];
-
 const DEFAULT_SECURITY = {
   isPINEnabled: false,
   pin: '1234',
@@ -205,7 +183,6 @@ function migrateSchema() {
     patchArray(KEYS.ACCOUNTS);
     patchArray(KEYS.CATEGORIES, { archived: false });
     patchArray(KEYS.TRANSACTIONS, { recurring: false });
-    patchArray(KEYS.REMINDERS);
     patchArray(KEYS.BUDGETS);
     patchArray(KEYS.SAVINGS_GOALS);
 
@@ -231,13 +208,11 @@ function migrateSchema() {
       accounts: ['acc_cash', 'acc_bank', 'acc_bkash', 'acc_nagad'],
       categories: ['cat_salary', 'cat_freelance', 'cat_investments', 'cat_food', 'cat_shopping', 'cat_rent', 'cat_utilities', 'cat_transport', 'cat_entertainment', 'cat_medical'],
       transactions: ['tx_1', 'tx_2', 'tx_3', 'tx_4', 'tx_5'],
-      reminders: ['rem_1', 'rem_2', 'rem_3'],
     };
 
     const SEED_NAMES = {
       accounts: ['Cash', 'Bank Account', 'bKash Wallet', 'Nagad Wallet'],
       categories: ['Salary', 'Freelance', 'Investments', 'Food & Dining', 'Shopping', 'Rent & Housing', 'Utilities', 'Transport', 'Entertainment', 'Medical & Health'],
-      reminders: ['Electricity Bill', 'Internet Subscription', 'Gym Membership'],
     };
 
     const tagSeedItems = (key, idList, nameList) => {
@@ -265,9 +240,8 @@ function migrateSchema() {
 
     tagSeedItems(KEYS.ACCOUNTS, SEED_IDS.accounts, SEED_NAMES.accounts);
     tagSeedItems(KEYS.CATEGORIES, SEED_IDS.categories, SEED_NAMES.categories);
-    // Transactions/reminders without names: match by ID only
+    // Transactions without names: match by ID only
     tagSeedItems(KEYS.TRANSACTIONS, SEED_IDS.transactions);
-    tagSeedItems(KEYS.REMINDERS, SEED_IDS.reminders, SEED_NAMES.reminders);
   }
 
   // ---- v3 → v4: Add default categories, subcategories, default flag ----
@@ -398,8 +372,6 @@ function migrateSchema() {
 
     removeDemoItems(KEYS.ACCOUNTS);
     removeDemoItems(KEYS.TRANSACTIONS);
-    removeDemoItems(KEYS.REMINDERS);
-
     // Remove demo categories (keep defaults and user-created)
     try {
       const catRaw = localStorage.getItem(KEYS.CATEGORIES);
@@ -485,7 +457,16 @@ function getOrSeed(key, defaultValue) {
 
 function save(key, data) {
   createAutoBackup();
-  localStorage.setItem(key, JSON.stringify(data));
+  try {
+    // SAFETY: Validate that data can be serialized before writing
+    // to prevent corrupted localStorage state from causing white screens.
+    // This catches circular references or other JSON-serialization issues.
+    const serialized = JSON.stringify(data);
+    localStorage.setItem(key, serialized);
+  } catch (e) {
+    trackError(e, { key, operation: 'save_serialize' });
+    console.error(`Error saving key "${key}":`, e);
+  }
 }
 
 // ========== AUTO-BACKUP HELPERS ==========
@@ -498,7 +479,6 @@ function readAllData() {
     accounts: getOrSeed(KEYS.ACCOUNTS, []),
     categories: getOrSeed(KEYS.CATEGORIES, DEFAULT_CATEGORIES),
     transactions: getOrSeed(KEYS.TRANSACTIONS, []),
-    reminders: getOrSeed(KEYS.REMINDERS, []),
     security: getOrSeed(KEYS.SECURITY, DEFAULT_SECURITY),
     budgets: getOrSeed(KEYS.BUDGETS, DEFAULT_BUDGETS),
     savingsGoals: getOrSeed(KEYS.SAVINGS_GOALS, DEFAULT_SAVINGS_GOALS),
@@ -568,7 +548,6 @@ function restoreFromAutoBackup(index) {
     if (snapshot.accounts) save(KEYS.ACCOUNTS, snapshot.accounts);
     if (snapshot.categories) save(KEYS.CATEGORIES, snapshot.categories);
     if (snapshot.transactions) save(KEYS.TRANSACTIONS, snapshot.transactions);
-    if (snapshot.reminders) save(KEYS.REMINDERS, snapshot.reminders);
     if (snapshot.security) save(KEYS.SECURITY, snapshot.security);
     if (snapshot.budgets) save(KEYS.BUDGETS, snapshot.budgets);
     if (snapshot.savingsGoals) save(KEYS.SAVINGS_GOALS, snapshot.savingsGoals);
@@ -649,7 +628,6 @@ function clearDemoData() {
   const accounts = getOrSeed(KEYS.ACCOUNTS, DEFAULT_ACCOUNTS);
   const categories = getOrSeed(KEYS.CATEGORIES, DEFAULT_CATEGORIES);
   const transactions = getOrSeed(KEYS.TRANSACTIONS, DEFAULT_TRANSACTIONS);
-  const reminders = getOrSeed(KEYS.REMINDERS, DEFAULT_REMINDERS);
   const budgets = getOrSeed(KEYS.BUDGETS, DEFAULT_BUDGETS);
   const savingsGoals = getOrSeed(KEYS.SAVINGS_GOALS, DEFAULT_SAVINGS_GOALS);
 
@@ -675,13 +653,10 @@ function clearDemoData() {
     updatedAt: new Date().toISOString(),
   }));
 
-  const realReminders = reminders.filter(r => !r.demo);
-
   // Save everything back
   save(KEYS.ACCOUNTS, realAccounts);
   save(KEYS.CATEGORIES, keptCategories);
   save(KEYS.TRANSACTIONS, realTransactions);
-  save(KEYS.REMINDERS, realReminders);
   // budgets and savingsGoals have no demo items, just save as-is
   save(KEYS.BUDGETS, budgets);
   save(KEYS.SAVINGS_GOALS, savingsGoals);
@@ -690,7 +665,6 @@ function clearDemoData() {
     accounts: realAccounts,
     categories: keptCategories,
     transactions: realTransactions,
-    reminders: realReminders,
   };
 }
 
@@ -1056,66 +1030,6 @@ export const db = {
     this.saveAccounts(accounts);
   },
 
-  // ---- Reminders ----
-  getReminders() {
-    return getOrSeed(KEYS.REMINDERS, []);
-  },
-  saveReminders(reminders) {
-    save(KEYS.REMINDERS, reminders);
-  },
-  addReminder(reminder) {
-    const reminders = this.getReminders();
-    const ts = nowISO();
-    const newReminder = {
-      ...reminder,
-      id: `rem_${Date.now()}`,
-      amount: Number(reminder.amount),
-      status: reminder.status || 'unpaid',
-      createdAt: ts,
-      updatedAt: ts,
-    };
-    reminders.push(newReminder);
-    this.saveReminders(reminders);
-    return newReminder;
-  },
-  updateReminder(updatedReminder) {
-    const reminders = this.getReminders();
-    const idx = reminders.findIndex(r => r.id === updatedReminder.id);
-    if (idx !== -1) {
-      reminders[idx] = {
-        ...updatedReminder,
-        amount: Number(updatedReminder.amount),
-        updatedAt: nowISO(),
-      };
-      this.saveReminders(reminders);
-    }
-  },
-  deleteReminder(id) {
-    const reminders = this.getReminders();
-    this.saveReminders(reminders.filter(r => r.id !== id));
-  },
-  payReminder(id, sourceAccountId) {
-    const reminders = this.getReminders();
-    const remIdx = reminders.findIndex(r => r.id === id);
-    if (remIdx === -1) return null;
-
-    const reminder = reminders[remIdx];
-    reminder.status = 'paid';
-    reminder.updatedAt = nowISO();
-    this.saveReminders(reminders);
-
-    // Create a transaction matching this paid reminder
-    const newTx = {
-      type: 'expense',
-      amount: reminder.amount,
-      date: new Date().toISOString().split('T')[0],
-      accountId: sourceAccountId,
-      categoryId: reminder.categoryId,
-      notes: `Bill Payment: ${reminder.name}`,
-    };
-    return this.addTransaction(newTx);
-  },
-
   // ---- Budgets ----
   getBudgets() {
     return getOrSeed(KEYS.BUDGETS, DEFAULT_BUDGETS);
@@ -1265,7 +1179,6 @@ export const db = {
     localStorage.removeItem(KEYS.ACCOUNTS);
     localStorage.removeItem(KEYS.CATEGORIES);
     localStorage.removeItem(KEYS.TRANSACTIONS);
-    localStorage.removeItem(KEYS.REMINDERS);
     localStorage.removeItem(KEYS.SECURITY);
     localStorage.removeItem(KEYS.BUDGETS);
     localStorage.removeItem(KEYS.SAVINGS_GOALS);
@@ -1277,7 +1190,6 @@ export const db = {
       accounts: this.getAccounts(),
       categories: this.getCategories(),
       transactions: this.getTransactions(),
-      reminders: this.getReminders(),
       security: this.getSecuritySettings(),
       budgets: this.getBudgets(),
       savingsGoals: this.getSavingsGoals(),
@@ -1289,7 +1201,6 @@ export const db = {
       accounts: this.getAccounts(),
       categories: this.getCategories(),
       transactions: this.getTransactions(),
-      reminders: this.getReminders(),
       security: this.getSecuritySettings(),
       budgets: this.getBudgets(),
       savingsGoals: this.getSavingsGoals(),
@@ -1305,7 +1216,6 @@ export const db = {
       if (data.accounts) save(KEYS.ACCOUNTS, data.accounts);
       if (data.categories) save(KEYS.CATEGORIES, data.categories);
       if (data.transactions) save(KEYS.TRANSACTIONS, data.transactions);
-      if (data.reminders) save(KEYS.REMINDERS, data.reminders);
       if (data.security) save(KEYS.SECURITY, data.security);
       if (data.budgets) save(KEYS.BUDGETS, data.budgets);
       if (data.savingsGoals) save(KEYS.SAVINGS_GOALS, data.savingsGoals);

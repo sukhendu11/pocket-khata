@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { 
-  Bell, Sun, Moon, ArrowUpRight, ArrowDownLeft,
+  Sun, Moon, ArrowUpRight, ArrowDownLeft,
   Wallet, Landmark, CreditCard, ChevronRight, HelpCircle,
   PieChart as PieChartIcon, Target,
 } from 'lucide-react';
@@ -13,8 +13,7 @@ import TransactionItem from './TransactionItem';
 export default function Dashboard({ 
   accounts, 
   transactions, 
-  categories, 
-  reminders,
+  categories,
   budgets,
   savingsGoals,
   onNavigate, 
@@ -165,11 +164,6 @@ export default function Dashboard({
     };
   }, [monthlyTrends]);
 
-  const hasOverdueReminders = useMemo(() => {
-    const today = new Date();
-    return reminders.some(rem => rem.status === 'unpaid' && new Date(rem.dueDate) < today);
-  }, [reminders]);
-
   return (
     <div style={styles.scrollContainer}>
       
@@ -184,15 +178,6 @@ export default function Dashboard({
             </div>
           </div>
         <div style={styles.actions}>
-          {/* Theme Toggle */}
-          <button 
-            className="neo-btn neo-btn-round" 
-            style={styles.actionBtn}
-            onClick={() => { onNavigate('reminders'); trackAction('view_reminders', { source: 'dashboard_header' }); }}
-          >
-            <Bell size={18} style={{ color: hasOverdueReminders ? 'var(--color-expense)' : 'var(--text-secondary)' }} />
-            {hasOverdueReminders && <div style={styles.badgeDot} />}
-          </button>
           <button 
             className="neo-btn neo-btn-round" 
             style={styles.actionBtn}
@@ -503,7 +488,6 @@ Dashboard.propTypes = {
   accounts: PropTypes.array,
   transactions: PropTypes.array,
   categories: PropTypes.array,
-  reminders: PropTypes.array,
   budgets: PropTypes.array,
   savingsGoals: PropTypes.array,
   onNavigate: PropTypes.func,

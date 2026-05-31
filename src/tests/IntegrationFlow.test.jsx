@@ -48,11 +48,6 @@ const mockBudgetData = [
   { id: 'budget_transport', categoryId: 'cat_transport', limit: 1000, month: 4, year: 2025 },
 ];
 
-const mockReminders = [
-  { id: 'rem_1', name: 'Electric Bill', amount: 3000, dueDate: '2025-04-28',
-    status: 'unpaid', categoryId: 'cat_rent' },
-];
-
 const mockSavingsGoals = [
   { id: 'goal_1', name: 'New Laptop', targetAmount: 100000, currentAmount: 30000 },
 ];
@@ -96,7 +91,6 @@ const dashboardDefaultProps = {
   accounts: mockAccounts,
   transactions: mockTransactions,
   categories: mockCategories,
-  reminders: mockReminders,
   budgets: mockBudgetData,
   savingsGoals: mockSavingsGoals,
   onNavigate: () => {},
@@ -717,7 +711,6 @@ describe('Integration: Empty State Flow', () => {
         accounts={[]}
         transactions={[]}
         categories={[]}
-        reminders={[]}
         budgets={[]}
         savingsGoals={[]}
         onNavigate={() => {}}
