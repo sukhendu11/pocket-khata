@@ -1,41 +1,42 @@
-# Pocket Khata — Session Start Instructions
+# Pocket Khata — SESSION START CONTROLLER
 
-## IMPORTANT RULE
-SESSION_STATE.md is the ONLY source of truth.
+## ABSOLUTE RULE
+SESSION_STATE.md is the ONLY truth for continuation.
 
 ---
 
-## BOOT STEPS (MANDATORY)
+## BOOT SEQUENCE (MANDATORY)
 
-1. Read SESSION_STATE.md completely
+Before doing anything:
+
+1. Read SESSION_STATE.md fully
 2. Identify:
    - last completed task
    - current active task
-   - pending work
+   - next step
 3. Check latest git commit
 
 ---
 
-## EXECUTION RULES
+## CONTINUATION RULE (CRITICAL)
 
-- Do NOT restart project analysis
-- Do NOT re-understand architecture from scratch
-- Continue ONLY from last unfinished task
-- One task at a time
+- DO NOT re-analyze full project
+- DO NOT restart architecture reasoning
+- DO NOT guess missing context
+- CONTINUE ONLY from "Current active task"
+
+---
+
+## EXECUTION RULE
+
+- One task at a time only
 - Minimal changes only
+- Preserve App.jsx + db.js architecture
+- Maintain financial integrity
 
 ---
 
-## SAFETY RULES
+## FIRST ACTION AFTER LOADING
 
-- Never break transaction/account/balance logic
-- Do not modify db.js unless required
-- Preserve App.jsx state logic
-
----
-
-## FIRST ACTION
-
-After reading SESSION_STATE.md:
 - Summarize current state in 3–5 lines
-- Then continue work immediately
+- Then continue execution immediately

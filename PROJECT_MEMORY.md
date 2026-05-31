@@ -36,7 +36,6 @@
 - **Responsive Shell**: Max-width 420px container simulating a smartphone; installable as PWA.
 - **Code Splitting**: Lazy-loaded screens with eager preloading of TransactionHistory; Vite manual chunks (`vendor-react`, `vendor-icons`, `vendor-pdf`).
 - **Error Boundary**: React ErrorBoundary wrapping app and transaction form screens with retry fallback.
-- **Consent Popup**: Usage-delayed analytics consent dialog (first-time or after 3 days/30 minutes of active usage).
 - **Splash Screen**: Animated splash overlay matching native Android windowBackground.
 
 ### Notifications
@@ -60,8 +59,8 @@ src/
 ├── hooks/
 │   └── useKeyboard.js          # Capacitor keyboard height detection for Android
 ├── lib/
-│   ├── analytics.js            # Consent-gated analytics event queue with optional Supabase sync
-│   ├── supabase.js             # Supabase client setup with graceful placeholder degradation
+│   ├── analytics.js            # Analytics event queue with optional Supabase sync
+│   ├── supabase.js             # Supabase client stub (isSupabaseConfigured: false)
 │   ├── download.js             # Cross-platform file download (Capacitor Filesystem, File System Access API, Native Share, Blob URL)
 │   └── pdf/
 │       ├── index.js            # Public facade for PDF report generation
@@ -79,33 +78,39 @@ src/
 │   ├── CalendarView.jsx         # Monthly financial calendar
 │   ├── Settings.jsx             # Import/export, backups, PDF reports, reset
 │   ├── AccountManager.jsx       # CRUD for financial accounts
-│   ├── AccountList.js           # Simple account list (currently unused / orphaned)
+│   ├── AccountList.jsx          # Simple account list (currently unused / orphaned)
 │   ├── CategoryManager.jsx      # CRUD for categories with icon/color picker
 │   ├── ReminderManager.jsx      # Bill reminders with pay integration
 │   ├── BudgetManager.jsx        # Budget planning per category with rollover
 │   ├── SavingsTracker.jsx       # Savings goals & contributions
 │   ├── ErrorBoundary.jsx        # Class-based React error boundary
-│   ├── ConsentPopup.jsx         # Analytics consent modal
 │   └── SplashOverlay.jsx        # Splash screen overlay
 ├── tests/
 │   ├── setup.js
-│   ├── db.test.js
-│   ├── utils.test.js
-│   ├── download.test.js
-│   ├── notifications.test.js
-│   ├── reportTemplates.test.js
-│   ├── reportData.test.js
+│   ├── AccountList.test.jsx
+│   ├── AccountManager.test.jsx
+│   ├── AnalyticsView.test.jsx
+│   ├── BudgetManager.test.jsx
+│   ├── CalendarView.test.jsx
+│   ├── CategoryManager.test.jsx
 │   ├── Dashboard.test.jsx
+│   ├── db.test.js
+│   ├── download.test.js
+│   ├── ErrorBoundary.test.jsx
+│   ├── FloatingCloseButton.test.jsx
+│   ├── IntegrationFlow.test.jsx
+│   ├── notifications.test.js
+│   ├── PieChart.test.jsx
+│   ├── ReminderManager.test.jsx
+│   ├── reportData.test.js
+│   ├── reportTemplates.test.js
+│   ├── SavingsTracker.test.jsx
+│   ├── Settings.test.jsx
+│   ├── SplashOverlay.test.jsx
 │   ├── TransactionForm.test.jsx
 │   ├── TransactionHistory.test.jsx
-│   ├── AnalyticsView.test.jsx
-│   ├── CalendarView.test.jsx
-│   ├── Settings.test.jsx
-│   ├── AccountManager.test.jsx
-│   ├── CategoryManager.test.jsx
-│   ├── BudgetManager.test.jsx
-│   ├── SavingsTracker.test.jsx
-│   └── IntegrationFlow.test.jsx
+│   ├── TransactionItem.test.jsx
+│   └── utils.test.js
 android/
 ├── app/                          # Capacitor Android project
 ├── build.gradle, settings.gradle, etc.
@@ -124,7 +129,7 @@ supabase/
 - **Single-root state management**: All state lives in `App.jsx`; child components receive data and mutation callbacks via props.
 - **LocalStorage wrapper**: `db.js` exports a singleton `db` object providing all CRUD operations, schema migrations, auto-backups, and import/export.
 - **Lazy loading**: Non-dashboard screens loaded via `React.lazy()` + `Suspense`; `TransactionHistory` is eagerly preloaded after mount.
-- **Consent-gated analytics**: Events are queued in localStorage and optionally synced to Supabase only after explicit user consent.
+- **Local analytics queue**: Events are enqueued to localStorage and optionally synced to Supabase if configured; no consent popup required.
 - **Progressive enhancement**: Service worker, periodic background sync, notifications, and File System Access API are all feature-detected and fail silently.
 
 ### Screen Flow & Navigation
@@ -185,7 +190,6 @@ All application state is held in `App.jsx` via `useState`:
 - `editingTransaction` — transaction being edited (or null)
 - `showTransactionForm` — modal visibility
 - `toast` — transient notification
-- `analyticsConsent` — null (unanswered), 'granted', 'denied', or 'deferred'
 - `notifiedTags` — Set preventing duplicate notification displays
 
 ### Persistence Flow
@@ -205,7 +209,7 @@ All application state is held in `App.jsx` via `useState`:
 
 ### Analytics Data Flow
 - Event queue stored in `localStorage` key `pocket_khata_analytics_queue`.
-- Events are enqueued only when consent is `'granted'`.
+- Events are enqueued on every tracked action (no consent gate).
 - `flushEvents()` attempts to bulk-insert to Supabase `analytics_events` table if configured and online; otherwise events remain queued locally.
 - Max queue size: 500 events. Automatic sync every 60 seconds and on `online` events.
 
@@ -290,11 +294,10 @@ All application state is held in `App.jsx` via `useState`:
 | Categories | `categories` | `CategoryManager.jsx` | Category CRUD with icon picker and subcategory management |
 | Budgets | `budgets` | `BudgetManager.jsx` | Budget limits with progress bars and rollover |
 | Savings | `savings` | `SavingsTracker.jsx` | Goals with progress rings and contribution flow |
-| Settings | `settings` | `Settings.jsx` | Language, theme, backups, data portability, PDF reports, app reset, notifications, analytics consent |
+| Settings | `settings` | `Settings.jsx` | Language, theme, backups, data portability, PDF reports, app reset, notifications |
 
 ### Overlays / Modals
 - **TransactionForm**: Opens via center FAB or editing a transaction; closes on save/cancel/delete.
-- **ConsentPopup**: Shown on first open or after usage-delay thresholds (3 days or 30 minutes active usage).
 - **SplashOverlay**: Fades out ~600ms after mount.
 
 ### Lazy Loading Strategy
@@ -315,11 +318,11 @@ All application state is held in `App.jsx` via `useState`:
 | Persistence | Browser `localStorage` via `db.js` wrapper |
 | Icons | Lucide React |
 | PDF | html2canvas + jsPDF |
-| Testing | Vitest + React Testing Library (18 test files, 480+ tests) |
+| Testing | Vitest + React Testing Library (24 test files, 933+ tests) |
 | Linting | ESLint 8 with `no-console` `error` rule |
 | Mobile | Capacitor (Android/iOS packaging) |
 | Notifications | Browser Notification API + Service Worker + Periodic Background Sync |
-| Analytics (optional) | Supabase JS client (graceful degradation) |
+| Analytics (optional) | Supabase JS client (stubbed, isSupabaseConfigured: false) |
 | Virtualization | `@tanstack/react-virtual` |
 | CI | GitHub Actions (lint → test → build) |
 
@@ -327,8 +330,8 @@ All application state is held in `App.jsx` via `useState`:
 
 ## 9. Known Issues & Inconsistencies
 
-1. **Version Mismatch**: `package.json` reports version `2.4.0`, but `src/db.js` has `APP_VERSION = '2.2.0'`. The README also shows `2.2.0`. These should be aligned.
-2. **Orphaned Component**: `src/components/AccountList.js` is a simple functional component that is **not imported or used** anywhere in the app. It duplicates some logic already in `AccountManager.jsx`.
+1. **Version Mismatch**: `package.json` reports version `2.4.0`, but `src/db.js` has `APP_VERSION = '2.2.0'`. The README was updated to `2.4.0`. These should be aligned.
+2. **Orphaned Component**: `src/components/AccountList.jsx` is a simple functional component that is **not imported or used** anywhere in the app. It duplicates some logic already in `AccountManager.jsx`.
 3. **Unused Migration File**: `supabase/migrations/001_create_analytics_events.sql` exists but the current codebase does not appear to use raw SQL migrations directly — the Supabase client uses `.from('analytics_events').insert(...)`.
 4. **Schema Migration Gap**: The `migrateSchema()` function in `db.js` has explicit blocks for v1→v2, v2→v3, v3→v4, v5→v6, and v6→v7, but **no explicit v4→v5 block**. Version v5 is jumped over (the comment says "v5 — Removed auto-seeding..."). This is likely intentional (v5 changes were applied at load time rather than via migration), but it means subtle behavior differences could exist for data migrated from v4.
 5. **Demo Data References**: Even though auto-seeding of demo data was removed in v5/v6, `DEFAULT_ACCOUNTS`, `DEFAULT_TRANSACTIONS`, `DEFAULT_REMINDERS`, and `DEFAULT_SECURITY` constants remain in `db.js` and are referenced by the `clearDemoData()` function and migration logic.
@@ -342,10 +345,10 @@ All application state is held in `App.jsx` via `useState`:
 
 ## 10. Important Constraints & Conventions
 
-- **No mandatory backend**: The app functions entirely without a server. Supabase integration is opt-in via analytics consent.
+- **No mandatory backend**: The app functions entirely without a server. Supabase integration is optional and configured via environment variables.
 - **No console logs in production**: ESLint `no-console` rule is set to `error` for `console.log` and `console.info`; only `warn` and `error` are allowed.
 - **No CSS framework**: All styling is custom CSS with CSS custom properties.
 - **No routing library**: Navigation is string-based state in `App.jsx`.
 - **No external scripts/CDNs in production**: Only Google Fonts are loaded externally. All JS/CSS bundles are served from the app's own origin.
-- **Test command**: `npm test` runs Vitest. 18 test files exist covering db, utils, components, PDF generation, notifications, and an integration flow.
+- **Test command**: `npm test` runs Vitest. 24 test files cover db, utils, components, PDF generation, notifications, and an integration flow.
 - **Build command**: `npm run build` produces Vite production build with code splitting.
