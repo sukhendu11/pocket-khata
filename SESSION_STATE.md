@@ -7,74 +7,65 @@
 
 # 📍 CURRENT STATE (MOST IMPORTANT)
 
-- **Last completed task:** Restored bill reminder code as commented-out sections (preserved for future use)
-- **Current active task:** None — all changes uncommitted
+- **Last completed task:** Fixed Android cold-start icon flash; restored bill reminder code as commented-out sections
+- **Current active task:** None — all changes committed and pushed
 - **Immediate next step:** Awaiting user direction
 
-- **Active module:** src/components/ReminderManager.jsx, src/notifications.js (commented-out, preserved for future use)
-- **Current user flow:** N/A — reminder code preserved as comments, no active changes
-- **Risk zone:** LOW — production code unchanged in behavior, commented-out code only, 938 tests passing
+- **Active module:** Android splash screen (styles.xml, MainActivity, AndroidManifest)
+- **Current user flow:** N/A — splash/icon improvements complete
+- **Risk zone:** LOW — all changes committed, 938 tests passing
 
 ---
 
 # 🧩 WORK COMPLETED THIS SESSION
 
-1. **Restored bill reminder code as commented-out sections (preserved for future use):**
+1. **Fixed Android cold-start icon flash:**
+   - Added native `android:windowSplashScreenBackground` + `android:windowSplashScreenAnimatedIcon` to `AppTheme.NoActionBarLaunch` (Android 12+ framework attributes, no Material library needed)
+   - Removed broken `Theme.App.Splash` (required Material Components dependency)
+   - Removed unused `installSplashScreen()` call from MainActivity
+   - Reverted AndroidManifest to `@style/AppTheme.NoActionBarLaunch`
+   - Added inline `<style>` in `index.html` with `background-color: #E5EAF2` for zero WebView flash
+   - Regenerated all Android launcher icons from updated logo
+   - Created and ran `scripts/generate-splash.cjs` to regenerate all splash PNGs at 11 densities/orientations
+
+2. **Restored bill reminder code as commented-out sections (preserved for future use):**
    - **Restored 4 deleted files** with code fully commented out:
-     - `src/components/ReminderManager.jsx` — full component preserved
-     - `src/notifications.js` — full notification utility preserved
-     - `src/tests/ReminderManager.test.jsx` — full test suite preserved (70 tests)
-     - `src/tests/notifications.test.js` — full test suite preserved (65 tests)
-   - **Updated 7 source files** — added removed reminder/notification code as commented-out sections:
-     - `src/App.jsx` — ReminderManager lazy import, reminder state/handlers, notification effects
-     - `src/db.js` — REMINDERS key, DEFAULT_REMINDERS, all reminder methods
-     - `src/components/Dashboard.jsx` — reminders prop, Bell icon button, overdue badge, Reminders nav
-     - `src/components/Settings.jsx` — notification permission state, notification settings card
-     - `src/i18n.js` — all `reminders.*` (12 keys) and `notif.*` (6 keys) translation keys
-     - `src/main.jsx` — notification imports and permission calls
-     - `public/sw.js` — periodic sync handler, checkAndNotifyReminders, notification click handler
-   - **Added placeholder `describe.skip` tests** in the 2 restored test files so Vitest doesn't error on empty suites
-   - **Test files kept intact** — existing 936 tests unchanged, no modifications to App.test.jsx, Dashboard.test.jsx, etc.
+     - `src/components/ReminderManager.jsx`, `src/notifications.js`
+     - `src/tests/ReminderManager.test.jsx`, `src/tests/notifications.test.js`
+   - **Updated 7 source files** with commented-out reminder blocks: App.jsx, db.js, Dashboard.jsx, Settings.jsx, i18n.js, main.jsx, sw.js
+   - Added placeholder `describe.skip` tests for Vitest compatibility
+
+3. **Built & installed debug APK (3 iterations)** to verify fixes on device via USB
 
 ---
 
 # ⚙️ CODE STATUS
 
-- ReminderManager.jsx: RESTORED — fully commented-out, ready for future uncommenting
-- notifications.js: RESTORED — fully commented-out, ready for future uncommenting
-- App.jsx: MODIFIED — reminder/notification code added back as comments
-- db.js: MODIFIED — reminder methods added back as comments
-- Dashboard.jsx: MODIFIED — bell icon/overdue badge added back as comments
-- Settings.jsx: MODIFIED — notification card added back as comments
-- i18n.js: MODIFIED — reminder/notification keys added back as comments
-- main.jsx: MODIFIED — notification calls added back as comments
-- public/sw.js: MODIFIED — notification code added back as comments
-- ReminderManager.test.jsx: RESTORED — fully commented-out, 70 tests preserved
-- notifications.test.js: RESTORED — fully commented-out, 65 tests preserved
-- Android icon fixes: UNCHANGED from previous sessions
+- ReminderManager.jsx: RESTORED — fully commented-out for future use
+- notifications.js: RESTORED — fully commented-out for future use
+- Android styles.xml: MODIFIED — native splash attributes added
+- MainActivity.java: CLEANED — removed unused SplashScreen import/call
+- index.html: MODIFIED — inline WebView background color
+- All other source files: reminder code added back as comments
 
 ---
 
 # 📁 FILES MODIFIED THIS SESSION
 
-**Restored as commented-out (4):**
-- src/components/ReminderManager.jsx
-- src/notifications.js
-- src/tests/ReminderManager.test.jsx
-- src/tests/notifications.test.js
-
-**Production code edited with commented-out reminder blocks (7):**
-- src/App.jsx
-- src/db.js
-- src/components/Dashboard.jsx
-- src/components/Settings.jsx
-- src/i18n.js
-- src/main.jsx
-- public/sw.js
-
-**Session state files (2):**
-- SESSION_STATE.md
-- SESSION_END.md
+- android/app/src/main/res/values/styles.xml
+- android/app/src/main/AndroidManifest.xml
+- android/app/src/main/java/com/pocketkhata/app/MainActivity.java
+- index.html
+- scripts/generate-splash.cjs (new)
+- public/pocket-khata-logo.png (replaced by user)
+- All android mipmap/*/ic_launcher*.png (regenerated)
+- All android drawable*/splash.png (regenerated)
+- src/components/ReminderManager.jsx (restored as comments)
+- src/notifications.js (restored as comments)
+- src/tests/ReminderManager.test.jsx (restored as comments)
+- src/tests/notifications.test.js (restored as comments)
+- src/App.jsx, db.js, Dashboard.jsx, Settings.jsx, i18n.js, main.jsx, public/sw.js
+- SESSION_STATE.md, SESSION_END.md
 
 ---
 
@@ -87,8 +78,8 @@
 # 🛡️ SAFETY CHECK (CRITICAL)
 
 - Financial logic intact? YES
-- Any risk introduced? LOW — removed feature only; no logic changed in remaining features
-- db.js modified? YES — removed reminder methods only; no behavior changes to accounts/transactions/budgets/savings
+- Any risk introduced? LOW — only commented-out code and splash/icon assets
+- db.js modified? YES — reminder methods added back as comments only; no behavior changes
 
 ---
 
@@ -104,7 +95,7 @@
 # 📦 GIT INFO
 
 - Branch: master
-- Last commit: `00659e4` — feat: remove bill reminder feature (4 files deleted, 13 files updated)
+- Last commit: `73c9c7d` — fix: eliminate Android cold-start icon flash using native system splash attributes
 - Uncommitted changes: None — git is clean
 - Staged: None
 

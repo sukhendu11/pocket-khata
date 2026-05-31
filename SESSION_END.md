@@ -146,27 +146,30 @@ Session is ONLY complete when:
 # 📋 THIS SESSION — EXECUTION CHECKLIST
 
 ## ✅ Git Check
-- **git status**: 30+ files modified (uncommitted), 4 files deleted
-- **Last 3 commits (this session)**: No new commits this session (all changes uncommitted)
-  - Previous commits: `a92e628`, `2c28c87`, `1c51241`
+- **git status**: Clean — 43 files changed, all committed and pushed
+- **Last commit (this session)**: `73c9c7d` — fix: eliminate Android cold-start icon flash using native system splash attributes
+- **Push**: Successfully pushed to `origin/master`
 
 ## ✅ SESSION_STATE.md Updated
 - Reflecting real project state: 936 tests, 25 suites, all green
-- Bill reminder feature completely removed
+- Android splash fix deployed and verified on device
+- Bill reminder code preserved as commented-out sections
 
 ## ✅ No Untracked Work Remains
-- Bill reminder feature: fully removed, no stubs, no TODOs
-- Android icon fix: complete
-- All test files updated to match current codebase
+- Android cold-start flash: fixed with native system splash attributes ✅
+- Bill reminder code: restored as comments for future re-enable ✅
+- Splash/icon assets: regenerated from updated logo ✅
+- generate-splash.cjs script: new file committed ✅
+- No stubs, no TODOs, no partial implementations
 
 ## ✅ Test Status
 - **936/936 passing** across **25 suites**
-- **155 tests removed** this session (all reminder/notification tests deleted alongside the feature)
+- **2 skipped** placeholder suites (commented-out test files)
 
 ## ✅ Consistency Check
 - SESSION_STATE.md matches codebase 100%
 - Next session can resume instantly from SESSION_STATE.md
-- No unfinished work — all changes are complete and await commit
+- No unfinished work — all changes committed and pushed
 
 ---
 
@@ -174,16 +177,19 @@ Session is ONLY complete when:
 
 ## Work Completed
 
-1. **Removed bill reminder feature entirely**
-   - Deleted 4 files: ReminderManager.jsx, ReminderManager.test.jsx, notifications.js, notifications.test.js
-   - Updated 7 source files: App.jsx, db.js, Dashboard.jsx, Settings.jsx, i18n.js, main.jsx, public/sw.js
-   - Updated 7 test files to remove all reminder/notification references
-   - Removed ~3,700 lines of code and 155 tests
+1. **Fixed Android cold-start icon flash**
+   - Replaced broken `Theme.SplashScreen` (needs Material deps) with native `android:windowSplashScreen*` attributes — works on any theme, no extra deps needed
+   - Added inline `#E5EAF2` background style in index.html for zero WebView flash
+   - Removed unused `installSplashScreen()` from MainActivity
+   - Regenerated all launcher icons + splash PNGs from updated logo
+   - Created `scripts/generate-splash.cjs` for splash asset generation
+   - Built & installed 3 debug APK iterations via USB to verify on device
 
-2. **Fixed Android icon splash issues**
-   - Reduced adaptive icon fill from 78% to 55% (no more icon clipping)
-   - Changed windowBackground to splash drawable (instant splash on tap, no icon flash)
+2. **Restored bill reminder code as commented-out sections**
+   - Restored 4 deleted files fully commented-out with re-enable instructions
+   - Updated 7 source files with [REMINDERS] comment blocks preserving all removed code
+   - Added placeholder `describe.skip` tests for Vitest compatibility
 
 ## Test Results
-- **Before:** 1,091 tests — **After:** 936 tests (155 removed, 0 broken)
+- **Before:** 936 tests — **After:** 936 tests (unchanged, +2 skipped placeholders)
 - **All 936 passing**, 25 suites, 0 failures
