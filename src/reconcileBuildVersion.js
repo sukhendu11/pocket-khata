@@ -61,6 +61,21 @@ export function reconcileBuildVersion(buildVersion) {
       return 'first_boot';
     }
 
+    // ── Clean up stale cache-busting param ────────────────────────
+    // After a prior versioned reload, the URL still carries ?v=BUILD_VERSION
+    // from the upgrade step. Since the current version matches, this param
+    // is no longer needed. Remove it silently via history.replaceState()
+    // so subsequent page loads don't unnecessarily trigger the SW's ?v=
+    // cache-bypass guard. This is purely cosmetic in Capacitor (no visible
+    // URL bar) but matters for bookmark/shared URLs in browser deployments.
+    if (typeof window !== 'undefined' && window.location) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('v')) {
+        url.searchParams.delete('v');
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+
     return 'no_change';
   } catch (e) {
     // Fail silently — version check is non-critical for normal operation

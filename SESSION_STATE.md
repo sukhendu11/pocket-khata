@@ -7,106 +7,73 @@
 
 # 📍 CURRENT STATE (MOST IMPORTANT)
 
-- **Last completed task:** Full APK upgrade pipeline with three-layer WebView cache defense, SW cache-bypass, bill reminder system, reconcileBuildVersion module, and 27 new integration/unit tests
-- **Current active task:** None — all work tested, built, and staged for commit
-- **Immediate next step:** Commit all changes
+- **Last completed task:** Previous session committed all changes — bill reminder system, 3-layer WebView cache defense, SW cache-bypass, reconcileBuildVersion module, APK upgrade integration tests
+- **Current active task:** None — previous session's work is complete and committed
+- **Immediate next step:** Awaiting user direction
 
-- **Active module:** APK upgrade pipeline (MainActivity.java, reconcileBuildVersion.js, public/sw.js)
-- **Current user flow:** N/A — infrastructure + feature work complete
-- **Risk zone:** LOW — all changes covered by tests (935 passing)
+- **Active module:** N/A — all modules stable
+- **Current user flow:** N/A
+- **Risk zone:** LOW — all changes tested and committed
 
 ---
 
-# 🧩 WORK COMPLETED THIS SESSION
+# 🧩 WORK COMPLETED (PREVIOUS SESSION)
 
 1. **Rebuilt bill reminder system (full stack):**
-   - `src/notifications.js` — Rewritten as clean module: `isNotificationSupported()`, `requestNotificationPermission()`, `registerServiceWorker()`, `showNotification()`, `checkReminders()` — silent error handling, locale-aware Bengali digits, no warning text exposed to UI
+   - `src/notifications.js` — Clean module: silent error handling, Bengali digits, no warning text exposed to UI
    - `src/db.js` — Uncommented `KEYS.REMINDERS`, `DEFAULT_REMINDERS`, 6 CRUD methods
    - `src/i18n.js` — Added 26 reminder + 11 notification keys (English/Bengali)
-   - `src/components/ReminderManager.jsx` — Full rewrite: add/edit/delete/pay reminders, overdue detection, clean notification toggles (no red/warning text)
+   - `src/components/ReminderManager.jsx` — Full rewrite: add/edit/delete/pay reminders, overdue detection, clean notification toggles
    - `src/App.jsx` — Lazy import for ReminderManager, 4 reminder handlers, `'reminders'` route
    - `src/components/Dashboard.jsx` — Bell icon button with overdue badge dot
    - `src/main.jsx` — Fixed duplicate ReactDOM.createRoot render call
 
 2. **Built three-layer WebView cache defense in MainActivity.java:**
-   - Layer 1: Synchronous `clearCache(true)` in `onCreate()` (before any page load)
+   - Layer 1: Synchronous `clearCache(true)` in `onCreate()`
    - Layer 2: `ClearCacheWebViewClient extends BridgeWebViewClient` — clears cache in `onPageStarted()`
-   - Layer 3: Synchronous `clearCache(true)` in `onResume()` (when app resumes from background)
+   - Layer 3: Synchronous `clearCache(true)` in `onResume()`
 
-3. **Fixed SW cache-bypass for versioned reloads:**
-   - `public/sw.js` — `?v=` URL fetch handler guard bypasses stale SW cache
+3. **Fixed SW cache-bypass:** `public/sw.js` — `?v=` URL guard bypasses stale SW cache
 
-4. **Added reconcileBuildVersion module + 19 unit tests:**
-   - `src/reconcileBuildVersion.js` — Extracted from main.jsx inline IIFE, testable returns
-   - `src/tests/reconcileBuildVersion.test.js` — 19 tests covering all states
+4. **Added reconcileBuildVersion module + 19 unit tests**
 
-5. **Added APK upgrade integration test:**
-   - `src/tests/apkUpgrade.test.js` — 8 integration tests: full flow, migration, SW bypass
+5. **Added APK upgrade integration test:** 8 tests covering full upgrade flow
 
-6. **Build tooling:**
-   - `scripts/get-build-version.cjs` — Build version script
-   - `vite.config.js` / `vitest.config.js` — Updated for build version injection
+6. **Build tooling:** `scripts/get-build-version.cjs`, `vite.config.js`, `vitest.config.js` updates
 
 ---
 
 # ⚙️ CODE STATUS
 
-- App.jsx state: UPDATED — lazy imports ReminderManager, reminder handlers, 'reminders' route
-- db.js state: UPDATED — reminder CRUD uncommented; existing methods unchanged
-- notifications.js state: REWRITTEN — clean module, no UI-facing warning text
-- ReminderManager.jsx state: REWRITTEN — stable CRUD, clean notification toggles
+- App.jsx: UPDATED — lazy imports ReminderManager, reminder handlers, 'reminders' route
+- db.js: UPDATED — reminder CRUD uncommented
+- notifications.js: REWRITTEN — clean module
+- ReminderManager.jsx: REWRITTEN — stable CRUD, clean notification toggles
 - reconcileBuildVersion.js: NEW — extracted upgrade detection module
-- MainActivity.java: UPDATED — three-layer cache defense + back button handler
+- MainActivity.java: UPDATED — three-layer cache defense
 - public/sw.js: UPDATED — ?v= cache-bypass guard
-- UI state: UNCHANGED — no visual redesign, only functional additions (bell icon)
+- All other modules: UNCHANGED
 
 ---
 
-# 📁 FILES MODIFIED THIS SESSION
+# 📁 FILES IN LAST COMMIT
 
-**Modified (22):**
-- `android/app/src/main/java/com/pocketkhata/app/MainActivity.java`
-- `index.html`
-- `public/sw.js`
-- `src/App.jsx`
-- `src/components/AccountManager.jsx`
-- `src/components/AnalyticsView.jsx`
-- `src/components/BudgetManager.jsx`
-- `src/components/CalendarView.jsx`
-- `src/components/Dashboard.jsx`
-- `src/components/ReminderManager.jsx`
-- `src/db.js`
-- `src/i18n.js`
-- `src/main.jsx`
-- `src/notifications.js`
-- `src/tests/AnalyticsView.test.jsx`
-- `src/tests/App.test.jsx`
-- `src/tests/CalendarView.test.jsx`
-- `src/tests/Dashboard.test.jsx`
-- `src/tests/db.test.js`
-- `vite.config.js`
-- `vitest.config.js`
-- `SESSION_STATE.md`
-
-**New (4):**
-- `scripts/get-build-version.cjs`
-- `src/reconcileBuildVersion.js`
-- `src/tests/apkUpgrade.test.js`
-- `src/tests/reconcileBuildVersion.test.js`
+**27 files changed** (commit `106b3ad`):
+- 22 modified + 4 new source files + 1 session file
 
 ---
 
 # 🐛 BUGS / ISSUES
 
-- None known. All 935 tests pass (28 suites), build succeeds, debug APK built.
+- None known. All 935 tests pass (28 suites), build succeeds.
 
 ---
 
 # 🛡️ SAFETY CHECK (CRITICAL)
 
 - Financial logic intact? YES
-- Any risk introduced? NO — all changes tested; reminder system is additive
-- db.js modified? YES — uncommented reminder CRUD; existing methods unchanged
+- Any risk introduced? NO
+- db.js modified? YES — reminder CRUD uncommented; existing methods unchanged
 
 ---
 
@@ -115,17 +82,16 @@
 - Total tests: 937
 - Passing: 935
 - Failing: 0
-- Skipped: 2 (commented-out placeholder suites)
+- Skipped: 2 (placeholder suites)
 - Critical failures: 0
 
 ---
 
 # 📦 GIT INFO
 
-- Branch: master (up to date with origin/master)
-- Last commit: `00c4ac8` — docs: write SESSION_END.md with this session completed work and final state
-- Staged: 22 modified + 4 new files (27 total)
-- Insertions/deletions: ~+1,800 / −1,350
+- Branch: master (ahead of origin/master by 1 commit)
+- HEAD: `106b3ad` — feat: rebuild bill reminder system + 3-layer WebView cache defense + APK upgrade pipeline
+- Working tree: Clean (1 untracked file: CORE_RULES.md)
 
 ---
 
@@ -133,4 +99,4 @@
 
 > This is the ONLY instruction for continuation:
 
-- **Next atomic action:** Commit all changes — the commit is staged and ready.
+- **Next atomic action:** Push to origin or await user direction for new feature.
