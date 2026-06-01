@@ -7,13 +7,13 @@
 
 # 📍 CURRENT STATE (MOST IMPORTANT)
 
-- **Last completed task:** Release APK build + committed versionCode increment
-- **Current active task:** None — git is clean
-- **Immediate next step:** Await user direction
+- **Last completed task:** Session finalized — all work committed and pushed to remote
+- **Current active task:** None — session complete
+- **Immediate next step:** Await new feature request in next session
 
-- **Active module:** Release build pipeline
+- **Active module:** N/A — session finalized
 - **Current user flow:** N/A
-- **Risk zone:** LOW — 938 tests passing, git clean
+- **Risk zone:** LOW — 938 tests passing, git clean, remote in sync
 
 ---
 
@@ -40,34 +40,42 @@
 - App.jsx: MODIFIED — removed hydration splash gate; added version badge in header
 - TransactionHistory.jsx: MODIFIED — secondary sort by createdAt within date groups
 - Settings.jsx: MODIFIED — dynamic version display
-- scripts/build-apk.bat: MODIFIED — tiered build modes
+- scripts/build-apk.bat: MODIFIED — tiered build modes (+ --release flag)
 - scripts/sync-capacitor.bat: NEW — fast web-only sync
 - src/tests/App.test.jsx: MODIFIED — added getAppVersion mock
 - src/tests/TransactionHistory.test.jsx: MODIFIED — added 3 sorting tests
-- version.properties: versionCode=5, versionName=2.4.1
+- version.properties: versionCode=7, versionName=2.4.1 (incremented for release build)
 - All other modules: UNCHANGED
 
 ---
 
-# 📦 COMMITTED (ddc49f2)
+# 📦 ALL COMMITS THIS SESSION (9 total)
 
-**11 files, 258 insertions, 94 deletions**
+```
+b79e0f6 feat: add --release mode to build-apk.bat
+1db4d8f docs: update SESSION_STATE.md to reflect release APK build
+8c98e34 chore: bump versionCode to 6 for release build
+d5a275c docs: update SESSION_STATE.md to reflect committed state
+ddc49f2 fix: sort transactions by createdAt within date groups
+b8131dc docs: update SESSION_STATE.md to reflect committed session state
+cd124ec fix: remove splash screen, fix version display, integrate calendar reminders
+2c28c87 test: add unit tests for App.jsx
+a92e628 test: add edge case tests for notifications.js
+```
 
-- `src/components/TransactionHistory.jsx` — sorting fix (+3 lines)
-- `src/tests/TransactionHistory.test.jsx` — 3 sorting tests
-- `src/tests/App.test.jsx` — getAppVersion mock
+**Key files changed:**
 - `src/App.jsx` — splash removal + version badge
+- `src/components/TransactionHistory.jsx` — createdAt secondary sort
 - `src/components/Settings.jsx` — dynamic version display
-- `scripts/build-apk.bat` — tiered build modes
-- `scripts/sync-capacitor.bat` — fast sync script (NEW)
-- `version.properties` — versionCode=5
-- and 3 other config/rule files
+- `scripts/build-apk.bat` — tiered build modes + --release
+- `scripts/sync-capacitor.bat` — NEW fast sync script
+- `version.properties` — versionCode=7, versionName=2.4.1
 
 ---
 
 # 🐛 BUGS / ISSUES
 
-- None known. 940 tests pass (28 suites), git clean, fast sync verified on device.
+- None known. 938 tests pass (28 suites), git clean, remote in sync, signed release APK ready.
 
 ---
 
@@ -83,17 +91,18 @@
 # 🧪 TEST STATUS
 
 - Total tests: 940 (28 suites)
-- Passing: 937
+- Passing: 938
 - Failing: 0
-- Skipped: 3
+- Skipped: 2
+- Duration: 23.22s
 
 ---
 
 # 📦 GIT INFO
 
-- Branch: master (ahead of origin/master by 5 commits)
-- HEAD: `ddc49f2` — fix: sort transactions by createdAt within date groups
-- Working tree: CLEAN — all changes committed
+- Branch: master (up to date with origin/master — all pushed)
+- HEAD: `b79e0f6` — feat: add --release mode to build-apk.bat
+- Working tree: CLEAN — all changes committed and pushed
 
 ---
 
@@ -101,4 +110,5 @@
 
 > This is the ONLY instruction for continuation:
 
-- **Next atomic action:** Await user direction. Git clean, 938 tests passing, signed release APK (v2.4.1, versionCode 7) ready at `android/app/build/outputs/apk/release/app-release.apk`.
+- **Session complete — no unfinished work.** Git clean, remote in sync, 938/940 tests passing, signed release APK (v2.4.1, versionCode 7) at `android/app/build/outputs/apk/release/app-release.apk`.
+- Next session can resume from this state with any new feature request.
