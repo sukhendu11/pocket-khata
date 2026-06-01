@@ -857,8 +857,18 @@ export default function App() {
             )}
           </div>
 
-          {/* Language Toggle (right) */}
-          <div className="neo-pressed-sm" style={globalLangStyles.pill}>
+          {/* Version badge + Language Toggle (right) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              fontSize: '8px',
+              fontWeight: '600',
+              color: 'var(--text-secondary)',
+              opacity: 0.5,
+              letterSpacing: '0.3px',
+            }}>
+              v{db.getAppVersion()}
+            </span>
+            <div className="neo-pressed-sm" style={globalLangStyles.pill}>
             <button
               onClick={() => handleSetLang('en')}
               style={{
@@ -883,6 +893,7 @@ export default function App() {
             >
               বাংলা
             </button>
+          </div>
           </div>
         </div>
         <ErrorBoundary>

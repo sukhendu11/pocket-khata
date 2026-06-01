@@ -9,3 +9,11 @@ One module failure must never crash the entire app.
 
 4. UPDATE CONSISTENCY  
 New build always overrides old behavior and stale state must never control UI.
+
+Purpose:
+Defines global behavior rules for the agent.
+
+Includes:
+- stability rules (no crashes, no regressions)
+- update consistency rules
+- no unsafe changes to app logic

@@ -136,7 +136,12 @@ export default function TransactionHistory({
       }
 
       return searchMatch && typeMatch && accountMatch && categoryMatch && dateMatch;
-    }).sort((a, b) => new Date(b.date) - new Date(a.date));
+    }).sort((a, b) => {
+      const dateCompare = new Date(b.date) - new Date(a.date);
+      if (dateCompare !== 0) return dateCompare;
+      // Same date: sort by createdAt descending so newest transactions appear at top
+      return new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date);
+    });
   }, [transactions, categories, accounts, search, typeFilter, accountFilter, categoryFilter, startDate, endDate]);
 
   // 2. Calculations: Filtered Aggregate Totals

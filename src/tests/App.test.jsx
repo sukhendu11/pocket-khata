@@ -60,6 +60,7 @@ const {
     resetDatabase: vi.fn(() => ({ ...initialFreshData })),
     importDatabaseJSON: vi.fn(() => true),
     exportDatabaseJSON: vi.fn(() => JSON.stringify({ version: 1 })),
+    getAppVersion: vi.fn(() => '2.4.1'),
   };
   return {
     mockDb: db,

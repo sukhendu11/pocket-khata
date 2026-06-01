@@ -698,6 +698,66 @@ describe('TransactionHistory — Batch Operations', () => {
 });
 
 // ==============================================================================
+// Sorting — Newest first within date groups
+// ==============================================================================
+
+describe('TransactionHistory — Sorting', () => {
+  it('sorts same-date transactions by createdAt descending (newest first)', () => {
+    const sameDateTxns = [
+      { id: 'tx_old', type: 'expense', amount: 100, date: '2025-05-15',
+        accountId: 'acc_cash', categoryId: 'cat_food', notes: 'Oldest',
+        createdAt: '2025-05-15T08:00:00.000Z' },
+      { id: 'tx_mid', type: 'expense', amount: 200, date: '2025-05-15',
+        accountId: 'acc_cash', categoryId: 'cat_food', notes: 'Middle',
+        createdAt: '2025-05-15T12:00:00.000Z' },
+      { id: 'tx_new', type: 'income', amount: 300, date: '2025-05-15',
+        accountId: 'acc_cash', categoryId: 'cat_food', notes: 'Newest',
+        createdAt: '2025-05-15T18:00:00.000Z' },
+    ];
+    render(<TransactionHistory {...defaultProps} transactions={sameDateTxns} />);
+
+    // Get all rendered transaction items in DOM order
+    const items = screen.getAllByText(/Oldest|Middle|Newest/);
+    // Expected order: Newest (18:00), Middle (12:00), Oldest (08:00)
+    expect(items[0].textContent).toContain('Newest');
+    expect(items[1].textContent).toContain('Middle');
+    expect(items[2].textContent).toContain('Oldest');
+  });
+
+  it('falls back to date order when createdAt is missing', () => {
+    const noCreatedAtTxns = [
+      { id: 'tx_a', type: 'expense', amount: 100, date: '2025-05-15',
+        accountId: 'acc_cash', categoryId: 'cat_food', notes: 'First' },
+      { id: 'tx_b', type: 'expense', amount: 200, date: '2025-05-15',
+        accountId: 'acc_cash', categoryId: 'cat_food', notes: 'Second' },
+    ];
+    render(<TransactionHistory {...defaultProps} transactions={noCreatedAtTxns} />);
+
+    const items = screen.getAllByText(/First|Second/);
+    // Without createdAt, original array order is preserved
+    expect(items[0].textContent).toContain('First');
+    expect(items[1].textContent).toContain('Second');
+  });
+
+  it('sorts different dates by date descending regardless of createdAt', () => {
+    const multiDateTxns = [
+      { id: 'tx_yesterday', type: 'expense', amount: 100, date: '2025-05-14',
+        accountId: 'acc_cash', categoryId: 'cat_food', notes: 'Yesterday',
+        createdAt: '2025-05-14T08:00:00.000Z' },
+      { id: 'tx_today', type: 'income', amount: 200, date: '2025-05-15',
+        accountId: 'acc_cash', categoryId: 'cat_food', notes: 'Today',
+        createdAt: '2025-05-15T08:00:00.000Z' },
+    ];
+    render(<TransactionHistory {...defaultProps} transactions={multiDateTxns} />);
+
+    // Date groups: Today (May 15) should appear before Yesterday (May 14)
+    const items = screen.getAllByText(/Today|Yesterday/);
+    expect(items[0].textContent).toContain('Today');
+    expect(items[1].textContent).toContain('Yesterday');
+  });
+});
+
+// ==============================================================================
 // Edge Cases
 // ==============================================================================
 
