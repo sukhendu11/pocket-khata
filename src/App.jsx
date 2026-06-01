@@ -21,11 +21,9 @@ function preloadTransactionHistory() {
 const AnalyticsView = lazy(() => import('./components/AnalyticsView'));
 const CalendarView = lazy(() => import('./components/CalendarView'));
 const Settings = lazy(() => import('./components/Settings'));
-// [REMINDERS] Lazy import for ReminderManager — kept for future use
-// const ReminderManager = lazy(() => import('./components/ReminderManager'));
+const ReminderManager = lazy(() => import('./components/ReminderManager'));
 
-// [NOTIFICATIONS] Service worker registration for reminder notifications
-// import { registerServiceWorker, requestNotificationPermission } from './notifications';
+import { registerServiceWorker } from './notifications';
 const AccountManager = lazy(() => import('./components/AccountManager'));
 const CategoryManager = lazy(() => import('./components/CategoryManager'));
 const BudgetManager = lazy(() => import('./components/BudgetManager'));
@@ -148,8 +146,7 @@ export default function App() {
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [savingsGoals, setSavingsGoals] = useState([]);
-  // [REMINDERS] Bill reminder state — kept for future implementation
-  // const [reminders, setReminders] = useState([]);
+  const [reminders, setReminders] = useState([]);
   // Security (lock screen) removed
 
   // 3. Toast notification for auto-created recurring transactions etc.
@@ -195,10 +192,9 @@ export default function App() {
     const loadedTransactions = db.getTransactions();
     const loadedBudgets = db.getBudgets();
     const loadedSavingsGoals = db.getSavingsGoals();
-    // [REMINDERS] Load reminders when DB is initialized
-    // const loadedReminders = db.getReminders();
-    // setReminders(loadedReminders);
-    // registerServiceWorker();
+    const loadedReminders = db.getReminders();
+    setReminders(loadedReminders);
+    registerServiceWorker();
     setAccounts(loadedAccounts);
     setCategories(loadedCategories);
     setTransactions(loadedTransactions);
@@ -384,8 +380,7 @@ export default function App() {
       setTransactions(freshDb.transactions);
       setBudgets(freshDb.budgets);
       setSavingsGoals(freshDb.savingsGoals);
-      // [REMINDERS] Reset reminder state on DB reset
-      // setReminders(freshDb.reminders);
+      setReminders(freshDb.reminders);
     } catch (e) {
       trackError(e, { handler: 'handleResetDatabase' });
       console.error('Failed to reset database:', e);
@@ -486,6 +481,49 @@ export default function App() {
     } catch (e) {
       trackError(e, { handler: 'handleContributeToSavingsGoal', goalId });
       console.error('Failed to contribute to savings goal:', e);
+    }
+  };
+
+  // -- Reminders
+  const handleAddReminder = (reminder) => {
+    try {
+      db.addReminder(reminder);
+      setReminders(db.getReminders());
+    } catch (e) {
+      trackError(e, { handler: 'handleAddReminder' });
+      console.error('Failed to add reminder:', e);
+    }
+  };
+
+  const handleUpdateReminder = (reminder) => {
+    try {
+      db.updateReminder(reminder);
+      setReminders(db.getReminders());
+    } catch (e) {
+      trackError(e, { handler: 'handleUpdateReminder', reminderId: reminder?.id });
+      console.error('Failed to update reminder:', e);
+    }
+  };
+
+  const handlePayReminder = (id, sourceAccountId) => {
+    try {
+      db.payReminder(id, sourceAccountId);
+      setReminders(db.getReminders());
+      setTransactions(db.getTransactions());
+      setAccounts(db.getAccounts());
+    } catch (e) {
+      trackError(e, { handler: 'handlePayReminder', reminderId: id });
+      console.error('Failed to pay reminder:', e);
+    }
+  };
+
+  const handleDeleteReminder = (id) => {
+    try {
+      db.deleteReminder(id);
+      setReminders(db.getReminders());
+    } catch (e) {
+      trackError(e, { handler: 'handleDeleteReminder', reminderId: id });
+      console.error('Failed to delete reminder:', e);
     }
   };
 
@@ -600,6 +638,7 @@ export default function App() {
             categories={categories}
             budgets={budgets}
             savingsGoals={savingsGoals}
+            reminders={reminders}
             onNavigate={handleNavigate}
             theme={theme}
             onToggleTheme={handleToggleTheme}
@@ -688,6 +727,20 @@ export default function App() {
             onUpdateSavingsGoal={handleUpdateSavingsGoal}
             onDeleteSavingsGoal={handleDeleteSavingsGoal}
             onContributeToSavingsGoal={handleContributeToSavingsGoal}
+            onNavigate={handleNavigate}
+            lang={lang}
+          />
+        );
+      case 'reminders':
+        return (
+          <ReminderManager
+            reminders={reminders}
+            accounts={accounts}
+            categories={categories}
+            onAddReminder={handleAddReminder}
+            onUpdateReminder={handleUpdateReminder}
+            onPayReminder={handlePayReminder}
+            onDeleteReminder={handleDeleteReminder}
             onNavigate={handleNavigate}
             lang={lang}
           />

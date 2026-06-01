@@ -250,7 +250,7 @@ describe('AnalyticsView — Income Breakdown', () => {
     // Legend renders "Salary (100%)" in one span — scope to income card
     const incomeCard = screen.getByText('Income Breakdown').closest('[class*="neo-raised"]');
     expect(within(incomeCard).getByText(/Salary/)).toBeTruthy();
-    expect(within(incomeCard).getByText(/100%/)).toBeTruthy();
+    expect(within(incomeCard).getAllByText(/100%/).length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows income breakdown for All Time with 2 categories', () => {
@@ -298,8 +298,8 @@ describe('AnalyticsView — Expense Breakdown', () => {
     const expenseCard = screen.getByText('Expense Breakdown').closest('[class*="neo-raised"]');
     expect(within(expenseCard).getByText(/Rent/)).toBeTruthy();
     expect(within(expenseCard).getByText(/Food & Drinks/)).toBeTruthy();
-    expect(within(expenseCard).getByText(/94%/)).toBeTruthy();
-    expect(within(expenseCard).getByText(/6%/)).toBeTruthy();
+    expect(within(expenseCard).getAllByText(/94%/).length).toBeGreaterThanOrEqual(1);
+    expect(within(expenseCard).getAllByText(/6%/).length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows expense breakdown with multiple categories for All Time', () => {
@@ -514,7 +514,7 @@ describe('AnalyticsView — Budget vs Actual', () => {
     ];
     render(<AnalyticsView {...defaultProps} budgets={budgets} />);
     // Food spent = 1500 out of 2000 = 75%
-    expect(screen.getByText('75%')).toBeTruthy();
+    expect(screen.getAllByText('75%').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows over-budget indicator when spending exceeds limit', () => {

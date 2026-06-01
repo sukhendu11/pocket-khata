@@ -271,18 +271,18 @@ describe('auto-backup', () => {
 
 describe('schema versioning', () => {
 
-  it('sets schema version to 7 on fresh install', () => {
+  it('sets schema version to 8 on fresh install', () => {
     // localStorage is cleared in beforeEach, so this is a fresh install
     // The module-level migrateSchema() already ran on import, but since localStorage
     // was cleared in beforeEach, it won't have run yet for this test.
     // We trigger getAccounts to force seeding, then check the version
     db.getAccounts();
-    expect(db.getStoredSchemaVersion()).toBe(7);
+    expect(db.getStoredSchemaVersion()).toBe(8);
   });
 
   it('returns schema version info from the API', () => {
-    expect(db.getSchemaVersion()).toBe(7);
-    expect(db.getAppVersion()).toBe('2.4.0');
+    expect(db.getSchemaVersion()).toBe(8);
+    expect(db.getAppVersion()).toBe('2.4.1');
   });
 
   it('migrates v1 data (missing timestamps) to v2', () => {
@@ -408,7 +408,7 @@ describe('schema versioning', () => {
   it('includes schemaVersion in export', () => {
     const jsonStr = db.exportDatabaseJSON();
     const data = JSON.parse(jsonStr);
-    expect(data.schemaVersion).toBe(7);
+    expect(data.schemaVersion).toBe(8);
   });
 
   it('new items from add* methods have createdAt/updatedAt', () => {
@@ -464,10 +464,10 @@ describe('schema versioning', () => {
     expect(categories[0].createdAt).toBeDefined();
   });
 
-  it('resetDatabase clears schema version and reseeds with v7 data', () => {
+  it('resetDatabase clears schema version and reseeds with v8 data', () => {
     // First, add some data and verify version
     db.addBudget({ categoryId: 'cat_food', limit: 5000, month: 4, year: 2026 });
-    expect(db.getStoredSchemaVersion()).toBe(7);
+    expect(db.getStoredSchemaVersion()).toBe(8);
 
     // Reset
     const result = db.resetDatabase();
@@ -478,12 +478,147 @@ describe('schema versioning', () => {
     expect(db.getBudgets()).toHaveLength(0);
 
     // Version should be reset to 7
-    expect(db.getStoredSchemaVersion()).toBe(7);
+    expect(db.getStoredSchemaVersion()).toBe(8);
 
     // Reseeded data should have v2+ fields (categories still get default seed)
     expect(result.categories[0].archived).toBe(false);
     expect(result.categories[0].subcategories).toBeDefined();
     expect(result.categories[0].default).toBe(true);
+  });
+
+  // ========== v7→v8 MIGRATION TESTS ==========
+
+  it('v7→v8 migration syncs default category subcategories with expanded master list', () => {
+    // Simulate v7 data: a default category with limited/old subcategories
+    // plus a custom user category with its own subcategories.
+    // Both are v4-compatible (have all fields) so earlier migrations are no-ops.
+    const v7Categories = [
+      // Default category with OLD limited subcategories (as they existed in v4-v7)
+      {
+        id: 'cat_food', name: 'Food & Dining', type: 'expense', icon: 'Utensils',
+        color: '#e17055', default: true, archived: false,
+        subcategories: ['Groceries', 'Restaurants'], // OLD: only 2
+        createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+      // Another default with empty subcategories
+      {
+        id: 'cat_transport', name: 'Transport', type: 'expense', icon: 'Car',
+        color: '#0984e3', default: true, archived: false,
+        subcategories: [], // OLD: empty
+        createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+      // Custom user category — should be UNTOUCHED by migration
+      {
+        id: 'cat_my_hobby', name: 'My Hobby', type: 'expense', icon: 'Star',
+        color: '#ff0000', default: false, archived: false,
+        subcategories: ['Photography Gear', 'Art Supplies', 'Workshops'],
+        createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+
+    localStorage.setItem('pocket_khata_categories', JSON.stringify(v7Categories));
+    localStorage.setItem('pocket_khata_schema_version', '7');
+
+    // Trigger migration by calling getCategories
+    const categories = db.getCategories();
+
+    // ── Default category: cat_food should have EXPANDED subcategories ──
+    const catFood = categories.find(c => c.id === 'cat_food');
+    expect(catFood).toBeDefined();
+    expect(catFood.subcategories).toEqual([
+      'Groceries', 'Restaurants', 'Cafe & Coffee', 'Food Delivery',
+      'Street Food', 'Office Lunch', 'Snacks & Beverages', 'Meal Prep',
+    ]);
+
+    // ── Default category: cat_transport should have EXPANDED subcategories ──
+    const catTransport = categories.find(c => c.id === 'cat_transport');
+    expect(catTransport).toBeDefined();
+    expect(catTransport.subcategories).toEqual([
+      'Fuel', 'Bus/Train Fare', 'Ride Share (Uber/Pathao)', 'CNG/Rickshaw',
+      'Car Maintenance', 'Parking & Toll', 'Vehicle Insurance', 'Bicycle',
+    ]);
+
+    // ── Custom category should be COMPLETELY UNTOUCHED ──
+    const customCat = categories.find(c => c.id === 'cat_my_hobby');
+    expect(customCat).toBeDefined();
+    expect(customCat.subcategories).toEqual(['Photography Gear', 'Art Supplies', 'Workshops']);
+    expect(customCat.default).toBe(false);
+    expect(customCat.name).toBe('My Hobby');
+    expect(customCat.color).toBe('#ff0000');
+
+    // Schema version should be bumped to 8
+    expect(db.getStoredSchemaVersion()).toBe(8);
+  });
+
+  it('v7→v8 migration does not touch custom categories with non-default IDs', () => {
+    // Seed ONLY custom categories (none of their IDs match DEFAULT_CATEGORIES)
+    const customCategories = [
+      {
+        id: 'cat_custom_food', name: 'Custom Food', type: 'expense', icon: 'Star',
+        color: '#abcdef', default: false, archived: false,
+        subcategories: ['Home Cooking', 'Meal Prep Service', 'Farmers Market'],
+        createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        id: 'cat_pets', name: 'Pet Care', type: 'expense', icon: 'Heart',
+        color: '#ff69b4', default: false, archived: false,
+        subcategories: ['Food & Treats', 'Vet Visits', 'Toys', 'Grooming'],
+        createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+
+    localStorage.setItem('pocket_khata_categories', JSON.stringify(customCategories));
+    localStorage.setItem('pocket_khata_schema_version', '7');
+
+    const categories = db.getCategories();
+
+    // Custom categories should still exist with their original subcategories
+    const customFood = categories.find(c => c.id === 'cat_custom_food');
+    expect(customFood).toBeDefined();
+    expect(customFood.subcategories).toEqual(['Home Cooking', 'Meal Prep Service', 'Farmers Market']);
+
+    const petCare = categories.find(c => c.id === 'cat_pets');
+    expect(petCare).toBeDefined();
+    expect(petCare.subcategories).toEqual(['Food & Treats', 'Vet Visits', 'Toys', 'Grooming']);
+
+    // Custom categories keep their non-default flag
+    expect(customFood.default).toBe(false);
+    expect(petCare.default).toBe(false);
+  });
+
+  it('calling getCategories() twice is idempotent and does not mutate data', () => {
+    // First, get categories (triggers full migration from scratch)
+    const firstCall = db.getCategories();
+
+    // Second call without clearing anything — no migration should run
+    const secondCall = db.getCategories();
+
+    // Both calls should produce identical data
+    expect(secondCall).toEqual(firstCall);
+
+    // Schema version remains 8
+    expect(db.getStoredSchemaVersion()).toBe(8);
+  });
+
+  it('all default categories have expanded subcategories after fresh install', () => {
+    // Fresh install: clear state and call getCategories
+    localStorage.clear();
+    const categories = db.getCategories();
+
+    // Check a few specific categories for their expanded subcategories
+    const catFood = categories.find(c => c.id === 'cat_food');
+    expect(catFood.subcategories).toContain('Cafe & Coffee');
+    expect(catFood.subcategories).toContain('Food Delivery');
+    expect(catFood.subcategories).toContain('Snacks & Beverages');
+
+    const catMedical = categories.find(c => c.id === 'cat_medical');
+    expect(catMedical.subcategories).toContain('Mental Health');
+    expect(catMedical.subcategories).toContain('Lab Tests');
+
+    // Every default category should have subcategories
+    categories.filter(c => c.default).forEach(cat => {
+      expect(cat.subcategories.length).toBeGreaterThan(0);
+    });
   });
 });
 
@@ -502,7 +637,7 @@ function seedData({ accounts, transactions }) {
     transactions.map(t => ({ ...t, createdAt: ts, updatedAt: ts }))
   ));
   // Prevent schema migrations from re-running and altering our data
-  localStorage.setItem('pocket_khata_schema_version', '7');
+  localStorage.setItem('pocket_khata_schema_version', '8');
 }
 
 /** Advance a YYYY-MM-DD date by `months` months using local-time arithmetic. */

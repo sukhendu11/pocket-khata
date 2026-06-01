@@ -256,7 +256,7 @@ describe('CalendarView — Bangla Mode', () => {
   it('shows Bangla "no records" message', () => {
     useFixedDate();
     render(<CalendarView {...defaultProps} lang="bn" />);
-    fireEvent.click(screen.getByText('10'));
+    fireEvent.click(screen.getByText('১০'));
     expect(screen.getByText('এই দিনে কোনো আর্থিক রেকর্ড নেই।')).toBeTruthy();
   });
 });

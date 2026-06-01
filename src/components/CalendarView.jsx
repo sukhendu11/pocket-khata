@@ -172,7 +172,7 @@ export default function CalendarView({
                   color: isSelected ? 'var(--accent-color)' : 'var(--text-primary)',
                   fontWeight: isSelected ? '800' : '500',
                 }}>
-                  {day.dayNum}
+                  {formatNumber(day.dayNum, lang)}
                 </span>
                 
                 {/* Visual Indicators */}

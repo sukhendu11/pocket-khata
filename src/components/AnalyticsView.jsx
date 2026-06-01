@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { ArrowLeft, TrendingUp, TrendingDown, AlertTriangle, Target, Lightbulb } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
@@ -62,10 +62,17 @@ export default function AnalyticsView({
   const [activeChart1, setActiveChart1] = useState(null); // Overview slice index
   const [activeChart2, setActiveChart2] = useState(null); // Income slice index
   const [activeChart3, setActiveChart3] = useState(null); // Expense slice index
-  const [animationProgress, setAnimationProgress] = useState(0);
+  const [animationProgress, setAnimationProgress] = useState(1);
+  const hasMounted = useRef(false);
 
-  // Smooth loading animation sweep
+  // Animate pie chart segments on time-range change (not on mount)
+  // This prevents the invisible-chart flash that occurs when navigation
+  // unmounts/remounts the component (e.g. switching tabs and back).
   useEffect(() => {
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      return; // Skip animation on initial mount — charts start fully visible
+    }
     setAnimationProgress(0);
     const duration = 600;
     const startTime = performance.now();

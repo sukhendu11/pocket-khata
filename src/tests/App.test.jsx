@@ -21,7 +21,7 @@ const mockTransactions = [
 ];
 const mockBudgets = [{ id: 'budget_1', categoryId: 'cat_1', limit: 5000 }];
 const mockSavingsGoals = [{ id: 'goal_1', name: 'Laptop', targetAmount: 100000, currentAmount: 30000 }];
-const initialFreshData = { accounts: [], categories: [], transactions: [], budgets: [], savingsGoals: [] };
+const initialFreshData = { accounts: [], categories: [], transactions: [], budgets: [], savingsGoals: [], reminders: [] };
 
 // ==============================================================================
 // Mock variables — MUST use vi.hoisted() so vi.mock factories can reference them
@@ -39,6 +39,7 @@ const {
     getTransactions: vi.fn(() => [...mockTransactions]),
     getBudgets: vi.fn(() => [...mockBudgets]),
     getSavingsGoals: vi.fn(() => [...mockSavingsGoals]),
+    getReminders: vi.fn(() => []),
     processRecurringTransactions: vi.fn(() => ({ count: 0, createdTransactions: [] })),
     addTransaction: vi.fn(),
     updateTransaction: vi.fn(),
@@ -197,6 +198,7 @@ beforeEach(() => {
   mockDb.getTransactions.mockReturnValue([...mockTransactions]);
   mockDb.getBudgets.mockReturnValue([...mockBudgets]);
   mockDb.getSavingsGoals.mockReturnValue([...mockSavingsGoals]);
+  mockDb.getReminders.mockReturnValue([]);
   mockDb.processRecurringTransactions.mockReturnValue({ count: 0, createdTransactions: [] });
   mockDb.resetDatabase.mockReturnValue({ ...initialFreshData });
   mockDb.importDatabaseJSON.mockReturnValue(true);

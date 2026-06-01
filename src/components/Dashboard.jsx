@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { 
-  Sun, Moon, ArrowUpRight, ArrowDownLeft,
+  Sun, Moon, ArrowUpRight, ArrowDownLeft, Bell,
   Wallet, Landmark, CreditCard, ChevronRight, HelpCircle,
   PieChart as PieChartIcon, Target,
 } from 'lucide-react';
@@ -16,8 +16,7 @@ export default function Dashboard({
   categories,
   budgets,
   savingsGoals,
-  // [REMINDERS] Reminders data — kept for future implementation
-  // reminders, // prop for bill reminders
+  reminders,
   onNavigate, 
   theme, 
   onToggleTheme,
@@ -166,6 +165,13 @@ export default function Dashboard({
     };
   }, [monthlyTrends]);
 
+  // Overdue reminders count for bell badge
+  const overdueCount = useMemo(() => {
+    if (!reminders) return 0;
+    const today = new Date().toISOString().split('T')[0];
+    return reminders.filter(r => r.status === 'unpaid' && r.dueDate < today).length;
+  }, [reminders]);
+
   return (
     <div style={styles.scrollContainer}>
       
@@ -180,6 +186,14 @@ export default function Dashboard({
             </div>
           </div>
         <div style={styles.actions}>
+          <button 
+            className="neo-btn neo-btn-round" 
+            style={styles.actionBtn}
+            onClick={() => { onNavigate('reminders'); trackAction('view_reminders', { source: 'dashboard' }); }}
+          >
+            <Bell size={18} />
+            {overdueCount > 0 && <span style={styles.badgeDot} />}
+          </button>
           <button 
             className="neo-btn neo-btn-round" 
             style={styles.actionBtn}
@@ -492,15 +506,7 @@ Dashboard.propTypes = {
   categories: PropTypes.array,
   budgets: PropTypes.array,
   savingsGoals: PropTypes.array,
-  // [REMINDERS] Reminders prop — kept for future use
-  // reminders: PropTypes.array,
-  // [REMINDERS] Calculate overdue count — kept for future implementation
-  // const overdueCount = useMemo(() => {
-  //   if (!reminders) return 0;
-  //   const today = new Date();
-  //   today.setHours(0, 0, 0, 0);
-  //   return reminders.filter(r => !r.paid && new Date(r.dueDate) < today).length;
-  // }, [reminders]);
+  reminders: PropTypes.array,
   onNavigate: PropTypes.func,
   theme: PropTypes.string,
   onToggleTheme: PropTypes.func,
@@ -557,28 +563,17 @@ const styles = {
     display: 'flex',
     gap: '12px',
   },
-  // [REMINDERS] Bell icon badge dot style — kept for future use
-  // badgeDot: {
-  //   width: '8px', height: '8px', borderRadius: '50%',
-  //   backgroundColor: 'var(--color-expense)', position: 'absolute',
-  //   top: '2px', right: '2px', border: '2px solid var(--bg-color)',
-  // },
+  badgeDot: {
+    width: '8px', height: '8px', borderRadius: '50%',
+    backgroundColor: 'var(--color-expense)', position: 'absolute',
+    top: '2px', right: '2px', border: '2px solid var(--bg-color)',
+  },
   actionBtn: {
     width: '40px',
     height: '40px',
     borderRadius: '50%',
     padding: 0,
     position: 'relative',
-  },
-  badgeDot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    backgroundColor: 'var(--color-expense)',
-    position: 'absolute',
-    top: '2px',
-    right: '2px',
-    border: '2px solid var(--bg-color)',
   },
   balanceCard: {
     padding: '24px 20px',

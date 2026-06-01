@@ -9,8 +9,7 @@ const KEYS = {
   SECURITY: 'pocket_khata_security',
   BUDGETS: 'pocket_khata_budgets',
   SAVINGS_GOALS: 'pocket_khata_savings_goals',
-  // [REMINDERS] Bill reminder data — kept for future implementation
-  // REMINDERS: 'pocket_khata_reminders',
+  REMINDERS: 'pocket_khata_reminders',
 };
 
 // ========== SCHEMA VERSIONING ==========
@@ -41,14 +40,16 @@ let _isCreatingBackup = false;
  *   6 — Removed demo seed data on migration. Schema v6 production starts clean.
  *   7 — Added recurring transaction schedule object support.
  *       `recurring` field changes from boolean to `false | { frequency, interval, nextDate, endDate, occurrencesCreated }`.
+ *   8 — Expanded default category subcategories for broader real-world coverage.
+ *       Syncs existing default categories with the expanded master list.
  */
-const CURRENT_SCHEMA_VERSION = 7;
+const CURRENT_SCHEMA_VERSION = 8;
 
 /**
  * Semantic version string shown in the UI.
  * Increment this for human-readable version releases.
  */
-const APP_VERSION = '2.4.0';
+const APP_VERSION = '2.4.1';
 
 const SEED_TIMESTAMP = new Date().toISOString();
 
@@ -75,25 +76,93 @@ const DEFAULT_ACCOUNTS = [
 
 const DEFAULT_CATEGORIES = [
   // ---- Income (4) ----
-  { id: 'cat_salary', name: 'Salary', type: 'income', icon: 'Briefcase', color: '#2ecc71', subcategories: ['Monthly Salary', 'Overtime', 'Commission', 'Bonus'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
-  { id: 'cat_business', name: 'Business', type: 'income', icon: 'Briefcase', color: '#00c9db', subcategories: ['Sales', 'Service', 'Consulting'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
-  { id: 'cat_freelance', name: 'Freelance', type: 'income', icon: 'Globe', color: '#8e44ad', subcategories: ['Web Dev', 'Design', 'Writing', 'Other'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
-  { id: 'cat_bonus', name: 'Bonus', type: 'income', icon: 'Gift', color: '#f1c40f', subcategories: ['Performance Bonus', 'Festival Bonus', 'Annual Bonus'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
+  {
+    id: 'cat_salary', name: 'Salary', type: 'income', icon: 'Briefcase', color: '#2ecc71',
+    subcategories: ['Basic Salary', 'House Rent Allowance', 'Medical Allowance', 'Transport Allowance', 'Overtime', 'Commission', 'Bonus', 'Arrears', 'Pension'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
+  {
+    id: 'cat_business', name: 'Business', type: 'income', icon: 'Briefcase', color: '#00c9db',
+    subcategories: ['Sales Revenue', 'Service Fees', 'Consulting', 'Product Sales', 'Commission', 'Subscriptions', 'Royalties', 'Partnership Income'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
+  {
+    id: 'cat_freelance', name: 'Freelance', type: 'income', icon: 'Globe', color: '#8e44ad',
+    subcategories: ['Web/App Development', 'UI/UX Design', 'Graphic Design', 'Content Writing', 'Digital Marketing', 'Photography', 'Video Editing', 'Consulting', 'Tutoring', 'Other Freelance'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
+  {
+    id: 'cat_bonus', name: 'Bonus', type: 'income', icon: 'Gift', color: '#f1c40f',
+    subcategories: ['Festival Bonus', 'Performance Bonus', 'Annual Bonus', 'Profit Sharing', 'Incentives', 'Referral Bonus'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
 
   // ---- Expense (13) ----
-  { id: 'cat_food', name: 'Food & Dining', type: 'expense', icon: 'Utensils', color: '#e17055', subcategories: ['Groceries', 'Restaurants', 'Cafe', 'Food Delivery'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
-  { id: 'cat_transport', name: 'Transport', type: 'expense', icon: 'Car', color: '#0984e3', subcategories: ['Fuel', 'Public Transport', 'Ride Share', 'Maintenance'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
-  { id: 'cat_utilities', name: 'Bills & Utilities', type: 'expense', icon: 'Lightbulb', color: '#74b9ff', subcategories: ['Electricity', 'Water', 'Gas', 'Internet', 'Phone'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
-  { id: 'cat_rent', name: 'Rent / Housing', type: 'expense', icon: 'Home', color: '#16a085', subcategories: ['Rent', 'Maintenance', 'Furniture', 'Insurance'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
-  { id: 'cat_shopping', name: 'Shopping', type: 'expense', icon: 'ShoppingBag', color: '#e84393', subcategories: ['Clothing', 'Electronics', 'Home Decor', 'Personal Care'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
-  { id: 'cat_medical', name: 'Health & Medical', type: 'expense', icon: 'HeartPulse', color: '#e74c3c', subcategories: ['Doctor', 'Medicine', 'Gym', 'Insurance'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
-  { id: 'cat_education', name: 'Education', type: 'expense', icon: 'GraduationCap', color: '#a29bfe', subcategories: ['Tuition', 'Books', 'Courses', 'Stationery'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
-  { id: 'cat_entertainment', name: 'Entertainment', type: 'expense', icon: 'Tv', color: '#fd79a8', subcategories: ['Movies', 'Music', 'Games', 'Events'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
-  { id: 'cat_travel', name: 'Travel', type: 'expense', icon: 'Plane', color: '#00b894', subcategories: ['Flight', 'Hotel', 'Local Travel', 'Food'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
-  { id: 'cat_savings', name: 'Savings / Investment', type: 'expense', icon: 'TrendingUp', color: '#6c5ce7', subcategories: ['Savings Account', 'Stocks', 'Mutual Funds', 'Retirement'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
-  { id: 'cat_debt', name: 'Debt / Loan', type: 'expense', icon: 'CreditCard', color: '#d63031', subcategories: ['Credit Card', 'Personal Loan', 'Student Loan', 'Mortgage'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
-  { id: 'cat_family', name: 'Family / Personal', type: 'expense', icon: 'Heart', color: '#fd79a8', subcategories: ['Family', 'Gifts', 'Donation', 'Personal'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
-  { id: 'cat_misc', name: 'Miscellaneous', type: 'expense', icon: 'Sparkles', color: '#636e72', subcategories: ['Other', 'Emergency', 'Misc'], default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP },
+  {
+    id: 'cat_food', name: 'Food & Dining', type: 'expense', icon: 'Utensils', color: '#e17055',
+    subcategories: ['Groceries', 'Restaurants', 'Cafe & Coffee', 'Food Delivery', 'Street Food', 'Office Lunch', 'Snacks & Beverages', 'Meal Prep'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
+  {
+    id: 'cat_transport', name: 'Transport', type: 'expense', icon: 'Car', color: '#0984e3',
+    subcategories: ['Fuel', 'Bus/Train Fare', 'Ride Share (Uber/Pathao)', 'CNG/Rickshaw', 'Car Maintenance', 'Parking & Toll', 'Vehicle Insurance', 'Bicycle'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
+  {
+    id: 'cat_utilities', name: 'Bills & Utilities', type: 'expense', icon: 'Lightbulb', color: '#74b9ff',
+    subcategories: ['Electricity', 'Water', 'Gas', 'Internet', 'Mobile Recharge', 'Cable TV', 'Streaming Services', 'Garbage/Sewage'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
+  {
+    id: 'cat_rent', name: 'Rent / Housing', type: 'expense', icon: 'Home', color: '#16a085',
+    subcategories: ['House Rent', 'Maintenance & Repairs', 'Furniture', 'Home Supplies', 'Property Tax', 'Security Guard', 'Cleaning Service', 'Renovation'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
+  {
+    id: 'cat_shopping', name: 'Shopping', type: 'expense', icon: 'ShoppingBag', color: '#e84393',
+    subcategories: ['Clothing & Apparel', 'Footwear', 'Electronics & Gadgets', 'Home Decor', 'Cosmetics & Beauty', 'Bags & Accessories', 'Kids Items', 'Jewelry'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
+  {
+    id: 'cat_medical', name: 'Health & Medical', type: 'expense', icon: 'HeartPulse', color: '#e74c3c',
+    subcategories: ['Doctor Visit', 'Medicine/Pharmacy', 'Hospital/Clinic', 'Health Checkup', 'Health Insurance', 'Gym/Fitness', 'Eye Care', 'Dental', 'Lab Tests', 'Mental Health'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
+  {
+    id: 'cat_education', name: 'Education', type: 'expense', icon: 'GraduationCap', color: '#a29bfe',
+    subcategories: ['Tuition Fees', 'School/College Fees', 'Books & Stationery', 'Online Courses', 'Exam Fees', 'Student Loan', 'Tutoring', 'Educational Supplies'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
+  {
+    id: 'cat_entertainment', name: 'Entertainment', type: 'expense', icon: 'Tv', color: '#fd79a8',
+    subcategories: ['Movies & Cinema', 'Music & Concerts', 'Games & Gaming', 'Events & Festivals', 'Streaming Subscriptions', 'Hobbies', 'Sports', 'Nightlife'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
+  {
+    id: 'cat_travel', name: 'Travel', type: 'expense', icon: 'Plane', color: '#00b894',
+    subcategories: ['Flight Tickets', 'Hotel/Accommodation', 'Local Transport', 'Food & Dining', 'Activities/Tours', 'Travel Insurance', 'Visa/Paspport', 'Luggage'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
+  {
+    id: 'cat_savings', name: 'Savings / Investment', type: 'expense', icon: 'TrendingUp', color: '#6c5ce7',
+    subcategories: ['Savings Account', 'Fixed Deposit', 'Stocks', 'Mutual Funds', 'Retirement/PPF', 'Gold/Jewelry', 'Cryptocurrency', 'Real Estate', 'Emergency Fund'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
+  {
+    id: 'cat_debt', name: 'Debt / Loan', type: 'expense', icon: 'CreditCard', color: '#d63031',
+    subcategories: ['Credit Card Payment', 'Personal Loan', 'Home Loan/Mortgage', 'Student Loan', 'Car Loan', 'Business Loan', 'Microfinance', 'EMI Payment'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
+  {
+    id: 'cat_family', name: 'Family / Personal', type: 'expense', icon: 'Heart', color: '#fd79a8',
+    subcategories: ['Family Support', 'Gifts', 'Donations/Charity', 'Marriage/Wedding', 'Child Care', 'Pocket Money', 'Personal Grooming', 'Religious'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
+  {
+    id: 'cat_misc', name: 'Miscellaneous', type: 'expense', icon: 'Sparkles', color: '#636e72',
+    subcategories: ['Emergency', 'Bank Charges/ATM', 'Legal Fees', 'Taxes', 'Pet Expenses', 'Office Supplies', 'Membership Fees', 'Insurance (Other)'],
+    default: true, archived: false, createdAt: SEED_TIMESTAMP, updatedAt: SEED_TIMESTAMP,
+  },
 ];
 
 const DEFAULT_TRANSACTIONS = [
@@ -139,12 +208,7 @@ const DEFAULT_SECURITY = {
 
 const DEFAULT_BUDGETS = [];
 
-const DEFAULT_SAVINGS_GOALS = [];
-
-// [REMINDERS] Default bill reminders — kept for future implementation
-// const DEFAULT_REMINDERS = [
-//   { id: 'rem_rent', title: 'Pay Rent', amount: 15000, dueDate: '2025-01-01', accountId: 'acc_bank', categoryId: 'cat_rent', paid: false, recurring: true, createdAt: '', updatedAt: '' },
-// ];
+const DEFAULT_SAVINGS_GOALS = [];const DEFAULT_REMINDERS = [];
 
 // ========== SCHEMA MIGRATION ==========
 
@@ -359,6 +423,42 @@ function migrateSchema() {
     }
   }
 
+  // ---- v7 → v8: Sync default categories with expanded master list ----
+  if (version < 8) {
+    try {
+      const catRaw = localStorage.getItem(KEYS.CATEGORIES);
+      if (catRaw) {
+        let changed = false;
+        const categories = JSON.parse(catRaw);
+        if (Array.isArray(categories)) {
+          const defaultsById = {};
+          DEFAULT_CATEGORIES.forEach(dc => { defaultsById[dc.id] = dc; });
+
+          categories.forEach(cat => {
+            if (defaultsById[cat.id]) {
+              const src = defaultsById[cat.id];
+              // Sync subcategories with the expanded master list
+              if (JSON.stringify(cat.subcategories) !== JSON.stringify(src.subcategories)) {
+                cat.subcategories = [...src.subcategories];
+                changed = true;
+              }
+              // Sync icon and color in case they changed
+              if (cat.icon !== src.icon) { cat.icon = src.icon; changed = true; }
+              if (cat.color !== src.color) { cat.color = src.color; changed = true; }
+              // Sync name if it was updated
+              if (cat.name !== src.name) { cat.name = src.name; changed = true; }
+            }
+          });
+
+          if (changed) localStorage.setItem(KEYS.CATEGORIES, JSON.stringify(categories));
+        }
+      }
+    } catch (e) {
+      trackError(e, { operation: 'migration_v8_categories_sync', version: 'v7_v8' });
+      console.warn('Schema migration v8: could not sync categories, skipping.', e);
+    }
+  }
+
   // ---- v5 → v6: Remove demo seed data from existing stores ----
   if (version < 6) {
     const removeDemoItems = (key) => {
@@ -489,8 +589,7 @@ function readAllData() {
     security: getOrSeed(KEYS.SECURITY, DEFAULT_SECURITY),
     budgets: getOrSeed(KEYS.BUDGETS, DEFAULT_BUDGETS),
     savingsGoals: getOrSeed(KEYS.SAVINGS_GOALS, DEFAULT_SAVINGS_GOALS),
-    // [REMINDERS] Include reminders in full data snapshot
-    // reminders: getOrSeed(KEYS.REMINDERS, DEFAULT_REMINDERS),
+    reminders: getOrSeed(KEYS.REMINDERS, DEFAULT_REMINDERS),
   };
 }
 
@@ -594,6 +693,15 @@ function getSchemaVersion() {
 function getAppVersion() {
   return APP_VERSION;
 }
+
+/**
+ * Auto-generated build version injected by Vite at build time.
+ * Format: build-YYYY-MM-DD-<git-short-hash>
+ * Falls back to APP_VERSION if the global isn't available (dev/test without config).
+ */
+const BUILD_VERSION = typeof __BUILD_VERSION__ !== 'undefined' ? __BUILD_VERSION__ : APP_VERSION;
+
+export { APP_VERSION, BUILD_VERSION };
 
 function getBudgetSpending(categoryId, month, year) {
   const transactions = getOrSeed(KEYS.TRANSACTIONS, []);
@@ -1178,42 +1286,53 @@ export const db = {
     return processRecurringTransactions();
   },
 
-  // [REMINDERS] Bill reminder methods — kept for future implementation
-  // getReminders() {
-  //   return getOrSeed(KEYS.REMINDERS, DEFAULT_REMINDERS);
-  // },
-  // saveReminders(reminders) {
-  //   save(KEYS.REMINDERS, reminders);
-  // },
-  // addReminder(reminder) {
-  //   const reminders = this.getReminders();
-  //   const ts = nowISO();
-  //   const newReminder = { ...reminder, id: 'rem_' + Date.now(), paid: false, createdAt: ts, updatedAt: ts };
-  //   reminders.push(newReminder);
-  //   this.saveReminders(reminders);
-  //   return newReminder;
-  // },
-  // updateReminder(updatedReminder) {
-  //   const reminders = this.getReminders();
-  //   const idx = reminders.findIndex(r => r.id === updatedReminder.id);
-  //   if (idx !== -1) {
-  //     reminders[idx] = { ...updatedReminder, updatedAt: nowISO() };
-  //     this.saveReminders(reminders);
-  //   }
-  // },
-  // deleteReminder(id) {
-  //   const reminders = this.getReminders();
-  //   this.saveReminders(reminders.filter(r => r.id !== id));
-  // },
-  // payReminder(id) {
-  //   const reminders = this.getReminders();
-  //   const idx = reminders.findIndex(r => r.id === id);
-  //   if (idx !== -1) {
-  //     reminders[idx].paid = true;
-  //     reminders[idx].updatedAt = nowISO();
-  //     this.saveReminders(reminders);
-  //   }
-  // },
+  getReminders() {
+    return getOrSeed(KEYS.REMINDERS, DEFAULT_REMINDERS);
+  },
+  saveReminders(reminders) {
+    save(KEYS.REMINDERS, reminders);
+  },
+  addReminder(reminder) {
+    const reminders = this.getReminders();
+    const ts = nowISO();
+    const newReminder = { ...reminder, id: 'rem_' + Date.now(), status: 'unpaid', createdAt: ts, updatedAt: ts };
+    reminders.push(newReminder);
+    this.saveReminders(reminders);
+    return newReminder;
+  },
+  updateReminder(updatedReminder) {
+    const reminders = this.getReminders();
+    const idx = reminders.findIndex(r => r.id === updatedReminder.id);
+    if (idx !== -1) {
+      reminders[idx] = { ...updatedReminder, updatedAt: nowISO() };
+      this.saveReminders(reminders);
+    }
+  },
+  deleteReminder(id) {
+    const reminders = this.getReminders();
+    this.saveReminders(reminders.filter(r => r.id !== id));
+  },
+  payReminder(id, sourceAccountId) {
+    const reminders = this.getReminders();
+    const idx = reminders.findIndex(r => r.id === id);
+    if (idx !== -1) {
+      reminders[idx].status = 'paid';
+      reminders[idx].updatedAt = nowISO();
+      this.saveReminders(reminders);
+    }
+    // Also create an expense transaction from the source account
+    const reminder = reminders[idx];
+    if (reminder && sourceAccountId) {
+      this.addTransaction({
+        type: 'expense',
+        amount: reminder.amount,
+        date: new Date().toISOString().split('T')[0],
+        accountId: sourceAccountId,
+        categoryId: reminder.categoryId || '',
+        notes: 'Paid: ' + (reminder.name || 'Bill'),
+      });
+    }
+  },
 
   // ---- Demo Data ----
   clearDemoData() {
@@ -1228,8 +1347,7 @@ export const db = {
     localStorage.removeItem(KEYS.SECURITY);
     localStorage.removeItem(KEYS.BUDGETS);
     localStorage.removeItem(KEYS.SAVINGS_GOALS);
-    // [REMINDERS] Clear reminders on DB reset
-    // localStorage.removeItem(KEYS.REMINDERS);
+    localStorage.removeItem(KEYS.REMINDERS);
     localStorage.removeItem(SCHEMA_VERSION_KEY);
     clearAutoBackups();
     // Re-run migration after reset to set version
@@ -1241,8 +1359,7 @@ export const db = {
       security: this.getSecuritySettings(),
       budgets: this.getBudgets(),
       savingsGoals: this.getSavingsGoals(),
-      // [REMINDERS] Include reminders in reset result
-      // reminders: this.getReminders(),
+      reminders: this.getReminders(),
     };
   },
 

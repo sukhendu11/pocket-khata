@@ -21,6 +21,7 @@ export default function BudgetManager({
   const [limit, setLimit] = useState('');
   const [rollover, setRollover] = useState(false);
   const [formError, setFormError] = useState('');
+  const [breakdownBudgetId, setBreakdownBudgetId] = useState(null);
 
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -79,8 +80,27 @@ export default function BudgetManager({
         percentage,
         displayPct,
         isOverBudget: spent > effectiveLimit,
-        isNearLimit: percentage >= 80 && spent <= effectiveLimit,
-      };
+      isNearLimit: percentage >= 80 && spent <= effectiveLimit,
+      subcategories: (() => {
+        const subcatMap = {};
+        transactions.forEach(tx => {
+          if (tx.type !== 'expense') return;
+          if (tx.categoryId !== b.categoryId) return;
+          const d = new Date(tx.date);
+          if (d.getMonth() !== currentMonth || d.getFullYear() !== currentYear) return;
+          const name = tx.subcategory ? tx.subcategory.trim() : '';
+          if (!name) return;
+          subcatMap[name] = (subcatMap[name] || 0) + tx.amount;
+        });
+        return Object.entries(subcatMap)
+          .map(([name, amount]) => ({
+            name,
+            amount,
+            percentage: spent > 0 ? (amount / spent) * 100 : 0,
+          }))
+          .sort((a, b) => b.amount - a.amount);
+      })(),
+  }
     }).sort((a, b) => b.percentage - a.percentage);
   }, [budgets, categories, transactions, currentMonth, currentYear, prevMonthIndex, prevMonthYear, lang]);
 
@@ -258,6 +278,53 @@ export default function BudgetManager({
                 </span>                        <span style={styles.pctText}>{b.displayPct}</span>
               </div>
 
+              {/* Subcategory breakdown toggle */}
+              {b.subcategories.length > 0 && (
+                <button
+                  className="neo-btn"
+                  style={{
+                    ...styles.breakdownBtn,
+                    backgroundColor: breakdownBudgetId === b.id ? 'rgba(56,103,214,0.08)' : 'transparent',
+                  }}
+                  onClick={() => setBreakdownBudgetId(breakdownBudgetId === b.id ? null : b.id)}
+                >
+                  <span style={{
+                    ...styles.breakdownArrow,
+                    transform: breakdownBudgetId === b.id ? 'rotate(180deg)' : 'rotate(0deg)',
+                  }}>▼</span>
+                  {breakdownBudgetId === b.id
+                    ? t('budget.hideBreakdown', lang)
+                    : t('budget.showBreakdown', lang)}
+                  <span style={styles.breakdownCount}>{b.subcategories.length}</span>
+                </button>
+              )}
+
+              {/* Expanded subcategory breakdown */}
+              {breakdownBudgetId === b.id && (
+                <div style={styles.breakdownList}>
+                  {b.subcategories.length === 0 ? (
+                    <span style={styles.breakdownEmpty}>{t('budget.noSubcategories', lang)}</span>
+                  ) : (
+                    b.subcategories.map((sub, idx) => (
+                      <div key={sub.name + idx} style={styles.breakdownRow}>
+                        <div style={styles.breakdownLeft}>
+                          <div style={{
+                            ...styles.breakdownDot,
+                            backgroundColor: b.categoryColor,
+                            opacity: 0.4 + (1 - idx / b.subcategories.length) * 0.6,
+                          }} />
+                          <span style={styles.breakdownSubcatName}>{sub.name}</span>
+                        </div>
+                        <div style={styles.breakdownRight}>
+                          <span style={styles.breakdownAmount}>৳{formatNumber(sub.amount, lang)}</span>
+                          <span style={styles.breakdownPct}>{formatPercent(sub.percentage, lang)}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
               {/* Status Badges */}
               <div style={styles.badgeRow}>
                 {b.hasRollover && (
@@ -434,4 +501,96 @@ const styles = {
   saveBtn: { height: '42px', marginTop: '6px' },
   errorBox: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderRadius: '10px', marginBottom: '10px' },
   errorText: { fontSize: '11px', fontWeight: '600', color: 'var(--color-expense)' },
+
+  // ===== Subcategory Breakdown Styles =====
+  breakdownBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    fontSize: '9px',
+    fontWeight: '600',
+    color: 'var(--accent-color)',
+    padding: '4px 8px',
+    borderRadius: '6px',
+    alignSelf: 'flex-start',
+    border: '1px solid rgba(56,103,214,0.2)',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+  },
+  breakdownArrow: {
+    fontSize: '6px',
+    transition: 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+    lineHeight: 1,
+  },
+  breakdownCount: {
+    backgroundColor: 'rgba(56,103,214,0.12)',
+    borderRadius: '4px',
+    padding: '1px 5px',
+    fontSize: '8px',
+    fontWeight: '700',
+    color: 'var(--accent-color)',
+    marginLeft: '2px',
+  },
+  breakdownList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    padding: '8px 10px',
+    backgroundColor: 'var(--bg-color)',
+    borderRadius: '10px',
+    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)',
+    marginTop: '4px',
+  },
+  breakdownRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '3px 0',
+  },
+  breakdownLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    minWidth: 0,
+    flex: 1,
+  },
+  breakdownDot: {
+    width: '6px',
+    height: '6px',
+    borderRadius: '50%',
+    flexShrink: 0,
+  },
+  breakdownSubcatName: {
+    fontSize: '10px',
+    fontWeight: '600',
+    color: 'var(--text-primary)',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  breakdownRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    flexShrink: 0,
+  },
+  breakdownAmount: {
+    fontSize: '10px',
+    fontWeight: '700',
+    color: 'var(--color-expense)',
+  },
+  breakdownPct: {
+    fontSize: '9px',
+    fontWeight: '600',
+    color: 'var(--text-secondary)',
+    minWidth: '32px',
+    textAlign: 'right',
+  },
+  breakdownEmpty: {
+    fontSize: '10px',
+    fontWeight: '500',
+    color: 'var(--text-secondary)',
+    textAlign: 'center',
+    padding: '8px 0',
+  },
 };

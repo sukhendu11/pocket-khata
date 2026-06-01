@@ -72,7 +72,13 @@ export default function AccountManager({
     return transactions.filter(tx => 
       tx.accountId === selectedAccount.id || 
       (tx.type === 'transfer' && tx.transferToId === selectedAccount.id)
-    ).sort((a, b) => new Date(b.date) - new Date(a.date));
+    ).sort((a, b) => {
+      // Primary sort: date descending (newest first)
+      const dateDiff = new Date(b.date) - new Date(a.date);
+      if (dateDiff !== 0) return dateDiff;
+      // Tiebreaker: createdAt descending (most recently created first)
+      return new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date);
+    });
   }, [transactions, selectedAccount]);
 
   // 3. Save new account

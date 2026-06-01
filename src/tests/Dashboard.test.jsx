@@ -381,9 +381,9 @@ describe('Dashboard — Navigation', () => {
     useFixedDate();
     const handleToggleTheme = vi.fn();
     render(<Dashboard {...defaultProps} onToggleTheme={handleToggleTheme} />);
-    // buttons[0]=theme toggle (bell icon was removed)
+    // buttons[0]=bell icon (reminders), buttons[1]=theme toggle
     const allButtons = screen.getAllByRole('button');
-    fireEvent.click(allButtons[0]);
+    fireEvent.click(allButtons[1]);
     expect(handleToggleTheme).toHaveBeenCalledOnce();
   });
 });

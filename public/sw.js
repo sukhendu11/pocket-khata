@@ -96,6 +96,22 @@ self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
+  // ── Bypass SW cache for version-busted URLs ────────────────────────
+  // When reconcileBuildVersion detects an APK upgrade, it reloads the
+  // page with ?v=BUILD_VERSION appended. This creates a unique URL that
+  // cannot be matched by the old SW cache entries. However, the SW's
+  // cache-first strategy would still try to match it — and since there's
+  // no cached entry for the new ?v= URL, it would fall through to network.
+  // That's correct behavior, but we can skip the cache lookup entirely
+  // for these URLs, saving an unnecessary cache read on every versioned load.
+  // More importantly, on the FIRST load after an upgrade (before the SW
+  // has been updated), the old SW might still intercept requests. Bypassing
+  // here guarantees fresh assets regardless of what the old SW has cached.
+  if (event.request.url.includes('?v=')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   if (IS_LOCALHOST) {
     // Dev mode: always fetch from network (no cache)
     event.respondWith(fetch(event.request).catch(() => {

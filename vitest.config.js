@@ -1,8 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { getBuildVersion } from './scripts/get-build-version.cjs';
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __BUILD_VERSION__: JSON.stringify(getBuildVersion()),
+  },
   test: {
     globals: true,
     environment: 'jsdom',
