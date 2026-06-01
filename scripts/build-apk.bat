@@ -4,12 +4,13 @@ REM Pocket Khata — Smart APK Build Pipeline
 REM ==============================================================================
 REM Tiered build strategy to minimize unnecessary full rebuilds:
 REM
-REM   --sync    (fast)   vite build + cap copy android   [web asset changes]
-REM   --full    (medium) vite build + cap copy + assembleDebug   [native changes]
-REM   --clean   (slow)   full rebuild from clean state   [cache issues / deps change]
+REM   --sync    (fast)   vite build + cap copy android          [web asset changes]
+REM   --full    (medium) vite build + cap copy + assembleDebug  [native changes]
+REM   --release (slow)   version++ + tests + clean assembleRelease  [signed release]
+REM   --clean   (slow)   full rebuild from clean state          [cache issues / deps]
 REM   (no flag) default to --full
 REM
-REM Usage: scripts\build-apk.bat [--sync | --full | --clean]
+REM Usage: scripts\build-apk.bat [--sync | --full | --release | --clean]
 REM Run from the project root directory.
 REM ==============================================================================
 
@@ -18,6 +19,7 @@ setlocal enabledelayedexpansion
 set MODE=full
 if /I "%1"=="--sync" set MODE=sync
 if /I "%1"=="--full" set MODE=full
+if /I "%1"=="--release" set MODE=release
 if /I "%1"=="--clean" set MODE=clean
 
 echo ===== Pocket Khata APK Build Pipeline =====
@@ -78,14 +80,17 @@ echo.
 REM ===== STEP 3: Build APK (skip for --sync mode) =====
 if "%MODE%"=="sync" goto :done
 
-echo [3/3] Building debug APK...
 cd android
 
-if "%MODE%"=="clean" (
-    echo   (clean rebuild — removing build cache)
+if /I "%MODE%"=="release" (
+    echo [3/3] Building signed RELEASE APK...
+    echo   (clean rebuild — ProGuard optimization enabled)
+    call .\gradlew clean assembleRelease
+) else if /I "%MODE%"=="clean" (
+    echo [3/3] Building debug APK (clean)...
     call .\gradlew clean assembleDebug
 ) else (
-    echo   (incremental rebuild — preserving build cache)
+    echo [3/3] Building debug APK (incremental)...
     call .\gradlew assembleDebug
 )
 
@@ -102,6 +107,14 @@ echo ===== Pipeline Complete =====
 if "%MODE%"=="sync" (
     echo Assets synced. No APK built (--sync mode).
     echo Deploy with: adb shell am start -n com.pocketkhata.app/.MainActivity
+) else if "%MODE%"=="release" (
+    echo APK: android\app\build\outputs\apk\release\app-release.apk
+    echo.
+    echo Install with:
+    echo   adb install -r android\app\build\outputs\apk\release\app-release.apk
+    echo.
+    echo Note: This is a production build signed with your release keystore.
+    echo Share this APK with others for installation.
 ) else (
     echo APK: android\app\build\outputs\apk\debug\app-debug.apk
     echo.
