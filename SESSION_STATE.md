@@ -7,13 +7,13 @@
 
 # 📍 CURRENT STATE (MOST IMPORTANT)
 
-- **Last completed task:** Committed all pending changes (commit ddc49f2)
+- **Last completed task:** Release APK build + committed versionCode increment
 - **Current active task:** None — git is clean
 - **Immediate next step:** Await user direction
 
-- **Active module:** TransactionHistory sorting + build pipeline
+- **Active module:** Release build pipeline
 - **Current user flow:** N/A
-- **Risk zone:** LOW — 940 tests passing, git clean
+- **Risk zone:** LOW — 938 tests passing, git clean
 
 ---
 
@@ -30,6 +30,8 @@
 5. **Transaction sorting fix** — Secondary sort by `createdAt` descending within date groups. Newest transactions appear at top of each date group. 3 new tests added.
 
 6. **Test mock fix** — Added `getAppVersion` to `db` mock in `App.test.jsx`.
+
+7. **Release APK build** — Built signed release APK v2.4.1 (versionCode 7), 3.34 MB, ProGuard-optimized.
 
 ---
 
@@ -99,4 +101,4 @@
 
 > This is the ONLY instruction for continuation:
 
-- **Next atomic action:** Await user direction. Git clean, 940 tests passing, new fast sync workflow available.
+- **Next atomic action:** Await user direction. Git clean, 938 tests passing, signed release APK (v2.4.1, versionCode 7) ready at `android/app/build/outputs/apk/release/app-release.apk`.
