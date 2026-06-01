@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Calendar, Info } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Calendar, Info, BellRing } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber } from '../utils';
@@ -10,6 +10,7 @@ export default function CalendarView({
   transactions,
   accounts,
   categories,
+  reminders,
   onNavigate,
   onEditTransaction,
   lang
@@ -55,6 +56,16 @@ export default function CalendarView({
       });
     }
 
+    // Pad trailing empty cells so the 7-column grid always has complete rows
+    const totalCells = firstDayIndex + totalDays;
+    const remainder = totalCells % 7;
+    if (remainder > 0) {
+      const trailingEmpty = 7 - remainder;
+      for (let i = 0; i < trailingEmpty; i++) {
+        days.push(null);
+      }
+    }
+
     return days;
   }, [year, month]);
 
@@ -64,7 +75,7 @@ export default function CalendarView({
     transactions.forEach(tx => {
       const dateStr = tx.date;
       if (!activity[dateStr]) {
-        activity[dateStr] = { income: false, expense: false, count: 0 };
+        activity[dateStr] = { income: false, expense: false, reminder: false, count: 0 };
       }
       activity[dateStr].count += 1;
       if (tx.type === 'income') {
@@ -76,9 +87,31 @@ export default function CalendarView({
     return activity;
   }, [transactions]);
 
+  // Map reminders to dates for calendar indicators
+  const safeReminders = useMemo(() => reminders || [], [reminders]);
+  const reminderActivity = useMemo(() => {
+    const byDate = {};
+    safeReminders.forEach(rem => {
+      if (!rem.dueDate) return;
+      if (!byDate[rem.dueDate]) {
+        byDate[rem.dueDate] = { unpaid: 0, overdue: 0, total: 0 };
+      }
+      byDate[rem.dueDate].total += 1;
+      if (rem.status === 'unpaid') {
+        byDate[rem.dueDate].unpaid += 1;
+        const today = new Date().toISOString().split('T')[0];
+        if (rem.dueDate < today) {
+          byDate[rem.dueDate].overdue += 1;
+        }
+      }
+    });
+    return byDate;
+  }, [safeReminders]);
+
   // 4. Selected date transactions and summary
   const selectedDateDetails = useMemo(() => {
     const dayTxs = transactions.filter(tx => tx.date === selectedDateStr);
+    const dayReminders = safeReminders.filter(rem => rem.dueDate === selectedDateStr);
     
     let income = 0;
     let expense = 0;
@@ -89,11 +122,12 @@ export default function CalendarView({
 
     return {
       transactions: dayTxs,
+      reminders: dayReminders,
       income,
       expense,
       net: income - expense,
     };
-  }, [transactions, selectedDateStr]);
+  }, [transactions, safeReminders, selectedDateStr]);
 
   const handleDaySelect = (day) => {
     if (day) {
@@ -175,10 +209,16 @@ export default function CalendarView({
                   {formatNumber(day.dayNum, lang)}
                 </span>
                 
-                {/* Visual Indicators */}
+                {/* Visual Indicators: income dot, expense dot, reminder bell */}
                 <div style={styles.indicatorContainer}>
                   {activity?.income && <span style={{ ...styles.dot, backgroundColor: 'var(--color-income)' }} />}
                   {activity?.expense && <span style={{ ...styles.dot, backgroundColor: 'var(--color-expense)' }} />}
+                  {reminderActivity[day.dateStr]?.overdue > 0 && (
+                    <span style={{ ...styles.dot, backgroundColor: 'var(--color-expense)' }} title="Overdue reminder" />
+                  )}
+                  {reminderActivity[day.dateStr]?.unpaid > 0 && reminderActivity[day.dateStr]?.overdue === 0 && (
+                    <span style={{ ...styles.dot, backgroundColor: 'var(--accent-color)' }} title="Upcoming reminder" />
+                  )}
                 </div>
               </div>
             );
@@ -218,8 +258,62 @@ export default function CalendarView({
           </div>
         </div>
 
+        {/* Selected Date Reminders */}
+        {selectedDateDetails.reminders.length > 0 && (
+          <div style={styles.reminderSection}>
+            <div className="neo-pressed-sm" style={styles.reminderSectionHeader}>
+              <BellRing size={12} style={{ color: 'var(--accent-color)' }} />
+              <span style={styles.reminderSectionTitle}>{t('reminders.title', lang)}</span>
+            </div>
+            <div style={styles.dailyList}>
+              {selectedDateDetails.reminders.map(rem => {
+                const cat = categories.find(c => c.id === rem.categoryId);
+                const isOverdue = rem.status === 'unpaid' && rem.dueDate < new Date().toISOString().split('T')[0];
+                return (
+                  <div
+                    key={rem.id}
+                    className={rem.status === 'paid' ? 'neo-pressed-sm' : 'neo-raised-sm'}
+                    style={{
+                      ...styles.reminderCard,
+                      borderLeft: `4px solid ${cat ? cat.color : 'var(--accent-color)'}`,
+                      opacity: rem.status === 'paid' ? 0.6 : 1,
+                    }}
+                  >
+                    <div style={styles.reminderCardLeft}>
+                      <span style={{
+                        ...styles.reminderName,
+                        textDecoration: rem.status === 'paid' ? 'line-through' : 'none',
+                      }}>
+                        {rem.name}
+                      </span>
+                      {isOverdue && (
+                        <span style={styles.overdueTag}>{t('overdue', lang)}</span>
+                      )}
+                    </div>
+                    <div style={styles.reminderCardRight}>
+                      <span style={{
+                        ...styles.reminderAmount,
+                        color: rem.status === 'paid' ? 'var(--color-income)' : 'var(--color-expense)',
+                      }}>
+                        ৳{formatNumber(rem.amount, lang)}
+                      </span>
+                      {rem.status === 'paid' && (
+                        <span style={styles.paidTag}>{t('paid', lang)}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Daily Transactions List */}
         <div style={styles.dailyList}>
+          <div className="neo-pressed-sm" style={styles.reminderSectionHeader}>
+            <Calendar size={12} style={{ color: 'var(--accent-color)' }} />
+            <span style={styles.reminderSectionTitle}>{t('nav.incomeExpense', lang)}</span>
+          </div>
           {selectedDateDetails.transactions.length === 0 ? (
             <div className="neo-pressed-sm" style={styles.emptyDetails}>
               <Info size={12} style={{ marginRight: '6px' }} /> {t('calendar.noRecords', lang)}
@@ -255,6 +349,7 @@ CalendarView.propTypes = {
   transactions: PropTypes.array,
   accounts: PropTypes.array,
   categories: PropTypes.array,
+  reminders: PropTypes.array,
   onNavigate: PropTypes.func,
   onEditTransaction: PropTypes.func,
   lang: PropTypes.string,
@@ -411,5 +506,73 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  reminderSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  reminderSectionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '8px 12px',
+    borderRadius: '10px',
+  },
+  reminderSectionTitle: {
+    fontSize: '10px',
+    fontWeight: '700',
+    color: 'var(--text-secondary)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  reminderCard: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 12px',
+    borderRadius: '12px',
+  },
+  reminderCardLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    minWidth: 0,
+  },
+  reminderName: {
+    fontSize: '11px',
+    fontWeight: '600',
+    color: 'var(--text-primary)',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  overdueTag: {
+    fontSize: '8px',
+    fontWeight: '700',
+    color: 'var(--color-expense)',
+    backgroundColor: 'rgba(255,94,87,0.12)',
+    padding: '2px 5px',
+    borderRadius: '4px',
+    textTransform: 'uppercase',
+  },
+  reminderCardRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexShrink: 0,
+  },
+  reminderAmount: {
+    fontSize: '12px',
+    fontWeight: '700',
+  },
+  paidTag: {
+    fontSize: '8px',
+    fontWeight: '700',
+    color: 'var(--color-income)',
+    backgroundColor: 'rgba(46,204,113,0.12)',
+    padding: '2px 5px',
+    borderRadius: '4px',
+    textTransform: 'uppercase',
   },
 };

@@ -1,0 +1,75 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Android SDK
+        shell: pwsh
+        run: |
+          $androidSdk = "$env:LOCALAPPDATA\Android\Sdk"
+
+          # Set both environment variables for compatibility
+          echo "ANDROID_HOME=$androidSdk" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "ANDROID_SDK_ROOT=$androidSdk" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+          # Add SDK tools to PATH
+          echo "$androidSdk\platform-tools" | Out-File -FilePath $env:GITHUB_PATH -Append
+          echo "$androidSdk\cmdline-tools\latest\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+          # Accept all SDK licenses (pipe "y" to prevent interactive hang)
+          $yes = "y" * 100
+          $yes | & "$androidSdk\cmdline-tools\latest\bin\sdkmanager.bat" --licenses --sdk_root=$androidSdk 2>&1 | Out-Null
+
+          # Install platform and build-tools matching android/variables.gradle
+          & "$androidSdk\cmdline-tools\latest\bin\sdkmanager.bat" `
+            "platforms;android-36" `
+            "build-tools;36.0.0" `
+            --sdk_root=$androidSdk 2>&1
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\.gradle\caches
+            ~\.gradle\wrapper
+            android\.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle.properties', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build APK
+        run: scripts\build-apk.bat
+        shell: cmd
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pocket-khata-debug-apk
+          path: android\app\build\outputs\apk\debug\app-debug.apk
+          if-no-files-found: error
+          retention-days: 30

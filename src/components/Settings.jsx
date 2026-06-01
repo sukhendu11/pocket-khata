@@ -518,7 +518,7 @@ export default function Settings({
           </div>
 
           <p style={{ ...styles.cardDesc, marginBottom: '4px', fontWeight: '600', color: 'var(--text-primary)' }}>
-            {t('settings.version', lang)}
+            {t('settings.version', lang)} <span style={{ fontWeight: '400', color: 'var(--text-secondary)' }}>v{db.getAppVersion()}</span>
           </p>
 
           <p style={{ ...styles.cardDesc, marginBottom: '4px' }}>

@@ -1,34 +1,105 @@
 // ==============================================================================
 // Notification utility for Pocket Khata bill reminders
 // ==============================================================================
+// Uses Capacitor's LocalNotifications plugin for native Android permission
+// requests (POST_NOTIFICATIONS on Android 13+), with Web Notification API
+// fallback for browser/PWA environments.
+//
+// The @capacitor/local-notifications import is lazy (dynamic import inside
+// functions) so this module loads safely in any environment — browser dev,
+// test runner, or Capacitor native. Native plugin functions are only invoked
+// when Capacitor.isNativePlatform() is true.
+// ==============================================================================
 // All errors are handled silently — no warnings, no console noise for users.
 // The UI layer reads simple boolean/string states from these functions only.
 
+import { Capacitor } from '@capacitor/core';
 import { t } from './i18n';
 
 /**
- * Check if the browser supports the Notification API.
+ * Lazy-load the Capacitor LocalNotifications plugin.
+ * Only called when the app is on a native platform.
+ * Returns null if the plugin isn't available (import fails).
+ */
+async function getLocalNotifications() {
+  try {
+    const mod = await import('@capacitor/local-notifications');
+    return mod.LocalNotifications;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check if notifications are available in the current environment.
+ * Returns true if either the Web Notification API is available OR
+ * the app is running on a Capacitor native platform.
  * @returns {boolean}
  */
 export function isNotificationSupported() {
-  return typeof Notification !== 'undefined' && typeof navigator !== 'undefined' && 'serviceWorker' in navigator;
+  const webSupported = typeof Notification !== 'undefined' && typeof navigator !== 'undefined' && 'serviceWorker' in navigator;
+  try {
+    const nativeSupported = Capacitor.isNativePlatform();
+    return webSupported || nativeSupported;
+  } catch {
+    return webSupported;
+  }
 }
 
 /**
  * Get the current notification permission state.
- * @returns {'granted'|'denied'|'default'|'unsupported'}
+ * Uses Capacitor's checkPermissions() on native, falls back to Web API.
+ * @returns {Promise<'granted'|'denied'|'default'|'unsupported'>}
  */
-export function getNotificationPermission() {
+export async function getNotificationPermission() {
   if (!isNotificationSupported()) return 'unsupported';
+
+  // Capacitor native path: use plugin's checkPermissions()
+  if (Capacitor.isNativePlatform()) {
+    const LocalNotifications = await getLocalNotifications();
+    if (LocalNotifications) {
+      try {
+        const permResult = await LocalNotifications.checkPermissions();
+        if (permResult.display === 'granted') return 'granted';
+        if (permResult.display === 'denied') return 'denied';
+        return 'default';
+      } catch {
+        return 'default';
+      }
+    }
+    return 'default';
+  }
+
+  // Web API fallback
   return Notification.permission;
 }
 
 /**
  * Request notification permission from the user.
+ * Uses Capacitor's requestPermissions() on native for reliable Android runtime
+ * dialog (POST_NOTIFICATIONS on Android 13+), falls back to Web API in browser.
  * @returns {Promise<'granted'|'denied'|'default'|'unsupported'>}
  */
 export async function requestNotificationPermission() {
   if (!isNotificationSupported()) return 'unsupported';
+
+  // Capacitor native path: triggers the Android runtime permission dialog
+  if (Capacitor.isNativePlatform()) {
+    const LocalNotifications = await getLocalNotifications();
+    if (LocalNotifications) {
+      try {
+        const permResult = await LocalNotifications.requestPermissions();
+        if (permResult.display === 'granted') return 'granted';
+        if (permResult.display === 'denied') return 'denied';
+        return 'default';
+      } catch {
+        return 'denied';
+      }
+    }
+    return 'denied';
+  }
+
+  // Web API fallback (browser/PWA)
   try {
     const result = await Notification.requestPermission();
     return result;
@@ -42,7 +113,7 @@ export async function requestNotificationPermission() {
  * @returns {Promise<ServiceWorkerRegistration|null>}
  */
 export async function registerServiceWorker() {
-  if (!isNotificationSupported()) return null;
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null;
   try {
     return await navigator.serviceWorker.register('/sw.js', { scope: '/' });
   } catch {
@@ -51,14 +122,42 @@ export async function registerServiceWorker() {
 }
 
 /**
- * Send a notification via the service worker.
+ * Send a notification via the service worker or Capacitor LocalNotifications.
+ * Falls back to Capacitor LocalNotifications.schedule() on native platforms
+ * where the Web Notification API may not be reliable.
  * @param {string} title
  * @param {string} body
  * @param {string} [tag]
  * @param {object} [data]
  */
 export async function showNotification(title, body, tag, data = {}) {
-  if (!isNotificationSupported() || Notification.permission !== 'granted') return;
+  // Capacitor native path: use LocalNotifications plugin directly
+  if (Capacitor.isNativePlatform()) {
+    const LocalNotifications = await getLocalNotifications();
+    if (LocalNotifications) {
+      try {
+        const perm = await getNotificationPermission();
+        if (perm !== 'granted') return;
+        await LocalNotifications.schedule({
+          notifications: [{
+            title,
+            body,
+            id: tag ? hashTag(tag) : Date.now(),
+            smallIcon: 'ic_launcher_foreground',
+            largeIcon: 'ic_launcher_foreground',
+            actionTypeId: '',
+            extra: data,
+          }],
+        });
+      } catch {
+        // Silently fail
+      }
+    }
+    return;
+  }
+
+  // Web API fallback
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
   try {
     const registration = await navigator.serviceWorker.ready;
     if (registration.active) {
@@ -73,16 +172,37 @@ export async function showNotification(title, body, tag, data = {}) {
 }
 
 /**
+ * Simple string hash for converting tag strings to numeric IDs for Capacitor.
+ * @param {string} str
+ * @returns {number}
+ */
+function hashTag(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+}
+
+/**
  * Check all reminders and fire notifications for due/overdue items.
  * Tracks already-shown notifications via tags to avoid duplicates.
  *
  * @param {Array} reminders
  * @param {Set} [shownTags]
  * @param {string} [lang]
- * @returns {{ notifiedCount: number, updatedShownTags: Set }}
+ * @returns {Promise<{ notifiedCount: number, updatedShownTags: Set }>}
  */
-export function checkReminders(reminders, shownTags = new Set(), lang = 'en') {
-  if (!Array.isArray(reminders) || Notification.permission !== 'granted') {
+export async function checkReminders(reminders, shownTags = new Set(), lang = 'en') {
+  if (!Array.isArray(reminders)) {
+    return { notifiedCount: 0, updatedShownTags: shownTags };
+  }
+
+  // Check permission asynchronously
+  const perm = await getNotificationPermission();
+  if (perm !== 'granted') {
     return { notifiedCount: 0, updatedShownTags: shownTags };
   }
 
@@ -160,7 +280,7 @@ export async function cacheRemindersForSW(reminders, lang = 'en') {
  * Register periodic background sync for reminder checks.
  */
 export async function registerPeriodicSync() {
-  if (!isNotificationSupported()) return;
+  if (!isNotificationSupported() || typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
   try {
     const registrations = await navigator.serviceWorker.getRegistrations();
     for (const registration of registrations) {
@@ -180,7 +300,7 @@ export async function registerPeriodicSync() {
  * @returns {Promise<boolean>}
  */
 export async function isServiceWorkerActive() {
-  if (!isNotificationSupported()) return false;
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return false;
   try {
     const registrations = await navigator.serviceWorker.getRegistrations();
     return registrations.length > 0;

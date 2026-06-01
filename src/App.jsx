@@ -183,70 +183,66 @@ export default function App() {
   const menuRef = useRef(null);
   // Lock screen removed (direct entry)
 
-  // 5. Initial Load
-  useEffect(() => {
+  // Apply theme/language to <html> synchronously BEFORE any render to prevent flash.
+  const initialTheme = localStorage.getItem('pocket_khata_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', initialTheme);
+  const initialLang = localStorage.getItem('pocket_khata_lang') || 'en';
+  document.documentElement.setAttribute('data-lang', initialLang);
 
-    // Load database
+  // 5. Initial Load — runs ONCE after mount
+  // Boot order: version check (main.jsx) → schema migration (db.js import) → hydration → UI
+  // No splash gate — app renders Dashboard immediately with empty state, then populates
+  // once data is loaded from storage. The db functions internally return safe defaults
+  // (empty arrays) if nothing is stored yet, so there's never a crash on first render.
+  useEffect(() => {
     const loadedAccounts = db.getAccounts();
     const loadedCategories = db.getCategories();
     const loadedTransactions = db.getTransactions();
     const loadedBudgets = db.getBudgets();
     const loadedSavingsGoals = db.getSavingsGoals();
     const loadedReminders = db.getReminders();
-    setReminders(loadedReminders);
+
     registerServiceWorker();
+    setTheme(initialTheme);
     setAccounts(loadedAccounts);
     setCategories(loadedCategories);
     setTransactions(loadedTransactions);
     setBudgets(loadedBudgets);
     setSavingsGoals(loadedSavingsGoals);
+    setReminders(loadedReminders);
 
-    // Process recurring transactions — auto-creates any that are due
+    // Process recurring transactions after base data is loaded
     const result = db.processRecurringTransactions();
     if (result.count > 0) {
-      // Refresh data to include newly created transactions and updated balances
       setTransactions(db.getTransactions());
       setAccounts(db.getAccounts());
-      // Show a toast notification
-      setToast({
-        key: 'recurringCreated',
-        count: result.count,
-      });
+      setToast({ key: 'recurringCreated', count: result.count });
     }
 
-    // Set Theme
-    const savedTheme = localStorage.getItem('pocket_khata_theme') || 'light';
-    setTheme(savedTheme);
-    document.documentElement.setAttribute('data-theme', savedTheme);
-
-    // Set language data attribute for Bangla font
-    const savedLang = localStorage.getItem('pocket_khata_lang') || 'en';
-    document.documentElement.setAttribute('data-lang', savedLang);
-
-    // Request fullscreen for immersive mode (PWA on Android)
-    const enterFullscreen = async () => {
+    // Request fullscreen for immersive mode (PWA on Android) — non-blocking
+    const fsTimer = setTimeout(async () => {
       try {
         if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
           await document.documentElement.requestFullscreen();
         }
       } catch (e) {
-        // Fullscreen API not available or denied — silent fallback for non-Android browsers
+        // Silent fallback for non-Android browsers
       }
-    };
-    // Wait for mount animation to settle before requesting fullscreen
-    const fsTimer = setTimeout(enterFullscreen, 1200);
+    }, 1200);
 
-    // Listen for fullscreen exit events (e.g., system gesture swiped from edge)
-    // and automatically re-enter immersive mode
     const handleFullscreenChange = () => {
       if (!document.fullscreenElement) {
-        // User may have exited via system gesture — re-enter after a short delay
-        setTimeout(enterFullscreen, 500);
+        setTimeout(async () => {
+          try {
+            if (document.documentElement.requestFullscreen) {
+              await document.documentElement.requestFullscreen();
+            }
+          } catch (e) {}
+        }, 500);
       }
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
 
-    // Cleanup on unmount
     return () => {
       clearTimeout(fsTimer);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
@@ -396,6 +392,7 @@ export default function App() {
         setTransactions(db.getTransactions());
         setBudgets(db.getBudgets());
         setSavingsGoals(db.getSavingsGoals());
+        setReminders(db.getReminders());
       }
       return success;
     } catch (e) {
@@ -604,16 +601,12 @@ export default function App() {
       window.removeEventListener('popstate', handlePopState);
       delete window.__androidBackCallback;
     };
-  }, []);
-
-
-
-  // 12. Preload TransactionHistory after mount so it's ready for instant navigation
+  }, []);    // Preload TransactionHistory after mount so it's ready for instant navigation
   useEffect(() => {
     preloadTransactionHistory();
   }, []);
 
-  // 12. Close menu when clicking outside
+  // Close menu when clicking outside
   useEffect(() => {
     if (!showMenu) return;
     const handleClickOutside = (e) => {
@@ -676,6 +669,7 @@ export default function App() {
             transactions={transactions}
             accounts={accounts}
             categories={categories}
+            reminders={reminders}
             onNavigate={handleNavigate}
             onEditTransaction={handleEditTransactionClick}
             lang={lang}

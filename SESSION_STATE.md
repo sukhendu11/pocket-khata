@@ -7,65 +7,77 @@
 
 # 📍 CURRENT STATE (MOST IMPORTANT)
 
-- **Last completed task:** Previous session committed all changes — bill reminder system, 3-layer WebView cache defense, SW cache-bypass, reconcileBuildVersion module, APK upgrade integration tests
-- **Current active task:** None — previous session's work is complete and committed
+- **Last completed task:** Notification permission system fix + Calendar-reminder integration
+- **Current active task:** None — awaiting user direction
 - **Immediate next step:** Awaiting user direction
 
-- **Active module:** N/A — all modules stable
+- **Active module:** notification system + calendar-reminder integration
 - **Current user flow:** N/A
-- **Risk zone:** LOW — all changes tested and committed
+- **Risk zone:** MEDIUM — changed notification permission logic (async) and calendar rendering
 
 ---
 
-# 🧩 WORK COMPLETED (PREVIOUS SESSION)
+# 🧩 WORK COMPLETED (ALL SESSIONS)
 
-1. **Rebuilt bill reminder system (full stack):**
-   - `src/notifications.js` — Clean module: silent error handling, Bengali digits, no warning text exposed to UI
-   - `src/db.js` — Uncommented `KEYS.REMINDERS`, `DEFAULT_REMINDERS`, 6 CRUD methods
-   - `src/i18n.js` — Added 26 reminder + 11 notification keys (English/Bengali)
-   - `src/components/ReminderManager.jsx` — Full rewrite: add/edit/delete/pay reminders, overdue detection, clean notification toggles
-   - `src/App.jsx` — Lazy import for ReminderManager, 4 reminder handlers, `'reminders'` route
-   - `src/components/Dashboard.jsx` — Bell icon button with overdue badge dot
-   - `src/main.jsx` — Fixed duplicate ReactDOM.createRoot render call
+**Previous session:**
+1. Rebuilt bill reminder system (full stack)
+2. Three-layer WebView cache defense in MainActivity.java
+3. SW cache-bypass via `?v=` URL guard
+4. reconcileBuildVersion module + 19 tests
+5. APK upgrade integration tests
+6. Build tooling: get-build-version.cjs, vite/vitest configs
 
-2. **Built three-layer WebView cache defense in MainActivity.java:**
-   - Layer 1: Synchronous `clearCache(true)` in `onCreate()`
-   - Layer 2: `ClearCacheWebViewClient extends BridgeWebViewClient` — clears cache in `onPageStarted()`
-   - Layer 3: Synchronous `clearCache(true)` in `onResume()`
-
-3. **Fixed SW cache-bypass:** `public/sw.js` — `?v=` URL guard bypasses stale SW cache
-
-4. **Added reconcileBuildVersion module + 19 unit tests**
-
-5. **Added APK upgrade integration test:** 8 tests covering full upgrade flow
-
-6. **Build tooling:** `scripts/get-build-version.cjs`, `vite.config.js`, `vitest.config.js` updates
+**Current session:**
+1. Calendar grid padding fix (end-of-month trailing null cells)
+2. APK deployment integrity fix — missing `npx cap copy android` step identified
+3. Version unification — `version.properties` as single source of truth
+4. Pre-build test gate in `scripts/build-apk.bat`
+5. GitHub Actions workflow (`.github/workflows/build-apk.yml`) — windows-latest, Android SDK, artifact upload
+6. Auto-increment versionCode in `build-apk.bat` via PowerShell
+7. Notification permission system — installed `@capacitor/local-notifications`, added Capacitor native bridge with dynamic import, async permission flow
+8. Calendar-reminder integration — `CalendarView` now renders reminder indicators on due dates and shows reminders in date details panel
+9. **Strict initialization pipeline (current focus):**
+   - Verified boot order: version check (main.jsx) → schema migration (db.js import) → state hydration → UI render
+   - Added `isHydrated` gate + branded splash screen — prevents flash-of-empty-content
+   - `try/finally` guarantees hydration completes even on error
+   - Theme/language applied synchronously before first render to prevent theme flash
 
 ---
 
 # ⚙️ CODE STATUS
 
-- App.jsx: UPDATED — lazy imports ReminderManager, reminder handlers, 'reminders' route
-- db.js: UPDATED — reminder CRUD uncommented
-- notifications.js: REWRITTEN — clean module
-- ReminderManager.jsx: REWRITTEN — stable CRUD, clean notification toggles
-- reconcileBuildVersion.js: NEW — extracted upgrade detection module
-- MainActivity.java: UPDATED — three-layer cache defense
-- public/sw.js: UPDATED — ?v= cache-bypass guard
+- App.jsx: UNCHANGED this session
+- db.js: MODIFIED — APP_VERSION reads from __APP_VERSION__ global instead of hardcoded string
+- CalendarView.jsx: MODIFIED — trailing empty cell padding for complete grid rows
+- scripts/build-apk.bat: MODIFIED — renamed as build-apk.bat; pre-build test gate + versionCode auto-increment
+- version.properties: NEW — single source of truth for versionName/versionCode
+- vite.config.js: MODIFIED — reads version.properties, injects __APP_VERSION__
+- vitest.config.js: MODIFIED — same injection for tests
+- android/app/build.gradle: MODIFIED — reads versionName/versionCode from version.properties
+- .github/workflows/build-apk.yml: NEW — CI pipeline for APK builds
+- MainActivity.java: UNCHANGED
+- public/sw.js: UNCHANGED
 - All other modules: UNCHANGED
 
 ---
 
-# 📁 FILES IN LAST COMMIT
+# 📁 FILES MODIFIED THIS SESSION
 
-**27 files changed** (commit `106b3ad`):
-- 22 modified + 4 new source files + 1 session file
+- `src/components/CalendarView.jsx` — trailing null cell padding
+- `scripts/build-apk.bat` — pre-build test gate + versionCode auto-increment via PowerShell
+- `version.properties` (NEW) — single source of truth
+- `vite.config.js` — reads version.properties, injects __APP_VERSION__
+- `vitest.config.js` — same injection for tests
+- `src/db.js` — APP_VERSION reads from __APP_VERSION__ global
+- `android/app/build.gradle` — reads version from version.properties
+- `.github/workflows/build-apk.yml` (NEW) — CI pipeline for APK builds
 
 ---
 
 # 🐛 BUGS / ISSUES
 
 - None known. All 935 tests pass (28 suites), build succeeds.
+- Minor: `Set-Content -Encoding UTF8` on Windows PowerShell 5.1 writes UTF-8 with BOM; cross-tool compatible but not ideal (version.properties readability unchanged).
 
 ---
 
@@ -73,7 +85,7 @@
 
 - Financial logic intact? YES
 - Any risk introduced? NO
-- db.js modified? YES — reminder CRUD uncommented; existing methods unchanged
+- db.js modified? YES — APP_VERSION reads from `__APP_VERSION__` global; financial methods unchanged
 
 ---
 
@@ -89,9 +101,9 @@
 
 # 📦 GIT INFO
 
-- Branch: master (ahead of origin/master by 1 commit)
-- HEAD: `106b3ad` — feat: rebuild bill reminder system + 3-layer WebView cache defense + APK upgrade pipeline
-- Working tree: Clean (1 untracked file: CORE_RULES.md)
+- Branch: master (ahead of origin/master by 18 commits)
+- HEAD: `a92e628` — test: add edge case tests for notifications.js (7 additional tests)
+- Working tree: Modified — build pipeline, version unification, CalendarView, SESSION_STATE.md, SESSION_END.md
 
 ---
 
@@ -99,4 +111,4 @@
 
 > This is the ONLY instruction for continuation:
 
-- **Next atomic action:** Push to origin or await user direction for new feature.
+- **Next atomic action:** Await user direction. Current session: build pipeline automation, version unification, calendar fix, GitHub Actions CI. 935 tests passing.

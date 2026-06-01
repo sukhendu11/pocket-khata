@@ -45,7 +45,7 @@ export default function ReminderManager({
   const [formError, setFormError] = useState('');
 
   // Notification state — clean and simple
-  const permission = getNotificationPermission();
+  const [permission, setPermission] = useState('default');
   const supported = isNotificationSupported();
   const showNotifSection = supported && permission !== 'unsupported';
 
@@ -62,6 +62,8 @@ export default function ReminderManager({
     if (supported) {
       registerServiceWorker();
       isServiceWorkerActive().catch(() => {});
+      // Async permission check (Capacitor native or Web API)
+      getNotificationPermission().then(setPermission).catch(() => {});
     }
   }, [supported]);
 
@@ -69,6 +71,7 @@ export default function ReminderManager({
     try {
       if (permission !== 'granted') {
         const result = await requestNotificationPermission();
+        setPermission(result);
         if (result !== 'granted') return;
       }
       const newVal = !notificationsEnabled;

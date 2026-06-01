@@ -39,6 +39,7 @@ Thumbs.db
 # Project-specific
 chat_history.md
 nul
+NUL2
 
 # Local env files
 *.local

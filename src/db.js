@@ -47,9 +47,10 @@ const CURRENT_SCHEMA_VERSION = 8;
 
 /**
  * Semantic version string shown in the UI.
- * Increment this for human-readable version releases.
+ * Injected by Vite at build time from version.properties (single source of truth).
+ * Falls back to '2.4.0' for dev/test without the Vite define.
  */
-const APP_VERSION = '2.4.1';
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '2.4.0';
 
 const SEED_TIMESTAMP = new Date().toISOString();
 
@@ -1371,6 +1372,7 @@ export const db = {
       security: this.getSecuritySettings(),
       budgets: this.getBudgets(),
       savingsGoals: this.getSavingsGoals(),
+      reminders: this.getReminders(),
       exportedAt: new Date().toISOString(),
       schemaVersion: CURRENT_SCHEMA_VERSION,
     };
@@ -1386,6 +1388,7 @@ export const db = {
       if (data.security) save(KEYS.SECURITY, data.security);
       if (data.budgets) save(KEYS.BUDGETS, data.budgets);
       if (data.savingsGoals) save(KEYS.SAVINGS_GOALS, data.savingsGoals);
+      if (data.reminders) save(KEYS.REMINDERS, data.reminders);
       // Reset version so migration runs on the freshly imported data
       // (save() → createAutoBackup() may have set the version key already)
       localStorage.removeItem(SCHEMA_VERSION_KEY);
