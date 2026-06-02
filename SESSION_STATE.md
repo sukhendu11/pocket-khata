@@ -7,75 +7,69 @@
 
 # 📍 CURRENT STATE (MOST IMPORTANT)
 
-- **Last completed task:** Fixed 6 stability/UI issues (transaction sorting, pie chart 100% bug, category quick-add, calendar reminder editing, settings title)
+- **Last completed task:** Added success toasts for transaction save/edit/delete/batch-delete + tests + Android security hardening
 - **Current active task:** None — awaiting user direction
-- **Immediate next step:** Await new feature request
+- **Immediate next step:** Await new feature request or push to remote
 
-- **Active module:** Multiple — Dashboard, CalendarView, PieChart, TransactionForm, Settings
+- **Active module:** App.jsx (toast system), App.test.jsx (toast tests)
 - **Current user flow:** N/A
-- **Risk zone:** LOW — 938 tests passing, git clean
+- **Risk zone:** LOW — 941 tests passing, git clean
 
 ---
 
 # 🧩 WORK COMPLETED THIS SESSION
 
-1. **Transaction sorting (all lists)** — Dashboard recent transactions + CalendarView selected-date transactions now have `createdAt` secondary sort (newest first within same date). TransactionHistory was already fixed in a prior session.
+1. **Success toasts for CRUD operations:**
+   - `handleSaveTransaction` — shows "Transaction added" or "Transaction updated"
+   - `handleDeleteTransaction` — shows "Transaction deleted"
+   - `handleBatchDelete` — shows "{count} transaction(s) deleted"
+   - i18n: added 4 toast keys (en/bn)
 
-2. **PieChart 100% single-segment fix** — Split 360° SVG arcs into two 180° half-circles to prevent invisible chart when a single category = 100%. Added `skipLabel` flag on second half to prevent duplicate labels.
+2. **Test coverage for toast notifications (3 new tests):**
+   - Add toast: opens form → saves → verifies icon + "Transaction added" text
+   - Delete toast: navigates to TransactionHistory → clicks Edit → clicks Delete → verifies icon + "Transaction deleted" text + deleteTransaction called with tx id
+   - Batch delete toast: navigates to TransactionHistory → clicks Batch Delete → verifies icon + count text + both transactions deleted
+   - Added i18n mock keys + TransactionHistory mock with Edit/Batch Delete buttons
 
-3. **Quick-add category/subcategory in TransactionForm** — Added "+ New Category" inline form with name input + save, and "+ Add Subcategory" button. Both wired via `onAddCategory`/`onUpdateCategory` from App.jsx.
+3. **Test isolation fix:** Added `mockDb.addTransaction.mockReset()` and `mockDb.deleteTransaction.mockReset()` to prevent leaked `mockImplementation` from error-handling tests
 
-4. **Calendar reminder editing** — Added `onClick={() => onNavigate('reminders')}` to reminder cards in CalendarView day details panel.
+4. **Android security hardening:** Changed `android:allowBackup="true"` → `"false"` in AndroidManifest.xml
 
-5. **Settings About card title** — Changed hardcoded `"Pocket Khata Vault v2.4.0"` to `"Pocket Khata"` in i18n. Dynamic version display preserved.
-
-6. **Install compatibility verified** — Signing config, AndroidManifest (exported activity, POST_NOTIFICATIONS), and build.gradle confirmed correct.
+5. **Translation fix:** Changed `txHistory.title` from "Ledger Ledger" → "Transaction History" (English only), updated 7 test assertions
 
 ---
 
 # ⚙️ CODE STATUS
 
-- App.jsx: MODIFIED — added onAddCategory/onUpdateCategory/onNavigate props for TransactionForm
-- Dashboard.jsx: MODIFIED — added createdAt secondary sort to recentTransactions
-- CalendarView.jsx: MODIFIED — added createdAt sort + reminder edit navigation
-- PieChart.jsx: MODIFIED — split 360° arcs into two 180° half-circles for 100% segments
-- TransactionForm.jsx: MODIFIED — added quick-add category/subcategory inline buttons
-- i18n.js: MODIFIED — fixed Settings About card title
-- src/tests/PieChart.test.jsx: MODIFIED — updated expectations for 100% segment (2 paths)
+- App.jsx: MODIFIED — added setToast calls in handleSaveTransaction, handleDeleteTransaction, handleBatchDelete
+- i18n.js: MODIFIED — added 4 toast keys (transactionAdded, transactionEdited, transactionDeleted, batchDeleted) + fixed txHistory.title
+- AndroidManifest.xml: MODIFIED — allowBackup="false"
+- src/tests/App.test.jsx: MODIFIED — added 3 toast tests + i18n mock keys + TransactionHistory mock with edit/batch-delete buttons
+- src/tests/TransactionHistory.test.jsx: MODIFIED — updated "Ledger Ledger" → "Transaction History" assertions
 - All other modules: UNCHANGED
 
 ---
 
-# 📦 ALL COMMITS THIS SESSION (10 total)
+# 📦 ALL COMMITS THIS SESSION (2 new)
 
 ```
+4c6f104 feat: add success toasts for transaction add/edit/delete/batch-delete
 a0976d3 fix: address 6 stability and UI issues across the app
-373a7f0 docs: finalize SESSION_STATE.md with complete session summary
-b79e0f6 feat: add --release mode to build-apk.bat
-1db4d8f docs: update SESSION_STATE.md to reflect release APK build
-8c98e34 chore: bump versionCode to 6 for release build
-d5a275c docs: update SESSION_STATE.md to reflect committed state
-ddc49f2 fix: sort transactions by createdAt within date groups
-b8131dc docs: update SESSION_STATE.md to reflect committed session state
-cd124ec fix: remove splash screen, fix version display, integrate calendar reminders
-2c28c87 test: add unit tests for App.jsx
-a92e628 test: add edge case tests for notifications.js
+...
 ```
 
 **Key files changed this session:**
-- `src/App.jsx` — new TransactionForm props
-- `src/components/Dashboard.jsx` — createdAt sort
-- `src/components/CalendarView.jsx` — sort + reminder edit
-- `src/components/PieChart.jsx` — 360° arc fix
-- `src/components/TransactionForm.jsx` — quick-add category/subcategory
-- `src/i18n.js` — settings title fix
-- `src/tests/PieChart.test.jsx` — test expectations updated
+- `src/App.jsx` — toast calls in 3 handlers
+- `src/i18n.js` — 4 toast keys + txHistory.title fix
+- `android/app/src/main/AndroidManifest.xml` — allowBackup=false
+- `src/tests/App.test.jsx` — 3 new toast tests + mock updates
+- `src/tests/TransactionHistory.test.jsx` — text assertions updated
 
 ---
 
 # 🐛 BUGS / ISSUES
 
-- None known. 938 tests pass (28 suites), git clean.
+- None known. 941 tests pass (28 suites), git clean.
 
 ---
 
@@ -91,18 +85,18 @@ a92e628 test: add edge case tests for notifications.js
 
 # 🧪 TEST STATUS
 
-- Total tests: 940 (28 suites)
-- Passing: 938
+- Total tests: 943 (28 suites)
+- Passing: 941
 - Failing: 0
 - Skipped: 2
-- Duration: 12.26s
+- Duration: 35.73s
 
 ---
 
 # 📦 GIT INFO
 
 - Branch: master
-- HEAD: `a0976d3` — fix: address 6 stability and UI issues across the app
+- HEAD: `4c6f104` — feat: add success toasts for transaction add/edit/delete/batch-delete
 - Working tree: CLEAN — all changes committed (not yet pushed)
 
 ---
@@ -111,5 +105,5 @@ a92e628 test: add edge case tests for notifications.js
 
 > This is the ONLY instruction for continuation:
 
-- **Session complete — all 6 issues fixed and committed.** Git clean (not yet pushed). 938/940 tests passing.
-- Next session can resume from this state with any new feature request, or push the commit to remote.
+- **Session complete — all toasts, tests, and security hardening committed.** Git clean (not yet pushed). 941/943 tests passing.
+- Next session can resume from this state with any new feature request, or push to remote.
