@@ -262,7 +262,10 @@ describe('AnalyticsView — Income Breakdown', () => {
     // Note: /6%/ would also match "86%" from Expense — use getAllByText
     expect(screen.getByText(/Salary/)).toBeTruthy();
     expect(screen.getByText(/Freelance/)).toBeTruthy();
-    expect(screen.getByText(/94%/)).toBeTruthy();
+    // 94% appears in both pie slice label and legend text (showLabels=true)
+    const pct94Elements = screen.getAllByText(/94%/);
+    expect(pct94Elements.length).toBeGreaterThanOrEqual(1);
+    // 6% appears in legend text (below labelThreshold, so no pie label)
     const sixPctElements = screen.getAllByText(/6%/);
     expect(sixPctElements.length).toBeGreaterThanOrEqual(1);
   });

@@ -778,13 +778,13 @@ export default function App() {
     <div className="phone-shell">
       {/* C. App Context Content Container */}
       <div className="app-container" style={{ position: 'relative' }}>
-        {/* Toast notification overlay */}
+        {/* Toast notification overlay — positioned in lower area, above bottom nav */}
         {toast && (
           <div style={{
             position: 'absolute',
-            top: '-20px',
-            left: 0,
-            right: 0,
+            bottom: '70px',
+            left: '10px',
+            right: '10px',
             display: 'flex',
             justifyContent: 'center',
             zIndex: 200,
@@ -794,13 +794,12 @@ export default function App() {
               padding: '10px 18px',
               borderRadius: '12px',
               backgroundColor: 'var(--bg-color)',
-              boxShadow: '0 6px 24px rgba(0,0,0,0.15)',
+              boxShadow: '0 -4px 20px rgba(0,0,0,0.12)',
               border: '1px solid var(--accent-color)',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              animation: 'slideDown 0.3s ease-out',
-              whiteSpace: 'nowrap',
+              animation: 'toastSlideUp 0.3s ease-out',
             }}>
               <CheckCircle size={18} color="var(--color-income)" />
               <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>

@@ -11,7 +11,6 @@ import {
   getNotificationPermission,
   requestNotificationPermission,
   isNotificationSupported,
-  isServiceWorkerActive,
   registerServiceWorker,
 } from '../notifications';
 
@@ -61,7 +60,6 @@ export default function ReminderManager({
   useEffect(() => {
     if (supported) {
       registerServiceWorker();
-      isServiceWorkerActive().catch(() => {});
       // Async permission check (Capacitor native or Web API)
       getNotificationPermission().then(setPermission).catch(() => {});
     }

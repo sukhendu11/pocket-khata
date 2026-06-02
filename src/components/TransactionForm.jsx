@@ -157,9 +157,13 @@ export default function TransactionForm({
   const subcategoryOptions = selectedCategory?.subcategories || [];
   const filteredCategories = categories.filter(c => c.type === type);
   
-  // Inline quick-add category state
+  // Modal-based category/subcategory selector state
+  const [showCatModal, setShowCatModal] = useState(false);
+  const [showSubcatModal, setShowSubcatModal] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickCatName, setQuickCatName] = useState('');
+  const [showSubQuickAdd, setShowSubQuickAdd] = useState(false);
+  const [quickSubName, setQuickSubName] = useState('');
 
   return (
     <>
@@ -288,103 +292,47 @@ export default function TransactionForm({
             )}
           </div>
 
-          {/* Category Dropdown (Only for Income & Expense) */}
+          {/* Category + Subcategory (Only for Income & Expense) */}
           {type !== 'transfer' && (
             <div style={styles.formGroup}>
-              <label style={styles.label}>
-                {t('txForm.category', lang)}
+              <label style={styles.label}>{t('txForm.category', lang)}</label>
+
+              {/* Category Selector Button */}
+              <button
+                type="button"
+                className="neo-btn neo-raised-sm"
+                style={styles.catSelectorBtn}
+                onClick={() => { setShowCatModal(true); setShowQuickAdd(false); }}
+              >
+                <span style={{ flex: 1, textAlign: 'left' }}>
+                  {selectedCategory ? selectedCategory.name : (t('txForm.selectCategory', lang))}
+                </span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '10px' }}>⌵</span>
+              </button>
+
+              {/* Subcategory Selector Button (only when category has subcategories) */}
+              {selectedCategory && subcategoryOptions.length > 0 && (
+                <button
+                  type="button"
+                  className="neo-btn neo-raised-sm"
+                  style={{ ...styles.catSelectorBtn, marginTop: '8px' }}
+                  onClick={() => { setShowSubcatModal(true); setShowSubQuickAdd(false); }}
+                >
+                  <span style={{ flex: 1, textAlign: 'left' }}>
+                    {subcategory || '—'}
+                  </span>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '10px' }}>⌵</span>
+                </button>
+              )}
+              {selectedCategory && subcategoryOptions.length === 0 && (
                 <button
                   type="button"
                   className="neo-btn"
-                  style={styles.quickAddBtn}
-                  onClick={() => { setShowQuickAdd(!showQuickAdd); setQuickCatName(''); }}
-                  title={t('categories.newCategory', lang)}
+                  style={styles.quickAddSubBtn}
+                  onClick={() => { setShowSubcatModal(true); setShowSubQuickAdd(false); }}
                 >
-                  + {t('categories.newCategory', lang)}
+                  + {t('categories.subcategories', lang)}
                 </button>
-              </label>
-
-              {/* Inline quick-add category form */}
-              {showQuickAdd && (
-                <div style={styles.quickAddRow}>
-                  <input
-                    type="text"
-                    placeholder={t('categories.categoryNamePlaceholder', lang)}
-                    value={quickCatName}
-                    onChange={(e) => setQuickCatName(e.target.value)}
-                    className="neo-input"
-                    style={styles.quickAddInput}
-                    autoFocus
-                  />
-                  <button
-                    className="neo-btn neo-btn-primary"
-                    style={styles.quickAddSaveBtn}
-                    onClick={() => {
-                      const name = quickCatName.trim();
-                      if (name && onAddCategory) {
-                        onAddCategory({ name, type, icon: 'Tag', color: '#ff7b54' });
-                        setQuickCatName('');
-                        setShowQuickAdd(false);
-                      }
-                    }}
-                  >
-                    {t('categories.saveCategory', lang)}
-                  </button>
-                </div>
-              )}
-
-              <select
-                value={categoryId}
-                onChange={(e) => { setCategoryId(e.target.value); setSubcategory(''); }}
-                className="neo-input"
-                style={styles.select}
-              >
-                {filteredCategories.length === 0 ? (
-                  <option value="" style={styles.option}>{t('txForm.noCategories', lang)}</option>
-                ) : (
-                  filteredCategories.map(cat => (
-                    <option key={cat.id} value={cat.id} style={styles.option}>
-                      {cat.name}
-                    </option>
-                  ))
-                )}
-              </select>
-
-              {/* Subcategory dropdown (only when category has subcategories) */}
-              {subcategoryOptions.length > 0 && (
-                <select
-                  value={subcategory}
-                  onChange={(e) => setSubcategory(e.target.value)}
-                  className="neo-input"
-                  style={{ ...styles.select, marginTop: '8px' }}
-                >
-                  <option value="" style={styles.option}>—</option>
-                  {subcategoryOptions.map((sub, i) => (
-                    <option key={i} value={sub} style={styles.option}>
-                      {sub}
-                    </option>
-                  ))}
-                </select>
-              )}
-
-              {/* Quick-add subcategory button */}
-              {selectedCategory && (
-                <div style={{ marginTop: '4px' }}>
-                  <button
-                    type="button"
-                    className="neo-btn"
-                    style={styles.quickAddSubBtn}
-                    onClick={() => {
-                      const sub = prompt(t('categories.subcategoryPlaceholder', lang));
-                      if (sub && sub.trim() && onUpdateCategory) {
-                        const updatedSubs = [...(selectedCategory.subcategories || []), sub.trim()];
-                        onUpdateCategory({ ...selectedCategory, subcategories: updatedSubs });
-                      }
-                    }}
-                  >
-                    + {t('categories.subcategories', lang)}
-                  </button>
-                </div>
               )}
             </div>
           )}
@@ -487,6 +435,188 @@ export default function TransactionForm({
         </div>
 
         </div>
+
+        {/* Category Selection Modal */}
+        {showCatModal && (
+          <>
+            <div className="drawer-overlay" onClick={() => { setShowCatModal(false); setShowQuickAdd(false); }} />
+            <div className="bottom-drawer" style={styles.modal}>
+              <div className="drawer-header">
+                <h3 style={styles.modalTitle}>{t('txForm.category', lang)}</h3>
+                <button className="neo-btn" style={styles.closeModalBtn} onClick={() => { setShowCatModal(false); setShowQuickAdd(false); }}>
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="drawer-scrollable" style={{ position: 'relative', minHeight: '200px' }}>
+                {/* Category list */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '60px' }}>
+                  {filteredCategories.length === 0 ? (
+                    <div style={{ padding: '20px', textAlign: 'center', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      {t('txForm.noCategories', lang)}
+                    </div>
+                  ) : (
+                    filteredCategories.map(cat => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        className="neo-btn"
+                        style={{
+                          ...styles.catListItem,
+                          borderLeft: `4px solid ${cat.color || 'var(--accent-color)'}`,
+                          boxShadow: cat.id === categoryId ? 'var(--neomorphic-pressed-sm)' : 'var(--neomorphic-raised-sm)',
+                        }}
+                        onClick={() => { setCategoryId(cat.id); setSubcategory(''); setShowCatModal(false); }}
+                      >
+                        <span style={styles.catListItemName}>{cat.name}</span>
+                        {cat.id === categoryId && (
+                          <span style={{ fontSize: '10px', color: 'var(--accent-color)' }}>✓</span>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                {/* Quick-add inline form */}
+                {showQuickAdd && (
+                  <div style={styles.quickAddModalRow}>
+                    <input
+                      type="text"
+                      placeholder={t('categories.categoryNamePlaceholder', lang)}
+                      value={quickCatName}
+                      onChange={(e) => setQuickCatName(e.target.value)}
+                      className="neo-input"
+                      style={styles.quickAddInput}
+                      autoFocus
+                    />
+                    <button
+                      className="neo-btn neo-btn-primary"
+                      style={styles.quickAddSaveBtn}
+                      onClick={() => {
+                        const name = quickCatName.trim();
+                        if (name && onAddCategory) {
+                          onAddCategory({ name, type, icon: 'Tag', color: '#ff7b54' });
+                          setQuickCatName('');
+                          setShowQuickAdd(false);
+                        }
+                      }}
+                    >
+                      {t('categories.saveCategory', lang)}
+                    </button>
+                  </div>
+                )}
+
+                {/* Floating FAB-style Add button */}
+                {!showQuickAdd && (
+                  <button
+                    type="button"
+                    className="neo-btn neo-btn-primary"
+                    style={styles.fabCatAddBtn}
+                    onClick={() => { setShowQuickAdd(true); setQuickCatName(''); }}
+                  >
+                    + {t('categories.newCategory', lang)}
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Subcategory Selection Modal */}
+        {showSubcatModal && selectedCategory && (
+          <>
+            <div className="drawer-overlay" onClick={() => { setShowSubcatModal(false); setShowSubQuickAdd(false); }} />
+            <div className="bottom-drawer" style={styles.modal}>
+              <div className="drawer-header">
+                <h3 style={styles.modalTitle}>{selectedCategory.name} — {t('categories.subcategories', lang)}</h3>
+                <button className="neo-btn" style={styles.closeModalBtn} onClick={() => { setShowSubcatModal(false); setShowSubQuickAdd(false); }}>
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="drawer-scrollable" style={{ position: 'relative', minHeight: '200px' }}>
+                {/* Subcategory list */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '60px' }}>
+                  <button
+                    type="button"
+                    className="neo-btn"
+                    style={{
+                      ...styles.catListItem,
+                      boxShadow: !subcategory ? 'var(--neomorphic-pressed-sm)' : 'var(--neomorphic-raised-sm)',
+                    }}
+                    onClick={() => { setSubcategory(''); setShowSubcatModal(false); }}
+                  >
+                    <span style={styles.catListItemName}>—</span>
+                    {!subcategory && <span style={{ fontSize: '10px', color: 'var(--accent-color)' }}>✓</span>}
+                  </button>
+                  {subcategoryOptions.length === 0 ? (
+                    <div style={{ padding: '20px', textAlign: 'center', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      {t('categories.subcategoryPlaceholder', lang)}
+                    </div>
+                  ) : (
+                    subcategoryOptions.map((sub, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        className="neo-btn"
+                        style={{
+                          ...styles.catListItem,
+                          boxShadow: sub === subcategory ? 'var(--neomorphic-pressed-sm)' : 'var(--neomorphic-raised-sm)',
+                        }}
+                        onClick={() => { setSubcategory(sub); setShowSubcatModal(false); }}
+                      >
+                        <span style={styles.catListItemName}>{sub}</span>
+                        {sub === subcategory && (
+                          <span style={{ fontSize: '10px', color: 'var(--accent-color)' }}>✓</span>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                {/* Quick-add subcategory inline form */}
+                {showSubQuickAdd && (
+                  <div style={styles.quickAddModalRow}>
+                    <input
+                      type="text"
+                      placeholder={t('categories.subcategoryPlaceholder', lang)}
+                      value={quickSubName}
+                      onChange={(e) => setQuickSubName(e.target.value)}
+                      className="neo-input"
+                      style={styles.quickAddInput}
+                      autoFocus
+                    />
+                    <button
+                      className="neo-btn neo-btn-primary"
+                      style={styles.quickAddSaveBtn}
+                      onClick={() => {
+                        const sub = quickSubName.trim();
+                        if (sub && onUpdateCategory && selectedCategory) {
+                          const updatedSubs = [...(selectedCategory.subcategories || []), sub];
+                          onUpdateCategory({ ...selectedCategory, subcategories: updatedSubs });
+                          setQuickSubName('');
+                          setShowSubQuickAdd(false);
+                        }
+                      }}
+                    >
+                      {t('categories.saveCategory', lang)}
+                    </button>
+                  </div>
+                )}
+
+                {/* Floating FAB-style Add subcategory button */}
+                {!showSubQuickAdd && (
+                  <button
+                    type="button"
+                    className="neo-btn neo-btn-primary"
+                    style={styles.fabCatAddBtn}
+                    onClick={() => { setShowSubQuickAdd(true); setQuickSubName(''); }}
+                  >
+                    + {t('categories.subcategories', lang)}
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
 
       </div>
     </>
@@ -657,21 +787,57 @@ const styles = {
   intervalInput: {
     width: '100%',
   },
-  quickAddBtn: {
-    background: 'none',
-    border: 'none',
-    fontSize: '9px',
-    fontWeight: '700',
-    color: 'var(--accent-color)',
-    cursor: 'pointer',
-    padding: '0',
-    marginLeft: '6px',
-    verticalAlign: 'middle',
+  catSelectorBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    padding: '12px 14px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '600',
+    color: 'var(--text-primary)',
+    backgroundColor: 'var(--bg-color)',
+    textAlign: 'left',
+    border: '1px solid rgba(255,255,255,0.08)',
   },
-  quickAddRow: {
+  catListItem: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    padding: '12px 14px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '600',
+    color: 'var(--text-primary)',
+    backgroundColor: 'var(--bg-color)',
+    textAlign: 'left',
+  },
+  catListItemName: {
+    fontSize: '12px',
+    fontWeight: '600',
+    color: 'var(--text-primary)',
+  },
+  fabCatAddBtn: {
+    position: 'sticky',
+    bottom: '0',
+    width: '100%',
+    padding: '12px',
+    borderRadius: '12px',
+    fontSize: '11px',
+    fontWeight: '700',
+    height: '44px',
+    marginTop: '8px',
+  },
+  quickAddModalRow: {
     display: 'flex',
     gap: '8px',
-    marginBottom: '8px',
+    position: 'sticky',
+    bottom: '0',
+    backgroundColor: 'var(--bg-color)',
+    padding: '8px 0',
+    borderTop: '1px solid rgba(255,255,255,0.06)',
   },
   quickAddInput: {
     flex: 1,
@@ -693,5 +859,6 @@ const styles = {
     color: 'var(--color-income)',
     cursor: 'pointer',
     padding: '2px 0',
+    textAlign: 'left',
   },
 };

@@ -77,9 +77,9 @@ describe('PieChart - Center Text', () => {
   });
 
   it('does not render center text when empty string', () => {
-    const { container } = render(<PieChart {...defaultProps} centerText="" />);
+    const { container } = render(<PieChart {...defaultProps} centerText="" showLabels={false} />);
     const texts = container.querySelectorAll('text');
-    // No center text since empty string is falsy
+    // No center text since empty string is falsy, and labels suppressed
     expect(texts.length).toBe(0);
   });
 });

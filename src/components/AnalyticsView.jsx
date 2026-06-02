@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { ArrowLeft, TrendingUp, TrendingDown, AlertTriangle, Target, Lightbulb } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
@@ -62,35 +62,6 @@ export default function AnalyticsView({
   const [activeChart1, setActiveChart1] = useState(null); // Overview slice index
   const [activeChart2, setActiveChart2] = useState(null); // Income slice index
   const [activeChart3, setActiveChart3] = useState(null); // Expense slice index
-  const [animationProgress, setAnimationProgress] = useState(1);
-  const hasMounted = useRef(false);
-
-  // Animate pie chart segments on time-range change (not on mount)
-  // This prevents the invisible-chart flash that occurs when navigation
-  // unmounts/remounts the component (e.g. switching tabs and back).
-  useEffect(() => {
-    if (!hasMounted.current) {
-      hasMounted.current = true;
-      return; // Skip animation on initial mount — charts start fully visible
-    }
-    setAnimationProgress(0);
-    const duration = 600;
-    const startTime = performance.now();
-
-    let animFrame;
-    const animate = (time) => {
-      const elapsed = time - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easedProgress = 1 - Math.pow(1 - progress, 3);
-      setAnimationProgress(easedProgress);
-      if (progress < 1) {
-        animFrame = requestAnimationFrame(animate);
-      }
-    };
-
-    animFrame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animFrame);
-  }, [timeRange]);
 
   // ===== HELPER: filter transactions by time range =====
   const filterTxs = (txs, range) => {
@@ -513,8 +484,6 @@ export default function AnalyticsView({
                 activeIndex={activeChart1}
                 onSliceClick={(idx) => { setActiveChart1(activeChart1 === idx ? null : idx); trackAction('view_chart_detail', { chart: 'overview', sliceIndex: idx }); }}
                 centerText={t('analytics.ratio', lang)}
-                animate={true}
-                animationProgress={animationProgress}
                 gradients={[
                   { id: 'grad-inc-overview', colorStart: '#22C55E', colorEnd: '#22C55E' },
                   { id: 'grad-exp-overview', colorStart: '#EF4444', colorEnd: '#EF4444' },
@@ -564,8 +533,6 @@ export default function AnalyticsView({
                 activeIndex={activeChart2}
                 onSliceClick={(idx) => { setActiveChart2(activeChart2 === idx ? null : idx); trackAction('view_chart_detail', { chart: 'income_breakdown', sliceIndex: idx }); }}
                 centerText={t('analytics.sources', lang)}
-                animate={true}
-                animationProgress={animationProgress}
                 showLabels={true}
                 labelThreshold={12}
               />
@@ -606,8 +573,6 @@ export default function AnalyticsView({
                 activeIndex={activeChart3}
                 onSliceClick={(idx) => { setActiveChart3(activeChart3 === idx ? null : idx); trackAction('view_chart_detail', { chart: 'expense_breakdown', sliceIndex: idx }); }}
                 centerText={t('analytics.costs', lang)}
-                animate={true}
-                animationProgress={animationProgress}
                 showLabels={true}
                 labelThreshold={12}
               />

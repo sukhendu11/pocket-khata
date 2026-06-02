@@ -31,8 +31,8 @@ export default function PieChart({
   animate = false,
   animationProgress = 1,
   gradients = false,
-  showLabels = false,
-  labelThreshold = 12,
+  showLabels = true,
+  labelThreshold = 8,
 }) {
   const cx = size / 2;
   const cy = size / 2;
@@ -142,21 +142,32 @@ export default function PieChart({
             }}
           />
           {showLabels && seg.percentage > labelThreshold && !seg.skipLabel && (
-            <text
-              x={seg.labelX}
-              y={seg.labelY}
-              fill="#ffffff"
-              fontSize="9"
-              fontWeight="800"
-              textAnchor="middle"
-              dominantBaseline="central"
-              style={{
-                pointerEvents: 'none',
-                filter: 'drop-shadow(0px 1px 2px rgba(0,0,0,0.3))',
-              }}
-            >
-              {seg.percentage}%
-            </text>
+            <g>
+              {/* White background pill for better readability over colored slices */}
+              <rect
+                x={seg.labelX - 14}
+                y={seg.labelY - 7}
+                width="28"
+                height="14"
+                rx="7"
+                fill="rgba(255,255,255,0.85)"
+                style={{ pointerEvents: 'none' }}
+              />
+              <text
+                x={seg.labelX}
+                y={seg.labelY}
+                fill="var(--text-primary)"
+                fontSize="9"
+                fontWeight="800"
+                textAnchor="middle"
+                dominantBaseline="central"
+                style={{
+                  pointerEvents: 'none',
+                }}
+              >
+                {seg.percentage}%
+              </text>
+            </g>
           )}
         </g>
       ))}

@@ -27,6 +27,20 @@ BUILD EXECUTION RULE
 - Provide exact command and APK output path
 - Wait for user confirmation before continuing
 
+LOCAL-FIRST ARCHITECTURE RULE
+- No web APIs, Web Notification API, or external/remote services
+- App is fully offline-first
+- All data stored and processed locally
+
+NOTIFICATIONS:
+- Use only native Android notification system
+- Must use Android system permission prompt (Android 13+)
+- All reminders handled locally on device
+
+ANALYTICS:
+- Fully computed on-device only
+- No external tracking or cloud processing
+
 Goal:
 - Prevent timeouts
 - Keep workflow fast

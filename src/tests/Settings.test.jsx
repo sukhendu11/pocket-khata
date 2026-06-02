@@ -139,11 +139,6 @@ describe('Settings — Rendering', () => {
     expect(screen.getByText('Data Portability')).toBeTruthy();
   });
 
-  it('renders Privacy & Analytics card', () => {
-    render(<Settings {...defaultProps} />);
-    expect(screen.getByText('Privacy & Analytics')).toBeTruthy();
-  });
-
   it('renders About card', () => {
     render(<Settings {...defaultProps} />);
     expect(screen.getByText('About')).toBeTruthy();

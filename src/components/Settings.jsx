@@ -385,7 +385,7 @@ export default function Settings({
           </div>
         </div>
 
-        {/* SECTION 3: Privacy & Analytics */}
+        {/* [DISABLED] SECTION 3: Privacy & Analytics — kept for future use
         <div className="neo-raised" style={styles.card}>
           <div style={styles.cardHeader}>
             <Shield size={16} style={{ color: 'var(--accent-color)' }} />
@@ -396,7 +396,6 @@ export default function Settings({
             {t('privacy.desc', lang)}
           </p>
 
-          {/* Consent status */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>
               {t('privacy.consentStatus', lang)}
@@ -412,7 +411,6 @@ export default function Settings({
             </span>
           </div>
 
-          {/* Events queued count */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
               {t('privacy.eventsQueued', lang)}
@@ -422,7 +420,6 @@ export default function Settings({
             </span>
           </div>
 
-          {/* Last sync */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
               {t('privacy.lastSync', lang)}
@@ -432,7 +429,6 @@ export default function Settings({
             </span>
           </div>
 
-          {/* Supabase status */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
               {t('privacy.supabaseStatus', lang)}
@@ -448,7 +444,6 @@ export default function Settings({
             </span>
           </div>
 
-          {/* Sync Now button */}
           {isTrackingAllowed() && (
             <button
               className="neo-btn"
@@ -491,7 +486,6 @@ export default function Settings({
             </button>
           )}
 
-          {/* Reset consent button */}
           {isTrackingAllowed() && (
             <div style={{ marginBottom: '4px' }}>
               <button
@@ -509,6 +503,7 @@ export default function Settings({
             </div>
           )}
         </div>
+        */}
 
         {/* SECTION 5: Info */}
         <div className="neo-raised" style={styles.card}>
