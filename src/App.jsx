@@ -917,6 +917,9 @@ export default function App() {
                 setShowTransactionForm(false);
                 setEditingTransaction(null);
               }}
+              onAddCategory={handleAddCategory}
+              onUpdateCategory={handleUpdateCategory}
+              onNavigate={handleNavigate}
               lang={lang}
             />
           </Suspense>

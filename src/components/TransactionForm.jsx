@@ -12,6 +12,9 @@ export default function TransactionForm({
   onSave,
   onDelete,
   onClose,
+  onAddCategory,
+  onUpdateCategory,
+  onNavigate,
   lang
 }) {
   const [type, setType] = useState('expense'); // 'income', 'expense', 'transfer'
@@ -153,6 +156,10 @@ export default function TransactionForm({
   const selectedCategory = categories.find(c => c.id === categoryId);
   const subcategoryOptions = selectedCategory?.subcategories || [];
   const filteredCategories = categories.filter(c => c.type === type);
+  
+  // Inline quick-add category state
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickCatName, setQuickCatName] = useState('');
 
   return (
     <>
@@ -284,7 +291,48 @@ export default function TransactionForm({
           {/* Category Dropdown (Only for Income & Expense) */}
           {type !== 'transfer' && (
             <div style={styles.formGroup}>
-              <label style={styles.label}>{t('txForm.category', lang)}</label>
+              <label style={styles.label}>
+                {t('txForm.category', lang)}
+                <button
+                  type="button"
+                  className="neo-btn"
+                  style={styles.quickAddBtn}
+                  onClick={() => { setShowQuickAdd(!showQuickAdd); setQuickCatName(''); }}
+                  title={t('categories.newCategory', lang)}
+                >
+                  + {t('categories.newCategory', lang)}
+                </button>
+              </label>
+
+              {/* Inline quick-add category form */}
+              {showQuickAdd && (
+                <div style={styles.quickAddRow}>
+                  <input
+                    type="text"
+                    placeholder={t('categories.categoryNamePlaceholder', lang)}
+                    value={quickCatName}
+                    onChange={(e) => setQuickCatName(e.target.value)}
+                    className="neo-input"
+                    style={styles.quickAddInput}
+                    autoFocus
+                  />
+                  <button
+                    className="neo-btn neo-btn-primary"
+                    style={styles.quickAddSaveBtn}
+                    onClick={() => {
+                      const name = quickCatName.trim();
+                      if (name && onAddCategory) {
+                        onAddCategory({ name, type, icon: 'Tag', color: '#ff7b54' });
+                        setQuickCatName('');
+                        setShowQuickAdd(false);
+                      }
+                    }}
+                  >
+                    {t('categories.saveCategory', lang)}
+                  </button>
+                </div>
+              )}
+
               <select
                 value={categoryId}
                 onChange={(e) => { setCategoryId(e.target.value); setSubcategory(''); }}
@@ -317,6 +365,26 @@ export default function TransactionForm({
                     </option>
                   ))}
                 </select>
+              )}
+
+              {/* Quick-add subcategory button */}
+              {selectedCategory && (
+                <div style={{ marginTop: '4px' }}>
+                  <button
+                    type="button"
+                    className="neo-btn"
+                    style={styles.quickAddSubBtn}
+                    onClick={() => {
+                      const sub = prompt(t('categories.subcategoryPlaceholder', lang));
+                      if (sub && sub.trim() && onUpdateCategory) {
+                        const updatedSubs = [...(selectedCategory.subcategories || []), sub.trim()];
+                        onUpdateCategory({ ...selectedCategory, subcategories: updatedSubs });
+                      }
+                    }}
+                  >
+                    + {t('categories.subcategories', lang)}
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -432,6 +500,9 @@ TransactionForm.propTypes = {
   onSave: PropTypes.func,
   onDelete: PropTypes.func,
   onClose: PropTypes.func,
+  onAddCategory: PropTypes.func,
+  onUpdateCategory: PropTypes.func,
+  onNavigate: PropTypes.func,
   lang: PropTypes.string,
 };
 
@@ -585,5 +656,42 @@ const styles = {
   },
   intervalInput: {
     width: '100%',
+  },
+  quickAddBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '9px',
+    fontWeight: '700',
+    color: 'var(--accent-color)',
+    cursor: 'pointer',
+    padding: '0',
+    marginLeft: '6px',
+    verticalAlign: 'middle',
+  },
+  quickAddRow: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '8px',
+  },
+  quickAddInput: {
+    flex: 1,
+    height: '34px',
+    fontSize: '12px',
+  },
+  quickAddSaveBtn: {
+    padding: '4px 12px',
+    fontSize: '10px',
+    borderRadius: '8px',
+    height: '34px',
+    whiteSpace: 'nowrap',
+  },
+  quickAddSubBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '9px',
+    fontWeight: '700',
+    color: 'var(--color-income)',
+    cursor: 'pointer',
+    padding: '2px 0',
   },
 };

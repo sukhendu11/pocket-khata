@@ -110,10 +110,14 @@ export default function Dashboard({
     return nameMap[acc.name] || acc.name;
   };
 
-  // 6. Recent transactions (last 5)
+  // 6. Recent transactions (last 5) — sorted newest first by date, then by createdAt
   const recentTransactions = useMemo(() => {
     return [...transactions]
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .sort((a, b) => {
+        const dateCompare = new Date(b.date) - new Date(a.date);
+        if (dateCompare !== 0) return dateCompare;
+        return new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date);
+      })
       .slice(0, 5);
   }, [transactions]);
 

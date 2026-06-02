@@ -108,7 +108,7 @@ export default function CalendarView({
     return byDate;
   }, [safeReminders]);
 
-  // 4. Selected date transactions and summary
+  // 4. Selected date transactions and summary — sorted newest first within same date
   const selectedDateDetails = useMemo(() => {
     const dayTxs = transactions.filter(tx => tx.date === selectedDateStr);
     const dayReminders = safeReminders.filter(rem => rem.dueDate === selectedDateStr);
@@ -118,6 +118,11 @@ export default function CalendarView({
     dayTxs.forEach(tx => {
       if (tx.type === 'income') income += tx.amount;
       if (tx.type === 'expense') expense += tx.amount;
+    });
+
+    // Sort transactions within the selected date: newest createdAt first
+    dayTxs.sort((a, b) => {
+      return new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date);
     });
 
     return {
@@ -258,7 +263,7 @@ export default function CalendarView({
           </div>
         </div>
 
-        {/* Selected Date Reminders */}
+        {/* Reminders Section — with edit support */}
         {selectedDateDetails.reminders.length > 0 && (
           <div style={styles.reminderSection}>
             <div className="neo-pressed-sm" style={styles.reminderSectionHeader}>
@@ -277,7 +282,9 @@ export default function CalendarView({
                       ...styles.reminderCard,
                       borderLeft: `4px solid ${cat ? cat.color : 'var(--accent-color)'}`,
                       opacity: rem.status === 'paid' ? 0.6 : 1,
+                      cursor: 'pointer',
                     }}
+                    onClick={() => onNavigate('reminders')}
                   >
                     <div style={styles.reminderCardLeft}>
                       <span style={{
@@ -307,7 +314,7 @@ export default function CalendarView({
             </div>
           </div>
         )}
-
+        
         {/* Daily Transactions List */}
         <div style={styles.dailyList}>
           <div className="neo-pressed-sm" style={styles.reminderSectionHeader}>

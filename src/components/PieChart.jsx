@@ -41,50 +41,72 @@ export default function PieChart({
     let accumulatedAngle = 0;
 
     return data
-      .map((item, index) => {
+      .flatMap((item, index) => {
         const percentage = item.percentage;
-        if (percentage === 0) return null;
+        if (percentage === 0) return [];
 
-        const angle = ((percentage / 100) * 360) * (animate ? animationProgress : 1);
-        if (angle <= 0) return null;
+        let angle = ((percentage / 100) * 360) * (animate ? animationProgress : 1);
+        if (angle <= 0) return [];
 
-        const startAngle = accumulatedAngle;
-        const endAngle = accumulatedAngle + angle;
-
-        const x1 = cx + radius * Math.cos((Math.PI * (startAngle - 90)) / 180);
-        const y1 = cy + radius * Math.sin((Math.PI * (startAngle - 90)) / 180);
-        const x2 = cx + radius * Math.cos((Math.PI * (endAngle - 90)) / 180);
-        const y2 = cy + radius * Math.sin((Math.PI * (endAngle - 90)) / 180);
-
-        const largeArcFlag = angle > 180 ? 1 : 0;
-        const pathData = `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
-
-        // Label position (at 62% of radius from center)
-        const midAngle = startAngle + angle / 2;
-        const labelRadius = radius * 0.62;
-        const labelX = cx + labelRadius * Math.cos((Math.PI * (midAngle - 90)) / 180);
-        const labelY = cy + labelRadius * Math.sin((Math.PI * (midAngle - 90)) / 180);
-
-        // Explode offset
-        const offsetDistance = activeIndex === index ? 6 : 0;
-        const dx = offsetDistance * Math.cos((Math.PI * (midAngle - 90)) / 180);
-        const dy = offsetDistance * Math.sin((Math.PI * (midAngle - 90)) / 180);
-
-        accumulatedAngle += angle;
-
-        return {
-          ...item,
-          pathData,
-          labelX,
-          labelY,
-          dx,
-          dy,
-          index,
-          fillId: gradients ? `url(#${gradients[index]?.id || `${item.id}-grad`})` : item.color,
-        };
+        // Split full-circle segments (360°) into two half-circles to avoid SVG
+        // arc undefined behavior when start and end points are identical.
+        // This ensures a single 100% category renders as a complete donut ring.
+        const subSegments = [];
+        if (angle >= 359.95) {
+          // Split full-circle (360°) into two half-circles to avoid SVG arc
+          // undefined behavior when start and end points are identical.
+          // This ensures a single 100% category renders as a complete donut ring.
+          const half1 = buildSegment(item, index, accumulatedAngle, 180, radius, cx, cy, activeIndex, gradients);
+          subSegments.push(half1);
+          const half2 = buildSegment(item, index, accumulatedAngle + 180, 180, radius, cx, cy, activeIndex, gradients);
+          // Suppress duplicate label on the second half
+          half2.skipLabel = true;
+          subSegments.push(half2);
+          accumulatedAngle += angle;
+        } else {
+          const seg = buildSegment(item, index, accumulatedAngle, angle, radius, cx, cy, activeIndex, gradients);
+          subSegments.push(seg);
+          accumulatedAngle += angle;
+        }
+        return subSegments;
       })
       .filter(Boolean);
   }, [data, activeIndex, animate, animationProgress, radius, cx, cy, gradients]);
+
+  // Helper: build a single SVG path segment
+  function buildSegment(item, index, startAngle, angle, radius, cx, cy, activeIndex, gradients) {
+    const endAngle = startAngle + angle;
+
+    const x1 = cx + radius * Math.cos((Math.PI * (startAngle - 90)) / 180);
+    const y1 = cy + radius * Math.sin((Math.PI * (startAngle - 90)) / 180);
+    const x2 = cx + radius * Math.cos((Math.PI * (endAngle - 90)) / 180);
+    const y2 = cy + radius * Math.sin((Math.PI * (endAngle - 90)) / 180);
+
+    const largeArcFlag = angle > 180 ? 1 : 0;
+    const pathData = `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+
+    // Label position (at 62% of radius from center) — use the midpoint of the original item's angle
+    const midAngle = startAngle + angle / 2;
+    const labelRadius = radius * 0.62;
+    const labelX = cx + labelRadius * Math.cos((Math.PI * (midAngle - 90)) / 180);
+    const labelY = cy + labelRadius * Math.sin((Math.PI * (midAngle - 90)) / 180);
+
+    // Explode offset
+    const offsetDistance = activeIndex === index ? 6 : 0;
+    const dx = offsetDistance * Math.cos((Math.PI * (midAngle - 90)) / 180);
+    const dy = offsetDistance * Math.sin((Math.PI * (midAngle - 90)) / 180);
+
+    return {
+      ...item,
+      pathData,
+      labelX,
+      labelY,
+      dx,
+      dy,
+      index,
+      fillId: gradients ? `url(#${gradients[index]?.id || `${item.id}-grad`})` : item.color,
+    };
+  }
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
@@ -119,7 +141,7 @@ export default function PieChart({
               cursor: onSliceClick ? 'pointer' : 'default',
             }}
           />
-          {showLabels && seg.percentage > labelThreshold && (
+          {showLabels && seg.percentage > labelThreshold && !seg.skipLabel && (
             <text
               x={seg.labelX}
               y={seg.labelY}

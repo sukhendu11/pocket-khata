@@ -304,9 +304,9 @@ describe('PieChart - Edge Cases', () => {
       { id: 'cat_b', name: 'B', amount: 0, color: '#e74c3c', percentage: 0 },
     ];
     const { container } = render(<PieChart data={mixedData} />);
-    // 1 segment (100%) + 0 circle (circle not path) = 1 path
+    // 100% segment splits into 2 half-circle arcs to fix SVG full-circle rendering
     const paths = container.querySelectorAll('path');
-    expect(paths.length).toBe(1);
+    expect(paths.length).toBe(2);
   });
 
   it('handles single item with 100%', () => {
@@ -314,8 +314,9 @@ describe('PieChart - Edge Cases', () => {
       { id: 'cat_a', name: 'Only', amount: 50000, color: '#e17055', percentage: 100 },
     ];
     const { container } = render(<PieChart data={singleData} />);
+    // 100% segment splits into 2 half-circle arcs for reliable SVG rendering
     const paths = container.querySelectorAll('path');
-    expect(paths.length).toBe(1);
+    expect(paths.length).toBe(2);
   });
 
   it('handles undefined data gracefully', () => {

@@ -17,3 +17,17 @@ Includes:
 - stability rules (no crashes, no regressions)
 - update consistency rules
 - no unsafe changes to app logic
+
+BUILD EXECUTION RULE
+
+- Do NOT run APK build commands automatically (gradlew, assembleDebug, assembleRelease, clean)
+- Do NOT trigger long-running build/install processes
+
+- Always instruct the user to run build commands manually in CMD/PowerShell
+- Provide exact command and APK output path
+- Wait for user confirmation before continuing
+
+Goal:
+- Prevent timeouts
+- Keep workflow fast
+- Avoid unnecessary heavy operations
