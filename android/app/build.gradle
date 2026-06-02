@@ -20,6 +20,12 @@ android {
         }
     }
     signingConfigs {
+        debug {
+            storeFile file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
         release {
             def props = new Properties()
             props.load(new FileInputStream(rootProject.file('keystore.properties')))
@@ -31,6 +37,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+            debuggable false
+        }
         release {
             signingConfig signingConfigs.release
             minifyEnabled true

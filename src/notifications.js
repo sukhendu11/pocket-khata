@@ -110,6 +110,53 @@ export async function cancelReminderNotification(reminderId) {
  * Fetches pending notifications first, then cancels them by ID.
  * @returns {Promise<boolean>}
  */
+/**
+ * Send an immediate test notification to verify real device delivery.
+ * Creates a dedicated high-importance channel for Android 8+ to ensure
+ * the notification appears on lock screen and survives OEM battery
+ * optimization (Sony, Xiaomi, Samsung, etc.).
+ * @returns {Promise<boolean>} Whether the notification was sent
+ */
+export async function sendTestNotification() {
+  if (!isNotificationSupported()) return false;
+  try {
+    // Create a high-importance channel (Android 8+).
+    // Without this, OEM devices may silently suppress medium-importance
+    // notifications, and the test would falsely pass at the permission level
+    // while the user never actually sees a notification.
+    try {
+      await LocalNotifications.createChannel({
+        id: 'pocket_khata_test',
+        name: 'Test Notifications',
+        description: 'Test notifications for delivery verification',
+        importance: 5, // 5 = High (heads-up popup, lock screen)
+        visibility: 1, // 1 = Public (show content on lock screen)
+        vibration: true,
+        sound: 'default',
+      });
+    } catch (_) {
+      // Channel may already exist — continue
+    }
+
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          title: '🔔 Pocket Khata',
+          body: 'Test notification — delivery confirmed!',
+          id: 999999,
+          schedule: { at: new Date() },
+          channelId: 'pocket_khata_test',
+          smallIcon: 'ic_stat_icon',
+          sound: 'default',
+        },
+      ],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function cancelAllNotifications() {
   if (!isNotificationSupported()) return false;
   try {

@@ -55,6 +55,10 @@ vi.mock('../lib/supabase', () => ({
 // Mock the db module (for schema version)
 // ==============================================================================
 
+vi.mock('../lib/download', () => ({
+  saveString: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('../db', () => ({
   db: {
     getStoredSchemaVersion: () => 7,
@@ -378,20 +382,16 @@ describe('Settings — Data Portability', () => {
     expect(screen.getByText('Import Database (JSON)')).toBeTruthy();
   });
 
-  it('calls onExportDatabase and creates download link on export click', () => {
-    // URL.createObjectURL needs a mock
-    const createObjectURLMock = vi.fn(() => 'blob:test');
-    vi.stubGlobal('URL', { createObjectURL: createObjectURLMock });
-
+  it('calls onExportDatabase when export JSON button is clicked', () => {
     render(<Settings {...defaultProps} />);
 
     fireEvent.click(screen.getByText('Export Full Database (JSON)'));
 
     expect(defaultProps.onExportDatabase).toHaveBeenCalledOnce();
-    expect(createObjectURLMock).toHaveBeenCalledOnce();
   });
 
-  it('calls onImportDatabase when JSON file selected', () => {
+  it('calls onImportDatabase when JSON file selected and confirmed', async () => {
+    const { saveString } = await import('../lib/download');
     render(<Settings {...defaultProps} />);
 
     // Find the hidden file input
@@ -402,14 +402,22 @@ describe('Settings — Data Portability', () => {
     const file = new File(['{}'], 'backup.json', { type: 'application/json' });
     fireEvent.change(fileInput, { target: { files: [file] } });
 
-    // Wait for FileReader async
-    return new Promise(resolve => {
-      setTimeout(() => {
-        expect(defaultProps.onImportDatabase).toHaveBeenCalledOnce();
-        expect(defaultProps.onImportDatabase).toHaveBeenCalledWith('{}');
-        resolve();
-      }, 50);
-    });
+    // Wait for FileReader async + state update
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // Confirmation dialog should now be visible with Import & Replace button
+    const confirmBtn = screen.getByText('Import & Replace');
+    expect(confirmBtn).toBeTruthy();
+
+    // Click confirm — triggers safety backup + import
+    fireEvent.click(confirmBtn);
+
+    // Wait for async handling (saveString is mocked to resolve immediately)
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    expect(defaultProps.onExportDatabase).toHaveBeenCalledOnce();
+    expect(defaultProps.onImportDatabase).toHaveBeenCalledOnce();
+    expect(defaultProps.onImportDatabase).toHaveBeenCalledWith('{}');
   });
 });
 

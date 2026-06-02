@@ -7,8 +7,8 @@ import TransactionItem from '../components/TransactionItem';
 // ==============================================================================
 
 vi.mock('lucide-react', () => ({
-  ArrowUpRight: (props) => <svg data-testid="icon-income" {...props} />,
-  ArrowDownLeft: (props) => <svg data-testid="icon-expense" {...props} />,
+  ArrowDownLeft: (props) => <svg data-testid="icon-income" {...props} />,
+  ArrowUpRight: (props) => <svg data-testid="icon-expense" {...props} />,
   TrendingUp: (props) => <svg data-testid="icon-transfer" {...props} />,
   Edit3: (props) => <svg data-testid="icon-edit" {...props} />,
   RefreshCw: (props) => <svg data-testid="icon-recurring" {...props} />,

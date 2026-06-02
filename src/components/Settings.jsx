@@ -22,6 +22,7 @@ import {
   isNotificationSupported,
   getNotificationPermission,
   requestNotificationPermission,
+  sendTestNotification,
 } from '../notifications';
 
 export default function Settings({
@@ -163,16 +164,40 @@ export default function Settings({
     }
   };
 
+  const [isSendingTestNotif, setIsSendingTestNotif] = useState(false);
+
+  const handleSendTestNotification = async () => {
+    if (isSendingTestNotif) return;
+    setIsSendingTestNotif(true);
+    try {
+      const ok = await sendTestNotification();
+      if (ok) {
+        setToast({ type: 'success', message: t('notif.testSent', lang) });
+        trackAction('send_test_notification', { success: true });
+      } else {
+        setToast({ type: 'error', message: t('notif.testFailed', lang) });
+        trackAction('send_test_notification', { success: false });
+      }
+    } catch {
+      setToast({ type: 'error', message: t('notif.testFailed', lang) });
+    }
+    setIsSendingTestNotif(false);
+  };
+
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const handleResetData = () => {
     setShowResetConfirm(false);
     if (onResetDatabase) {
       onResetDatabase();
-      alert(t('settings.resetSuccess', lang));
+      setToast({ type: 'success', message: t('settings.resetSuccess', lang) });
       if (onNavigate) onNavigate('dashboard');
     }
   };
+
+  // ── Import Confirmation State ──
+  const [importPreview, setImportPreview] = useState(null);
+  const [showImportConfirm, setShowImportConfirm] = useState(false);
 
   // JSON Import via file input
   const fileInputRef = useRef(null);
@@ -187,16 +212,64 @@ export default function Settings({
     const reader = new FileReader();
     reader.onload = (evt) => {
       const jsonString = evt.target.result;
-      const success = onImportDatabase(jsonString);
-      trackAction('import_json', { success });
-      if (success) {
-        alert(t('settings.importSuccess', lang));
-      } else {
-        alert(t('settings.importError', lang));
+      try {
+        const parsed = JSON.parse(jsonString);
+        if (!parsed || typeof parsed !== 'object') {
+          setToast({ type: 'error', message: t('settings.importError', lang) });
+          e.target.value = '';
+          return;
+        }
+        // Show confirmation preview
+        setImportPreview({
+          jsonString,
+          filename: file.name,
+          stats: {
+            accounts: parsed.accounts?.length || 0,
+            categories: parsed.categories?.length || 0,
+            transactions: parsed.transactions?.length || 0,
+            budgets: parsed.budgets?.length || 0,
+            goals: parsed.savingsGoals?.length || 0,
+            reminders: parsed.reminders?.length || 0,
+          },
+        });
+        setShowImportConfirm(true);
+      } catch (parseErr) {
+        console.error('Invalid JSON file:', parseErr);
+        setToast({ type: 'error', message: t('settings.importError', lang) });
       }
     };
     reader.readAsText(file);
     e.target.value = '';
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importPreview) return;
+    try {
+      // 1. Save safety backup of current data before overwriting
+      const currentData = onExportDatabase();
+      if (currentData) {
+        await saveString(currentData, `Pocket_Khata_PreImport_Backup_${new Date().toISOString().split('T')[0]}.json`);
+      }
+
+      // 2. Perform the import
+      const success = onImportDatabase(importPreview.jsonString);
+      trackAction('import_json', { success });
+      if (success) {
+        setToast({ type: 'success', message: t('settings.importSuccess', lang) });
+      } else {
+        setToast({ type: 'error', message: t('settings.importFailed', lang) });
+      }
+    } catch (err) {
+      console.error('Import failed:', err);
+      setToast({ type: 'error', message: t('settings.importFailed', lang) });
+    }
+    setShowImportConfirm(false);
+    setImportPreview(null);
+  };
+
+  const handleCancelImport = () => {
+    setShowImportConfirm(false);
+    setImportPreview(null);
   };
 
 
@@ -326,6 +399,31 @@ export default function Settings({
                   <span className="toggle-slider" />
                 </label>
               </div>
+              {/* Send Test Notification — only shown when enabled and permission granted */}
+              {notificationsEnabled && notificationPermission === 'granted' && (
+                <button
+                  className="neo-btn"
+                  style={{
+                    width: '100%',
+                    height: '36px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    border: '1px solid var(--accent-color)',
+                    color: 'var(--accent-color)',
+                    opacity: isSendingTestNotif ? 0.6 : 1,
+                  }}
+                  onClick={handleSendTestNotification}
+                  disabled={isSendingTestNotif}
+                >
+                  <Bell size={14} />
+                  {isSendingTestNotif
+                    ? t('notif.testSending', lang)
+                    : t('notif.testButton', lang)}
+                </button>
+              )}
+
               {notificationPermission === 'denied' && (
                 <p style={{ fontSize: '10px', color: 'var(--color-expense)', fontWeight: '500' }}>
                   {t('notif.permissionDeniedHint', lang)}
@@ -367,14 +465,77 @@ export default function Settings({
                 style={{ display: 'none' }}
               />
 
-              <button
-                className="neo-btn"
-                style={styles.exportBtn}
-                onClick={handleImportClick}
-              >
-                <Upload size={14} />
-                {t('settings.importJSON', lang)}
-              </button>
+              {!showImportConfirm ? (
+                <button
+                  className="neo-btn"
+                  style={styles.exportBtn}
+                  onClick={handleImportClick}
+                >
+                  <Upload size={14} />
+                  {t('settings.importJSON', lang)}
+                </button>
+              ) : (
+                <div className="neo-pressed-sm" style={styles.resetConfirmPanel}>
+                  <span style={styles.resetConfirmText}>
+                    {t('settings.importConfirmTitle', lang)}
+                  </span>
+
+                  {/* Import file preview stats */}
+                  {importPreview && (
+                    <div style={{ width: '100%', marginBottom: '12px' }}>
+                      <div style={{
+                        fontSize: '9px', fontWeight: '600', color: 'var(--text-secondary)',
+                        textAlign: 'center', marginBottom: '6px',
+                      }}>
+                        {importPreview.filename}
+                      </div>
+                      <div style={{
+                        display: 'flex', flexWrap: 'wrap', gap: '4px 10px',
+                        justifyContent: 'center',
+                      }}>
+                        {Object.entries(importPreview.stats).filter(([_, v]) => v > 0).map(([key, val]) => {
+                          const label = ({
+                            accounts: t('autobackup.accounts', lang),
+                            categories: t('autobackup.categories', lang),
+                            transactions: t('autobackup.transactions', lang),
+                            budgets: t('autobackup.budgets', lang),
+                            goals: t('autobackup.goals', lang),
+                            reminders: t('autobackup.reminders', lang),
+                          })[key] || key;
+                          return (
+                            <span key={key} style={{ fontSize: '10px', color: 'var(--text-primary)', fontWeight: '600' }}>
+                              {val} {label}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={styles.resetBtnGroup}>
+                    <button
+                      className="neo-btn"
+                      style={styles.resetNoBtn}
+                      onClick={handleCancelImport}
+                    >
+                      {t('settings.resetCancel', lang)}
+                    </button>
+                    <button
+                      className="neo-btn"
+                      style={{
+                        flex: 1, height: '36px', fontSize: '11px', fontWeight: '600',
+                        justifyContent: 'center',
+                        border: '1px solid var(--accent-color)',
+                        backgroundColor: 'var(--accent-color)',
+                        color: '#fff',
+                      }}
+                      onClick={handleConfirmImport}
+                    >
+                      {t('settings.importConfirmAction', lang)}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Reset Data — divider + button */}

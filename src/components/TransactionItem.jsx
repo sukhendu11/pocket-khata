@@ -82,9 +82,9 @@ export default function TransactionItem({
         {isTransfer ? (
           <TrendingUp size={variant === 'default' ? 16 : 14} style={{ transform: 'rotate(45deg)' }} />
         ) : isIncome ? (
-          <ArrowUpRight size={variant === 'default' ? 16 : 14} />
-        ) : (
           <ArrowDownLeft size={variant === 'default' ? 16 : 14} />
+        ) : (
+          <ArrowUpRight size={variant === 'default' ? 16 : 14} />
         )}
       </div>
     );

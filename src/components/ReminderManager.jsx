@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
-  ArrowLeft, Plus, Calendar, Bell, BellRing, DollarSign,
+  ArrowLeft, Plus, Calendar, Bell, BellRing,
   CheckCircle, AlertCircle, Trash2, X, CreditCard
 } from 'lucide-react';
 import PropTypes from 'prop-types';
@@ -338,7 +338,7 @@ export default function ReminderManager({
                     <Calendar size={10} /> {t('reminders.due', lang)} {rem.dueDate}
                   </span>
                   <span style={styles.metaItem}>
-                    <DollarSign size={10} /> ৳{formatNumber(rem.amount, lang)}
+                    ৳{formatNumber(rem.amount, lang)}
                   </span>
                 </div>
               </div>

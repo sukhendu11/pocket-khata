@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber, formatPercent } from '../utils';
 import { trackAction } from '../lib/analytics';
+import { useInView } from '../hooks/useInView';
 import PieChart from './PieChart';
 
 // ===== DATE BOUNDS HELPER =====
@@ -365,6 +366,10 @@ export default function AnalyticsView({
   // Derived insight flags for rendering
   const hasComparison = insights.hasComparison;
 
+  // Scroll-triggered entrance animations
+  const [insightsRef, insightsInView] = useInView({ threshold: 0.15 });
+  const [budgetRef, budgetInView] = useInView({ threshold: 0.15 });
+
   // ==================== FEATURE C: Anomaly Detection ====================
   const anomalies = useMemo(() => {
     const { currentStart, currentEnd } = dateBounds;
@@ -488,8 +493,6 @@ export default function AnalyticsView({
                   { id: 'grad-inc-overview', colorStart: '#22C55E', colorEnd: '#22C55E' },
                   { id: 'grad-exp-overview', colorStart: '#EF4444', colorEnd: '#EF4444' },
                 ]}
-                showLabels={true}
-                labelThreshold={10}
               />
               <div style={styles.chartDetails}>
                 {activeChart1 !== null && overviewData.data[activeChart1] ? (
@@ -533,8 +536,6 @@ export default function AnalyticsView({
                 activeIndex={activeChart2}
                 onSliceClick={(idx) => { setActiveChart2(activeChart2 === idx ? null : idx); trackAction('view_chart_detail', { chart: 'income_breakdown', sliceIndex: idx }); }}
                 centerText={t('analytics.sources', lang)}
-                showLabels={true}
-                labelThreshold={12}
               />
               <div style={styles.chartDetails}>
                 {activeChart2 !== null && incomeBreakdown[activeChart2] ? (
@@ -573,8 +574,6 @@ export default function AnalyticsView({
                 activeIndex={activeChart3}
                 onSliceClick={(idx) => { setActiveChart3(activeChart3 === idx ? null : idx); trackAction('view_chart_detail', { chart: 'expense_breakdown', sliceIndex: idx }); }}
                 centerText={t('analytics.costs', lang)}
-                showLabels={true}
-                labelThreshold={12}
               />
               <div style={styles.chartDetails}>
                 {activeChart3 !== null && expenseBreakdown[activeChart3] ? (
@@ -602,7 +601,7 @@ export default function AnalyticsView({
         </div>
 
         {/* ==================== FEATURE A: Budget vs Actual ==================== */}
-        <div className="neo-raised" style={styles.chartCard}>
+        <div className="neo-raised" style={styles.chartCard} ref={budgetRef}>
           <h4 style={styles.chartTitle}>
             <Target size={14} style={{ marginRight: '6px', verticalAlign: 'middle', color: 'var(--accent-color)' }} />
             {t('analytics.budgetVsActual', lang)}
@@ -621,17 +620,18 @@ export default function AnalyticsView({
               <div className="neo-pressed-sm" style={styles.bvaTotalRow}>
                 <div style={styles.bvaTotalInfo}>
                   <span style={styles.bvaTotalLabel}>{t('budget.totalBudget', lang)}</span>
-                  <span style={styles.bvaTotalVal}>৳{formatNumber(budgetVsActualTotal.totalLimit, lang)}</span>
+                  <span className={budgetInView ? 'counter-entrance' : ''} style={{ ...styles.bvaTotalVal, animationDelay: '0.15s' }}>৳{formatNumber(budgetVsActualTotal.totalLimit, lang)}</span>
                 </div>
                 <div style={styles.bvaTotalInfo}>
                   <span style={styles.bvaTotalLabel}>{t('budget.spent', lang)}</span>
-                  <span style={{ ...styles.bvaTotalVal, color: 'var(--color-expense)' }}>৳{formatNumber(budgetVsActualTotal.totalSpent, lang)}</span>
+                  <span className={budgetInView ? 'counter-entrance' : ''} style={{ ...styles.bvaTotalVal, color: 'var(--color-expense)', animationDelay: '0.25s' }}>৳{formatNumber(budgetVsActualTotal.totalSpent, lang)}</span>
                 </div>
                 <div style={styles.bvaTotalInfo}>
                   <span style={styles.bvaTotalLabel}>{t('budget.remaining', lang)}</span>
-                  <span style={{
+                  <span className={budgetInView ? 'counter-entrance' : ''} style={{
                     ...styles.bvaTotalVal,
-                    color: budgetVsActualTotal.totalLimit - budgetVsActualTotal.totalSpent >= 0 ? 'var(--color-income)' : 'var(--color-expense)'
+                    color: budgetVsActualTotal.totalLimit - budgetVsActualTotal.totalSpent >= 0 ? 'var(--color-income)' : 'var(--color-expense)',
+                    animationDelay: '0.35s',
                   }}>
                     ৳{formatNumber(Math.abs(budgetVsActualTotal.totalLimit - budgetVsActualTotal.totalSpent), lang)}
                   </span>
@@ -701,7 +701,7 @@ export default function AnalyticsView({
         </div>
 
         {/* ==================== FEATURE B: Smart Insights ==================== */}
-        <div className="neo-raised" style={styles.chartCard}>
+        <div className="neo-raised" style={styles.chartCard} ref={insightsRef}>
           <h4 style={styles.chartTitle}>
             <Lightbulb size={14} style={{ marginRight: '6px', verticalAlign: 'middle', color: '#f7b731' }} />
             {t('analytics.insights', lang)}
@@ -715,7 +715,7 @@ export default function AnalyticsView({
               {/* Top spending category */}
               {insights.topCategory && (
                 <div className="neo-pressed-sm" style={styles.insightCard}>
-                  <span style={styles.insightIcon}>
+                  <span className={insightsInView ? 'arrow-entrance' : ''} style={{ ...styles.insightIcon, animationDelay: '0.2s' }}>
                     <TrendingUp size={14} style={{ color: 'var(--color-expense)' }} />
                   </span>
                   <div style={styles.insightBody}>
@@ -735,7 +735,7 @@ export default function AnalyticsView({
               {/* Biggest increase */}
               {insights.biggestIncrease && hasComparison && (
                 <div className="neo-pressed-sm" style={styles.insightCard}>
-                  <span style={styles.insightIcon}>
+                  <span className={insightsInView ? 'arrow-entrance' : ''} style={{ ...styles.insightIcon, animationDelay: '0.35s' }}>
                     <TrendingUp size={14} style={{ color: 'var(--color-expense)' }} />
                   </span>
                   <div style={styles.insightBody}>
@@ -755,7 +755,7 @@ export default function AnalyticsView({
               {/* Biggest decrease */}
               {insights.biggestDecrease && hasComparison && (
                 <div className="neo-pressed-sm" style={styles.insightCard}>
-                  <span style={styles.insightIcon}>
+                  <span className={insightsInView ? 'arrow-entrance' : ''} style={{ ...styles.insightIcon, animationDelay: '0.5s' }}>
                     <TrendingDown size={14} style={{ color: 'var(--color-income)' }} />
                   </span>
                   <div style={styles.insightBody}>
@@ -776,17 +776,18 @@ export default function AnalyticsView({
               <div style={styles.insightSummaryRow}>
                 <div className="neo-raised-sm" style={styles.insightStat}>
                   <span style={styles.insightStatLabel}>{t('analytics.insightsTotalIncome', lang)}</span>
-                  <span style={{ ...styles.insightStatVal, color: 'var(--color-income)' }}>৳{formatNumber(insights.currentIncome, lang)}</span>
+                  <span className={insightsInView ? 'counter-entrance' : ''} style={{ ...styles.insightStatVal, color: 'var(--color-income)', animationDelay: '0.3s' }}>৳{formatNumber(insights.currentIncome, lang)}</span>
                 </div>
                 <div className="neo-raised-sm" style={styles.insightStat}>
                   <span style={styles.insightStatLabel}>{t('analytics.insightsTotalExpense', lang)}</span>
-                  <span style={{ ...styles.insightStatVal, color: 'var(--color-expense)' }}>৳{formatNumber(insights.currentExpense, lang)}</span>
+                  <span className={insightsInView ? 'counter-entrance' : ''} style={{ ...styles.insightStatVal, color: 'var(--color-expense)', animationDelay: '0.4s' }}>৳{formatNumber(insights.currentExpense, lang)}</span>
                 </div>
                 <div className="neo-raised-sm" style={styles.insightStat}>
                   <span style={styles.insightStatLabel}>{t('analytics.insightsSavingsRate', lang)}</span>
-                  <span style={{
+                  <span className={insightsInView ? 'counter-entrance' : ''} style={{
                     ...styles.insightStatVal,
                     color: insights.savingsRate >= 0 ? 'var(--color-income)' : 'var(--color-expense)',
+                    animationDelay: '0.5s',
                   }}>
                     {insights.savingsRate >= 0 ? '+' : ''}{formatPercent(insights.savingsRate, lang)}
                   </span>

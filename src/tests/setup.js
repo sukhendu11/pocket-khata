@@ -34,3 +34,17 @@ class ResizeObserverMock {
 if (!globalThis.ResizeObserver) {
   globalThis.ResizeObserver = ResizeObserverMock;
 }
+
+// Polyfill IntersectionObserver for scroll-triggered entrance animations
+class IntersectionObserverMock {
+  constructor(callback) {
+    this.callback = callback;
+  }
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+if (!globalThis.IntersectionObserver) {
+  globalThis.IntersectionObserver = IntersectionObserverMock;
+}

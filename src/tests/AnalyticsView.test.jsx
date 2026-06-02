@@ -247,9 +247,9 @@ describe('AnalyticsView — Income Breakdown', () => {
     useFixedDate();
     render(<AnalyticsView {...defaultProps} />);
     // This Month income: Salary 80k (100%)
-    // Legend renders "Salary (100%)" in one span — scope to income card
+    // Extreme mode shows "Salary" as center subtext in SVG + "Salary (100%)" in legend
     const incomeCard = screen.getByText('Income Breakdown').closest('[class*="neo-raised"]');
-    expect(within(incomeCard).getByText(/Salary/)).toBeTruthy();
+    expect(within(incomeCard).getAllByText(/Salary/).length).toBeGreaterThanOrEqual(1);
     expect(within(incomeCard).getAllByText(/100%/).length).toBeGreaterThanOrEqual(1);
   });
 

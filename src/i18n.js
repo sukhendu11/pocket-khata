@@ -223,6 +223,9 @@ const translations = {
   'settings.importError': { en: 'Invalid JSON file. Please select a valid export file.', bn: 'অবৈধ JSON ফাইল। অনুগ্রহ করে সঠিক এক্সপোর্ট ফাইল নির্বাচন করুন।' },
   'settings.exportedJSON': { en: 'Backup saved to Documents', bn: 'ডকুমেন্টসে ব্যাকআপ সংরক্ষিত' },
   'settings.exportFailed': { en: 'Backup export failed. Please try again.', bn: 'ব্যাকআপ এক্সপোর্ট ব্যর্থ হয়েছে। আবার চেষ্টা করুন।' },
+  'settings.importFailed': { en: 'Database import failed. Please try again.', bn: 'ডাটাবেজ ইম্পোর্ট ব্যর্থ হয়েছে। আবার চেষ্টা করুন।' },
+  'settings.importConfirmTitle': { en: 'This will replace ALL current data with the imported file. A safety backup will be saved first.', bn: 'এটি বর্তমান সমস্ত ডাটা ইম্পোর্ট করা ফাইল দিয়ে প্রতিস্থাপন করবে। আগে একটি নিরাপত্তা ব্যাকআপ সংরক্ষিত হবে।' },
+  'settings.importConfirmAction': { en: 'Import & Replace', bn: 'ইম্পোর্ট ও প্রতিস্থাপন' },
   'settings.noTransactions': { en: 'No transactions to export.', bn: 'এক্সপোর্ট করার মতো কোনো লেনদেন নেই।' },
   'settings.generatingPDF': { en: 'Generating…', bn: 'উৎপন্ন হচ্ছে…' },
   'settings.resetSuccess': { en: 'Pocket Khata reset to factory defaults.', bn: 'পকেট খাতা ফ্যাক্টরি ডিফল্টে রিসেট হয়েছে।' },
@@ -430,6 +433,10 @@ const translations = {
   'reminders.errCategory': { en: 'Please select a category.', bn: 'অনুগ্রহ করে ক্যাটাগরি নির্বাচন করুন।' },
 
   // ===== NOTIFICATIONS =====
+  'notif.title': { en: 'Notifications', bn: 'নোটিফিকেশন' },
+  'notif.notificationDesc': { en: 'Enable notifications for bills and reminders', bn: 'বিল ও রিমাইন্ডারের জন্য নোটিফিকেশন চালু করুন' },
+  'notif.permission': { en: 'Notification Permission', bn: 'নোটিফিকেশন অনুমতি' },
+  'notif.permissionDeniedHint': { en: 'Open device settings to enable notifications', bn: 'চালু করতে ডিভাইস সেটিংস খুলুন' },
   'notif.reminderTitle': { en: 'Bill Reminder', bn: 'বিল রিমাইন্ডার' },
   'notif.enableToggle': { en: 'Enable Notifications', bn: 'নোটিফিকেশন চালু করুন' },
   'notif.enableToggleDesc': { en: 'Get notified about upcoming and overdue bills', bn: 'আসন্ন ও মেয়াদোত্তীর্ণ বিল সম্পর্কে জানুন' },
@@ -443,6 +450,10 @@ const translations = {
   'notif.enable': { en: 'Enable', bn: 'চালু করুন' },
   'notif.denied': { en: 'Permission denied', bn: 'অনুমতি নেই' },
   'notif.granted': { en: 'Notifications active', bn: 'নোটিফিকেশন সক্রিয়' },
+  'notif.testButton': { en: 'Send Test Notification', bn: 'পরীক্ষামূলক নোটিফিকেশন পাঠান' },
+  'notif.testSending': { en: 'Sending…', bn: 'পাঠানো হচ্ছে…' },
+  'notif.testSent': { en: 'Test notification sent! Check your notification bar.', bn: 'পরীক্ষামূলক নোটিফিকেশন পাঠানো হয়েছে! নোটিফিকেশন বার চেক করুন।' },
+  'notif.testFailed': { en: 'Failed to send test notification. Check notification permissions.', bn: 'পরীক্ষামূলক নোটিফিকেশন পাঠানো ব্যর্থ। নোটিফিকেশন অনুমতি চেক করুন।' },
 
   'common.localWallet': { en: 'Local Wallet', bn: 'স্থানীয় ওয়ালেট' },
   'common.manualEntry': { en: 'Manual Entry', bn: 'ম্যানুয়াল এন্ট্রি' },
@@ -464,6 +475,7 @@ const translations = {
   'autobackup.transactions': { en: 'transactions', bn: 'লেনদেন' },
   'autobackup.budgets': { en: 'budgets', bn: 'বাজেট' },
   'autobackup.goals': { en: 'goals', bn: 'লক্ষ্য' },
+  'autobackup.reminders': { en: 'reminders', bn: 'রিমাইন্ডার' },
 
   // ===== ABOUT SECTION =====
   'about.title': { en: 'About', bn: 'সম্পর্কে' },

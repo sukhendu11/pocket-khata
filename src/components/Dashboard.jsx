@@ -211,7 +211,7 @@ export default function Dashboard({
       {/* 2. Aggregate Balance Card */}
       <div className="neo-raised card-entrance" style={styles.balanceCard}>
         <span style={styles.cardLabel}>{t('dashboard.totalBalance', lang)}</span>
-        <h2 style={styles.balanceVal}>৳ {formatNumber(netBalance, lang)}</h2>
+        <h2 className="counter-entrance" style={{ ...styles.balanceVal, animationDelay: '0.15s' }}>৳ {formatNumber(netBalance, lang)}</h2>
         <div style={styles.cardIndicatorContainer}>
           <div className="balance-dot" style={styles.cardIndicatorDot} />
           <span style={styles.cardIndicatorText}>{t('dashboard.dbActive', lang)}</span>
@@ -221,24 +221,24 @@ export default function Dashboard({
       {/* 3. Income vs Expense summary */}
       <div style={styles.summaryGrid}>
         <div className="neo-raised-sm card-entrance card-entrance-1 hover-lift" style={styles.summaryBox}>
-          <div className="neo-pressed-sm" style={{ ...styles.sumIconBg, color: 'var(--color-income)' }}>
-            <ArrowUpRight size={18} />
+          <div className="neo-pressed-sm arrow-entrance" style={{ ...styles.sumIconBg, color: 'var(--color-income)', animationDelay: '0.35s' }}>
+            <ArrowDownLeft size={18} />
           </div>
           <div>
             <span style={styles.summaryLabel}>{t('dashboard.incomeMonth', lang)}</span>
-            <p style={{ ...styles.summaryAmount, color: 'var(--color-income)' }}>
+            <p className="counter-entrance" style={{ ...styles.summaryAmount, color: 'var(--color-income)', animationDelay: '0.25s' }}>
               +৳ {formatNumber(monthlyTotals.income, lang)}
             </p>
           </div>
         </div>
 
         <div className="neo-raised-sm card-entrance card-entrance-2 hover-lift" style={styles.summaryBox}>
-          <div className="neo-pressed-sm" style={{ ...styles.sumIconBg, color: 'var(--color-expense)' }}>
-            <ArrowDownLeft size={18} />
+          <div className="neo-pressed-sm arrow-entrance" style={{ ...styles.sumIconBg, color: 'var(--color-expense)', animationDelay: '0.45s' }}>
+            <ArrowUpRight size={18} />
           </div>
           <div>
             <span style={styles.summaryLabel}>{t('dashboard.expenseMonth', lang)}</span>
-            <p style={{ ...styles.summaryAmount, color: 'var(--color-expense)' }}>
+            <p className="counter-entrance" style={{ ...styles.summaryAmount, color: 'var(--color-expense)', animationDelay: '0.35s' }}>
               -৳ {formatNumber(monthlyTotals.expense, lang)}
             </p>
           </div>

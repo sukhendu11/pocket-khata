@@ -32,6 +32,8 @@
   --color-transfer: #3867d6;
   --color-warning: #f7b731;
 
+  --label-pill-bg: rgba(255,255,255,0.85);
+  --border-color: rgba(0,0,0,0.08);
   --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-bangla: 'Noto Serif Bengali', 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, serif;
 }
@@ -85,6 +87,8 @@
   --neomorphic-raised-lg: 12px 12px 24px var(--neo-shadow-dark), -12px -12px 24px var(--neo-shadow-light);
   
   /* Core Accents Dark Mode Adjustments */
+  --label-pill-bg: rgba(30,30,35,0.85);
+  --border-color: rgba(255,255,255,0.1);
   --accent-color: #54a0ff;
   --accent-light: #70a1ff;
   --color-income: #22C55E;
@@ -454,6 +458,22 @@ body {
   0% { box-shadow: 0 0 0 0 rgba(56, 103, 214, 0.3); }
   70% { box-shadow: 0 0 0 8px rgba(56, 103, 214, 0); }
   100% { box-shadow: 0 0 0 0 rgba(56, 103, 214, 0); }
+}
+
+/* Counter number entrance — fade + slide up for Dashboard values */
+.counter-entrance {
+  animation: countUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+/* Arrow entrance bounce — for Dashboard summary card icons */
+@keyframes arrowBounce {
+  0% { transform: scale(0) rotate(-30deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.arrow-entrance {
+  animation: arrowBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
 /* Balance dot live pulse */
