@@ -184,354 +184,357 @@ export default function Settings({
 
 
   return (
-    <div style={styles.container}>
-      
-      {/* Header Bar */}
-      <div style={styles.header}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-          <button className="neo-btn neo-btn-round" style={styles.backBtn} onClick={() => onNavigate('dashboard')}>
-            <ArrowLeft size={18} />
-          </button>
-          <div onClick={() => onNavigate('dashboard')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-            <img src="/pocket-khata-logo.png" alt="" className="header-logo-sm" />
+    <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div style={styles.container}>
+        
+        {/* Header Bar */}
+        <div style={styles.header}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+            <button className="neo-btn neo-btn-round" style={styles.backBtn} onClick={() => onNavigate('dashboard')}>
+              <ArrowLeft size={18} />
+            </button>
+            <div onClick={() => onNavigate('dashboard')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <img src="/pocket-khata-logo.png" alt="" className="header-logo-sm" />
+            </div>
+            <h2 style={{ ...styles.title, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('settings.title', lang)}</h2>
           </div>
-          <h2 style={{ ...styles.title, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('settings.title', lang)}</h2>
-        </div>
-        <div style={{ width: '36px' }} /> {/* alignment placeholder */}
-      </div>
-
-      <div style={styles.content}>
-
-        {/* SECTION 1: Financial Reports */}
-        <div className="neo-raised" style={styles.card}>
-          <div style={styles.cardHeader}>
-            <FileText size={16} style={{ color: 'var(--accent-color)' }} />
-            <h3 style={styles.cardTitle}>{t('reports.title', lang)}</h3>
-          </div>
-
-          <p style={styles.cardDesc}>
-            {t('reports.exportDesc', lang)}
-          </p>
-
-          {/* Period Selector */}
-          <div style={styles.formGroup}>
-            <label style={styles.formLabel}>{t('reports.selectPeriod', lang)}</label>
-            <select
-              className="neo-pressed-sm"
-              style={styles.formSelect}
-              value={reportPeriod}
-              onChange={(e) => setReportPeriod(e.target.value)}
-            >
-              <option value="thisMonth">{t('reports.thisMonth', lang)}</option>
-              <option value="lastMonth">{t('reports.lastMonth', lang)}</option>
-              <option value="last3Months">{t('reports.last3Months', lang)}</option>
-              <option value="last6Months">{t('reports.last6Months', lang)}</option>
-              <option value="thisYear">{t('reports.thisYear', lang)}</option>
-            </select>
-          </div>
-
-          {/* Section Toggles */}
-          <label style={styles.formLabel}>{t('reports.sectionSelect', lang)}</label>
-          <div style={styles.sectionToggles}>
-            <label style={styles.checkboxLabel}>
-              <input type="checkbox" checked={reportSections.summary}
-                onChange={(e) => setReportSections(s => ({ ...s, summary: e.target.checked }))} />
-              <span style={styles.checkboxText}>{t('reports.sectionSummary', lang)}</span>
-            </label>
-            <label style={styles.checkboxLabel}>
-              <input type="checkbox" checked={reportSections.accounts}
-                onChange={(e) => setReportSections(s => ({ ...s, accounts: e.target.checked }))} />
-              <span style={styles.checkboxText}>{t('reports.sectionAccounts', lang)}</span>
-            </label>
-            <label style={styles.checkboxLabel}>
-              <input type="checkbox" checked={reportSections.transactions}
-                onChange={(e) => setReportSections(s => ({ ...s, transactions: e.target.checked }))} />
-              <span style={styles.checkboxText}>{t('reports.sectionTransactions', lang)}</span>
-            </label>
-            <label style={styles.checkboxLabel}>
-              <input type="checkbox" checked={reportSections.analytics}
-                onChange={(e) => setReportSections(s => ({ ...s, analytics: e.target.checked }))} />
-              <span style={styles.checkboxText}>{t('reports.sectionAnalytics', lang)}</span>
-            </label>
-          </div>
-
-          <button
-            className="neo-btn neo-btn-primary"
-            style={styles.pdfBtn}
-            onClick={handleExportPDF}
-            disabled={isGeneratingPDF}
-          >
-            {isGeneratingPDF ? (
-              <><RefreshCw size={14} className="spin-anim" /> {t('settings.generatingPDF', lang)}</>
-            ) : (
-              <><FileText size={14} /> {t('reports.exportPDF', lang)}</>
-            )}
-          </button>
+          <div style={{ width: '36px' }} /> {/* alignment placeholder */}
         </div>
 
-        {/* [REMINDERS] SECTION: Notification Settings — kept for future implementation */}
-        {/* <div className="neo-raised" style={styles.card}>
-          <div style={styles.cardHeader}>
-            <Bell size={16} style={{ color: 'var(--accent-color)' }} />
-            <h3 style={styles.cardTitle}>{t('notif.title', lang)}</h3>
-          </div>
-          <p style={styles.cardDesc}>{t('notif.notificationDesc', lang)}</p>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('notif.permission', lang)}</span>
-            <span style={{
-              fontSize: '10px', fontWeight: '700', padding: '2px 10px', borderRadius: '20px',
-              backgroundColor: notificationPermission === 'granted'
-                ? 'color-mix(in srgb, var(--color-income) 15%, transparent)'
-                : 'color-mix(in srgb, var(--text-secondary) 15%, transparent)',
-              color: notificationPermission === 'granted' ? 'var(--color-income)' : 'var(--text-secondary)',
-            }}>
-              {notificationPermission === 'granted' ? t('notif.granted', lang) : notificationPermission === 'denied' ? t('notif.denied', lang) : '—'}
-            </span>
-          </div>
-          {notificationPermission !== 'granted' && (
-            <button className="neo-btn" style={{ width: '100%', height: '36px', fontSize: '11px', justifyContent: 'center' }}
-              onClick={handleRequestNotificationPermission}>
-              {t('notif.requestPermission', lang)}
-            </button>
-          )}
-          {notificationPermission === 'granted' && (
-            <button className="neo-btn" style={{ width: '100%', height: '36px', fontSize: '11px', justifyContent: 'center', marginTop: '8px' }}
-              onClick={handleScheduleReminder}>
-              {t('notif.testNotification', lang)}
-            </button>
-          )}
-        </div> */}
+        <div style={styles.content}>
 
-        {/* SECTION 2: Data Portability */}
-        <div className="neo-raised" style={styles.card}>
-          <div style={styles.cardHeader}>
-            <Upload size={16} style={{ color: 'var(--accent-color)' }} />
-            <h3 style={styles.cardTitle}>{t('settings.dataPortability', lang)}</h3>
-          </div>
+          {/* SECTION 1: Financial Reports */}
+          <div className="neo-raised" style={styles.card}>
+            <div style={styles.cardHeader}>
+              <FileText size={16} style={{ color: 'var(--accent-color)' }} />
+              <h3 style={styles.cardTitle}>{t('reports.title', lang)}</h3>
+            </div>
 
-          <p style={styles.cardDesc}>
-            {t('settings.exportDescJSON', lang)}
-          </p>
-
-          <button
-            className="neo-btn neo-btn-primary"
-            style={styles.exportBtn}
-            onClick={handleExportJSON}
-          >
-            <Upload size={14} />
-            {t('settings.exportJSON', lang)}
-          </button>
-
-          <div style={{ marginTop: '14px', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
             <p style={styles.cardDesc}>
-              {t('settings.importDesc', lang)}
+              {t('reports.exportDesc', lang)}
             </p>
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-            />
+            {/* Period Selector */}
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>{t('reports.selectPeriod', lang)}</label>
+              <select
+                className="neo-pressed-sm"
+                style={styles.formSelect}
+                value={reportPeriod}
+                onChange={(e) => setReportPeriod(e.target.value)}
+              >
+                <option value="thisMonth">{t('reports.thisMonth', lang)}</option>
+                <option value="lastMonth">{t('reports.lastMonth', lang)}</option>
+                <option value="last3Months">{t('reports.last3Months', lang)}</option>
+                <option value="last6Months">{t('reports.last6Months', lang)}</option>
+                <option value="thisYear">{t('reports.thisYear', lang)}</option>
+              </select>
+            </div>
+
+            {/* Section Toggles */}
+            <label style={styles.formLabel}>{t('reports.sectionSelect', lang)}</label>
+            <div style={styles.sectionToggles}>
+              <label style={styles.checkboxLabel}>
+                <input type="checkbox" checked={reportSections.summary}
+                  onChange={(e) => setReportSections(s => ({ ...s, summary: e.target.checked }))} />
+                <span style={styles.checkboxText}>{t('reports.sectionSummary', lang)}</span>
+              </label>
+              <label style={styles.checkboxLabel}>
+                <input type="checkbox" checked={reportSections.accounts}
+                  onChange={(e) => setReportSections(s => ({ ...s, accounts: e.target.checked }))} />
+                <span style={styles.checkboxText}>{t('reports.sectionAccounts', lang)}</span>
+              </label>
+              <label style={styles.checkboxLabel}>
+                <input type="checkbox" checked={reportSections.transactions}
+                  onChange={(e) => setReportSections(s => ({ ...s, transactions: e.target.checked }))} />
+                <span style={styles.checkboxText}>{t('reports.sectionTransactions', lang)}</span>
+              </label>
+              <label style={styles.checkboxLabel}>
+                <input type="checkbox" checked={reportSections.analytics}
+                  onChange={(e) => setReportSections(s => ({ ...s, analytics: e.target.checked }))} />
+                <span style={styles.checkboxText}>{t('reports.sectionAnalytics', lang)}</span>
+              </label>
+            </div>
 
             <button
-              className="neo-btn"
-              style={styles.exportBtn}
-              onClick={handleImportClick}
+              className="neo-btn neo-btn-primary"
+              style={styles.pdfBtn}
+              onClick={handleExportPDF}
+              disabled={isGeneratingPDF}
             >
-              <Upload size={14} />
-              {t('settings.importJSON', lang)}
+              {isGeneratingPDF ? (
+                <><RefreshCw size={14} className="spin-anim" /> {t('settings.generatingPDF', lang)}</>
+              ) : (
+                <><FileText size={14} /> {t('reports.exportPDF', lang)}</>
+              )}
             </button>
           </div>
 
-          {/* Reset Data — divider + button */}
-          <div style={{ marginTop: '14px', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
+          {/* [REMINDERS] SECTION: Notification Settings — kept for future implementation */}
+          {/* <div className="neo-raised" style={styles.card}>
+            <div style={styles.cardHeader}>
+              <Bell size={16} style={{ color: 'var(--accent-color)' }} />
+              <h3 style={styles.cardTitle}>{t('notif.title', lang)}</h3>
+            </div>
+            <p style={styles.cardDesc}>{t('notif.notificationDesc', lang)}</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('notif.permission', lang)}</span>
+              <span style={{
+                fontSize: '10px', fontWeight: '700', padding: '2px 10px', borderRadius: '20px',
+                backgroundColor: notificationPermission === 'granted'
+                  ? 'color-mix(in srgb, var(--color-income) 15%, transparent)'
+                  : 'color-mix(in srgb, var(--text-secondary) 15%, transparent)',
+                color: notificationPermission === 'granted' ? 'var(--color-income)' : 'var(--text-secondary)',
+              }}>
+                {notificationPermission === 'granted' ? t('notif.granted', lang) : notificationPermission === 'denied' ? t('notif.denied', lang) : '—'}
+              </span>
+            </div>
+            {notificationPermission !== 'granted' && (
+              <button className="neo-btn" style={{ width: '100%', height: '36px', fontSize: '11px', justifyContent: 'center' }}
+                onClick={handleRequestNotificationPermission}>
+                {t('notif.requestPermission', lang)}
+              </button>
+            )}
+            {notificationPermission === 'granted' && (
+              <button className="neo-btn" style={{ width: '100%', height: '36px', fontSize: '11px', justifyContent: 'center', marginTop: '8px' }}
+                onClick={handleScheduleReminder}>
+                {t('notif.testNotification', lang)}
+              </button>
+            )}
+          </div> */}
+
+          {/* SECTION 2: Data Portability */}
+          <div className="neo-raised" style={styles.card}>
+            <div style={styles.cardHeader}>
+              <Upload size={16} style={{ color: 'var(--accent-color)' }} />
+              <h3 style={styles.cardTitle}>{t('settings.dataPortability', lang)}</h3>
+            </div>
+
             <p style={styles.cardDesc}>
-              {t('settings.resetDataDesc', lang)}
+              {t('settings.exportDescJSON', lang)}
             </p>
 
-            {!showResetConfirm ? (
+            <button
+              className="neo-btn neo-btn-primary"
+              style={styles.exportBtn}
+              onClick={handleExportJSON}
+            >
+              <Upload size={14} />
+              {t('settings.exportJSON', lang)}
+            </button>
+
+            <div style={{ marginTop: '14px', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
+              <p style={styles.cardDesc}>
+                {t('settings.importDesc', lang)}
+              </p>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+
               <button
                 className="neo-btn"
-                style={styles.resetBtn}
-                onClick={() => setShowResetConfirm(true)}
+                style={styles.exportBtn}
+                onClick={handleImportClick}
               >
-                {t('settings.resetData', lang)}
+                <Upload size={14} />
+                {t('settings.importJSON', lang)}
               </button>
-            ) : (
-              <div className="neo-pressed-sm" style={styles.resetConfirmPanel}>
-                <span style={styles.resetConfirmText}>
-                  {t('settings.resetDataConfirm', lang)}
-                </span>
-                <div style={styles.resetBtnGroup}>
-                  <button
-                    className="neo-btn"
-                    style={styles.resetNoBtn}
-                    onClick={() => setShowResetConfirm(false)}
-                  >
-                    {t('settings.resetCancel', lang)}
-                  </button>
-                  <button
-                    className="neo-btn"
-                    style={styles.resetYesBtn}
-                    onClick={handleResetData}
-                  >
-                    {t('settings.resetConfirmAction', lang)}
-                  </button>
+            </div>
+
+            {/* Reset Data — divider + button */}
+            <div style={{ marginTop: '14px', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
+              <p style={styles.cardDesc}>
+                {t('settings.resetDataDesc', lang)}
+              </p>
+
+              {!showResetConfirm ? (
+                <button
+                  className="neo-btn"
+                  style={styles.resetBtn}
+                  onClick={() => setShowResetConfirm(true)}
+                >
+                  {t('settings.resetData', lang)}
+                </button>
+              ) : (
+                <div className="neo-pressed-sm" style={styles.resetConfirmPanel}>
+                  <span style={styles.resetConfirmText}>
+                    {t('settings.resetDataConfirm', lang)}
+                  </span>
+                  <div style={styles.resetBtnGroup}>
+                    <button
+                      className="neo-btn"
+                      style={styles.resetNoBtn}
+                      onClick={() => setShowResetConfirm(false)}
+                    >
+                      {t('settings.resetCancel', lang)}
+                    </button>
+                    <button
+                      className="neo-btn"
+                      style={styles.resetYesBtn}
+                      onClick={handleResetData}
+                    >
+                      {t('settings.resetConfirmAction', lang)}
+                    </button>
+                  </div>
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* [DISABLED] SECTION 3: Privacy & Analytics — kept for future use
+          <div className="neo-raised" style={styles.card}>
+            <div style={styles.cardHeader}>
+              <Shield size={16} style={{ color: 'var(--accent-color)' }} />
+              <h3 style={styles.cardTitle}>{t('privacy.title', lang)}</h3>
+            </div>
+
+            <p style={styles.cardDesc}>
+              {t('privacy.desc', lang)}
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                {t('privacy.consentStatus', lang)}
+              </span>
+              <span style={{
+                fontSize: '10px', fontWeight: '700', padding: '2px 10px', borderRadius: '20px',
+                backgroundColor: getConsent() === 'granted'
+                  ? 'color-mix(in srgb, var(--color-income) 15%, transparent)'
+                  : 'color-mix(in srgb, var(--text-secondary) 15%, transparent)',
+                color: getConsent() === 'granted' ? 'var(--color-income)' : 'var(--text-secondary)',
+              }}>
+                {getConsent() === 'granted' ? t('privacy.statusGranted', lang) : t('privacy.statusDenied', lang)}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                {t('privacy.eventsQueued', lang)}
+              </span>
+              <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                {getQueuedEventCount()}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                {t('privacy.lastSync', lang)}
+              </span>
+              <span style={{ fontSize: '11px', fontWeight: '500', color: 'var(--text-primary)' }}>
+                {getLastSyncDisplay() ? new Date(getLastSyncDisplay()).toLocaleString() : t('privacy.never', lang)}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                {t('privacy.supabaseStatus', lang)}
+              </span>
+              <span style={{
+                fontSize: '10px', fontWeight: '700', padding: '2px 10px', borderRadius: '20px',
+                backgroundColor: isSupabaseConfigured
+                  ? 'color-mix(in srgb, var(--color-income) 15%, transparent)'
+                  : 'color-mix(in srgb, var(--color-warning) 15%, transparent)',
+                color: isSupabaseConfigured ? 'var(--color-income)' : 'var(--color-warning)',
+              }}>
+                {isSupabaseConfigured ? t('privacy.configured', lang) : t('privacy.notConfigured', lang)}
+              </span>
+            </div>
+
+            {isTrackingAllowed() && (
+              <button
+                className="neo-btn"
+                style={{
+                  width: '100%',
+                  height: '36px',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  justifyContent: 'center',
+                  marginBottom: '8px',
+                  gap: '6px',
+                  border: syncResult === 'success'
+                    ? '1px solid var(--color-income)'
+                    : syncResult === 'error'
+                      ? '1px solid var(--color-expense)'
+                      : undefined,
+                  color: syncResult === 'success'
+                    ? 'var(--color-income)'
+                    : syncResult === 'error'
+                      ? 'var(--color-expense)'
+                      : 'var(--text-primary)',
+                }}
+                onClick={handleSyncNow}
+                disabled={isSyncing || !isSupabaseConfigured}
+              >
+                {isSyncing ? (
+                  <RefreshCw size={14} className="spin-anim" />
+                ) : syncResult === 'success' ? (
+                  <CheckCircle size={14} />
+                ) : syncResult === 'error' ? (
+                  <XCircle size={14} />
+                ) : (
+                  <Upload size={14} />
+                )}
+                {isSyncing
+                  ? t('analytics.events.syncing', lang)
+                  : syncResult === 'success'
+                    ? t('analytics.events.synced', lang)
+                    : t('analytics.events.sync', lang)}
+              </button>
+            )}
+
+            {isTrackingAllowed() && (
+              <div style={{ marginBottom: '4px' }}>
+                <button
+                  className="neo-btn"
+                  style={{ width: '100%', height: '36px', fontSize: '11px', justifyContent: 'center' }}
+                  onClick={() => {
+                    if (window.confirm(t('privacy.resetDesc', lang))) {
+                      resetConsent();
+                      window.location.reload();
+                    }
+                  }}
+                >
+                  {t('privacy.resetConsent', lang)}
+                </button>
               </div>
             )}
           </div>
-        </div>
+          */}
 
-        {/* [DISABLED] SECTION 3: Privacy & Analytics — kept for future use
-        <div className="neo-raised" style={styles.card}>
-          <div style={styles.cardHeader}>
-            <Shield size={16} style={{ color: 'var(--accent-color)' }} />
-            <h3 style={styles.cardTitle}>{t('privacy.title', lang)}</h3>
-          </div>
-
-          <p style={styles.cardDesc}>
-            {t('privacy.desc', lang)}
-          </p>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>
-              {t('privacy.consentStatus', lang)}
-            </span>
-            <span style={{
-              fontSize: '10px', fontWeight: '700', padding: '2px 10px', borderRadius: '20px',
-              backgroundColor: getConsent() === 'granted'
-                ? 'color-mix(in srgb, var(--color-income) 15%, transparent)'
-                : 'color-mix(in srgb, var(--text-secondary) 15%, transparent)',
-              color: getConsent() === 'granted' ? 'var(--color-income)' : 'var(--text-secondary)',
-            }}>
-              {getConsent() === 'granted' ? t('privacy.statusGranted', lang) : t('privacy.statusDenied', lang)}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-              {t('privacy.eventsQueued', lang)}
-            </span>
-            <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-primary)' }}>
-              {getQueuedEventCount()}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-              {t('privacy.lastSync', lang)}
-            </span>
-            <span style={{ fontSize: '11px', fontWeight: '500', color: 'var(--text-primary)' }}>
-              {getLastSyncDisplay() ? new Date(getLastSyncDisplay()).toLocaleString() : t('privacy.never', lang)}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-              {t('privacy.supabaseStatus', lang)}
-            </span>
-            <span style={{
-              fontSize: '10px', fontWeight: '700', padding: '2px 10px', borderRadius: '20px',
-              backgroundColor: isSupabaseConfigured
-                ? 'color-mix(in srgb, var(--color-income) 15%, transparent)'
-                : 'color-mix(in srgb, var(--color-warning) 15%, transparent)',
-              color: isSupabaseConfigured ? 'var(--color-income)' : 'var(--color-warning)',
-            }}>
-              {isSupabaseConfigured ? t('privacy.configured', lang) : t('privacy.notConfigured', lang)}
-            </span>
-          </div>
-
-          {isTrackingAllowed() && (
-            <button
-              className="neo-btn"
-              style={{
-                width: '100%',
-                height: '36px',
-                fontSize: '11px',
-                fontWeight: '600',
-                justifyContent: 'center',
-                marginBottom: '8px',
-                gap: '6px',
-                border: syncResult === 'success'
-                  ? '1px solid var(--color-income)'
-                  : syncResult === 'error'
-                    ? '1px solid var(--color-expense)'
-                    : undefined,
-                color: syncResult === 'success'
-                  ? 'var(--color-income)'
-                  : syncResult === 'error'
-                    ? 'var(--color-expense)'
-                    : 'var(--text-primary)',
-              }}
-              onClick={handleSyncNow}
-              disabled={isSyncing || !isSupabaseConfigured}
-            >
-              {isSyncing ? (
-                <RefreshCw size={14} className="spin-anim" />
-              ) : syncResult === 'success' ? (
-                <CheckCircle size={14} />
-              ) : syncResult === 'error' ? (
-                <XCircle size={14} />
-              ) : (
-                <Upload size={14} />
-              )}
-              {isSyncing
-                ? t('analytics.events.syncing', lang)
-                : syncResult === 'success'
-                  ? t('analytics.events.synced', lang)
-                  : t('analytics.events.sync', lang)}
-            </button>
-          )}
-
-          {isTrackingAllowed() && (
-            <div style={{ marginBottom: '4px' }}>
-              <button
-                className="neo-btn"
-                style={{ width: '100%', height: '36px', fontSize: '11px', justifyContent: 'center' }}
-                onClick={() => {
-                  if (window.confirm(t('privacy.resetDesc', lang))) {
-                    resetConsent();
-                    window.location.reload();
-                  }
-                }}
-              >
-                {t('privacy.resetConsent', lang)}
-              </button>
+          {/* SECTION 5: Info */}
+          <div className="neo-raised" style={styles.card}>
+            <div style={styles.cardHeader}>
+              <Info size={16} style={{ color: 'var(--accent-color)' }} />
+              <h3 style={styles.cardTitle}>{t('about.title', lang)}</h3>
             </div>
-          )}
-        </div>
-        */}
 
-        {/* SECTION 5: Info */}
-        <div className="neo-raised" style={styles.card}>
-          <div style={styles.cardHeader}>
-            <Info size={16} style={{ color: 'var(--accent-color)' }} />
-            <h3 style={styles.cardTitle}>{t('about.title', lang)}</h3>
+            <p style={{ ...styles.cardDesc, marginBottom: '4px', fontWeight: '600', color: 'var(--text-primary)' }}>
+              {t('settings.version', lang)} <span style={{ fontWeight: '400', color: 'var(--text-secondary)' }}>v{db.getAppVersion()}</span>
+            </p>
+
+            <p style={{ ...styles.cardDesc, marginBottom: '4px' }}>
+              {t('settings.dbInfo', lang)} — Schema v{db.getStoredSchemaVersion()}
+            </p>
+
+            <p style={styles.cardDesc}>
+              {t('about.desc', lang)}
+            </p>
+
+            <p style={styles.cardDesc}>
+              {t('about.developer', lang)}
+            </p>
           </div>
 
-          <p style={{ ...styles.cardDesc, marginBottom: '4px', fontWeight: '600', color: 'var(--text-primary)' }}>
-            {t('settings.version', lang)} <span style={{ fontWeight: '400', color: 'var(--text-secondary)' }}>v{db.getAppVersion()}</span>
-          </p>
-
-          <p style={{ ...styles.cardDesc, marginBottom: '4px' }}>
-            {t('settings.dbInfo', lang)} — Schema v{db.getStoredSchemaVersion()}
-          </p>
-
-          <p style={styles.cardDesc}>
-            {t('about.desc', lang)}
-          </p>
-
-          <p style={styles.cardDesc}>
-            {t('about.developer', lang)}
-          </p>
-        </div>
+      </div>
 
     </div>
 
-      {/* Toast notification — positioned in lower area, matching main app toast */}
+      {/* Toast notification — positioned in lower area OUTSIDE the scrollable container to avoid overflowY clipping */}
       {toast && (
         <div style={{
           position: 'absolute',

@@ -1,47 +1,41 @@
-1. SINGLE SOURCE OF TRUTH  
-All UI must derive from one validated application state.
 
-2. SAFE DATA LAYER  
-All stored data must be validated + migrated before use. Never trust raw storage.
+# 🧠 CORE RULES — Pocket Khata Agent
 
-3. FAILURE ISOLATION  
-One module failure must never crash the entire app.
+## SYSTEM PRINCIPLES
 
-4. UPDATE CONSISTENCY  
-New build always overrides old behavior and stale state must never control UI.
+1. SINGLE SOURCE OF TRUTH
+- All UI must derive from one validated application state only
 
-Purpose:
-Defines global behavior rules for the agent.
+2. SAFE DATA LAYER
+- Never trust raw storage
+- Validate + migrate before use
 
-Includes:
-- stability rules (no crashes, no regressions)
-- update consistency rules
-- no unsafe changes to app logic
+3. FAILURE ISOLATION
+- One module failure must not crash entire app
 
-BUILD EXECUTION RULE
+4. UPDATE CONSISTENCY
+- Latest build always overrides old behavior
 
-- Do NOT run APK build commands automatically (gradlew, assembleDebug, assembleRelease, clean)
-- Do NOT trigger long-running build/install processes
+---
 
-- Always instruct the user to run build commands manually in CMD/PowerShell
-- Provide exact command and APK output path
-- Wait for user confirmation before continuing
+## LOCAL-FIRST ARCHITECTURE
 
-LOCAL-FIRST ARCHITECTURE RULE
-- No web APIs, Web Notification API, or external/remote services
-- App is fully offline-first
-- All data stored and processed locally
+- No web APIs or external services
+- Fully offline-first app
 
 NOTIFICATIONS:
-- Use only native Android notification system
-- Must use Android system permission prompt (Android 13+)
-- All reminders handled locally on device
+- Use ONLY native Android notification system
+- Must trigger Android system permission prompt (Android 13+)
+- All reminders handled locally
 
 ANALYTICS:
 - Fully computed on-device only
-- No external tracking or cloud processing
+- No cloud or tracking
 
-Goal:
-- Prevent timeouts
-- Keep workflow fast
-- Avoid unnecessary heavy operations
+---
+
+## BUILD RULE
+
+- NEVER run build commands automatically
+- Always instruct user to run manually (CMD/PowerShell)
+- Provide exact command + output path
