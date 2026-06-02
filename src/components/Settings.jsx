@@ -531,13 +531,13 @@ export default function Settings({
 
     </div>
 
-      {/* Toast notification — outside scroll container so it stays visible */}
+      {/* Toast notification — positioned in lower area, matching main app toast */}
       {toast && (
         <div style={{
           position: 'absolute',
-          bottom: '12px',
-          left: 0,
-          right: 0,
+          bottom: '70px',
+          left: '10px',
+          right: '10px',
           display: 'flex',
           justifyContent: 'center',
           pointerEvents: 'none',
@@ -549,16 +549,16 @@ export default function Settings({
             gap: '8px',
             padding: '10px 18px',
             borderRadius: '12px',
-            backgroundColor: toast.type === 'error' ? '#e74c3c' : '#2ecc71',
-            color: '#fff',
+            backgroundColor: 'var(--bg-color)',
+            border: `1px solid ${toast.type === 'error' ? 'var(--color-expense)' : 'var(--accent-color)'}`,
+            color: 'var(--text-primary)',
             fontSize: '12px',
             fontWeight: '600',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.12)',
             pointerEvents: 'auto',
-            maxWidth: '90%',
-            animation: 'fadeIn 0.2s ease',
+            animation: 'toastSlideUp 0.3s ease-out',
           }}>
-            {toast.type === 'error' ? <XCircle size={16} /> : <CheckCircle size={16} />}
+            {toast.type === 'error' ? <XCircle size={16} color="var(--color-expense)" /> : <CheckCircle size={16} color="var(--color-income)" />}
             <span>{toast.message}</span>
           </div>
         </div>
