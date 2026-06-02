@@ -11,15 +11,15 @@ import { trackAction } from '../lib/analytics';
 import TransactionItem from './TransactionItem';
 
 export default function TransactionHistory({
-  transactions,
-  accounts,
-  categories,
-  onNavigate,
-  onEditTransaction,
-  lang,
-  filterType,
-  onBatchDelete,
-  onBatchCategorize,
+  transactions = [],
+  accounts = [],
+  categories = [],
+  onNavigate = () => {},
+  onEditTransaction = () => {},
+  lang = 'en',
+  filterType = 'all',
+  onBatchDelete = () => {},
+  onBatchCategorize = () => {},
 }) {
   const [search, setSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -658,18 +658,6 @@ TransactionHistory.propTypes = {
   filterType: PropTypes.string,
   onBatchDelete: PropTypes.func,
   onBatchCategorize: PropTypes.func,
-};
-
-TransactionHistory.defaultProps = {
-  transactions: [],
-  accounts: [],
-  categories: [],
-  onNavigate: () => {},
-  onEditTransaction: () => {},
-  lang: 'en',
-  filterType: 'all',
-  onBatchDelete: () => {},
-  onBatchCategorize: () => {},
 };
 
 const styles = {

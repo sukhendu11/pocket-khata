@@ -7,7 +7,7 @@
 
 # 📍 CURRENT STATE (MOST IMPORTANT)
 
-- **Last completed task:** Notifications rewrite + Category modal + PieChart fix + Toast reposition + Settings cleanup — ALL COMMITTED & PUSHED
+- **Last completed task:** PieChart label fix + native notification system rewrite + a11y fixes + defaultProps cleanup — ALL COMMITTED & PUSHED
 - **Current active task:** None — all work committed and pushed to remote
 - **Immediate next step:** Await user request
 
@@ -19,34 +19,30 @@
 
 # 🧩 WORK COMPLETED THIS SESSION (ALL COMMITTED)
 
-## Commit `7521c5f` — feat: notification refactor, category modal UX, PieChart fix, toast fix, settings cleanup
+## Commit `pending` — feat: native notification rewrite, PieChart label fix, a11y fixes
 
-### 1. Notification System — Pure Web API
-- **`src/notifications.js`** — Rewritten from scratch. Removed all `@capacitor/core` imports and `@capacitor/local-notifications` dynamic import. Uses only the Web Notification API (`Notification.requestPermission()`), which on Android WebView bridges to the native `POST_NOTIFICATIONS` dialog.
-- **`public/sw.js`** — Removed ~70 lines of dead commented-out reminder notification code
-- **`src/components/ReminderManager.jsx`** — Removed `isServiceWorkerActive` import + `.catch()` call
-- **`src/tests/notifications.test.js`** — Removed dead `@capacitor/core` mock + Capacitor-native test. Kept 13 clean tests for 4 exports.
+### 1. PieChart Label Positioning Fix
+- **`src/components/PieChart.jsx`** — Extracted `LabelPill` sub-component. Dynamically sizes pill width based on text content (min 28px). Clamps X position within SVG viewBox bounds to prevent edge clipping. Labels render fully visible on first render — no interaction dependency.
 
-### 2. Category/Subcategory Modal UX
-- **`src/components/TransactionForm.jsx`** — Replaced inline `<select>` + `prompt()` flow with modal-based selectors:
-  - Category button → bottom-drawer modal with scrollable list + color-coded borders + checkmark
-  - Sticky FAB "+" button → inline input form (no more `prompt()`)
-  - Subcategory follows same modal pattern
+### 2. Native Notification System — @capacitor/local-notifications
+- **`src/notifications.js`** — **Complete rewrite.** Old Web Notification API removed. Uses `@capacitor/local-notifications` plugin:
+  - `isNotificationSupported()` — checks Capacitor native platform
+  - `getNotificationPermission()` / `requestPermission()` — uses `LocalNotifications.checkPermissions()` / `.requestPermissions()` which triggers Android 13+ native `POST_NOTIFICATIONS` dialog
+  - `scheduleReminderNotification()` / `cancelReminderNotification()` — schedule/cancel by ID using `LocalNotifications.schedule()` / `.cancel()`
+  - `cancelAllNotifications()` — fetches pending IDs via `getPending()` then cancels them
+  - `scheduleAllReminders()` — bulk schedule for all unpaid reminders
+  - Android 12 and below: permission auto-granted, no runtime dialog
+- **`src/components/Settings.jsx`** — Uncommented notification section with Enable Notifications toggle + permission status badge + denied hint text
+- **`src/components/ReminderManager.jsx`** — Removed `registerServiceWorker()`, added `scheduleReminderNotification`/`cancelAllNotifications` to notification toggle flow. Enabling schedules all unpaid reminders; disabling cancels all.
+- **`src/App.jsx`** — Replaced `registerServiceWorker` import with permission request logic. Silently requests permission on native startup if status is `default`.
+- **`src/tests/notifications.test.js`** — **Complete rewrite.** 33 tests mocking `@capacitor/core` and `@capacitor/local-notifications`. Covers all 7 exported functions.
 
-### 3. PieChart Initial Render Fix
-- **`src/components/AnalyticsView.jsx`** — Removed animation `useEffect`, `animationProgress` state, `hasMounted` ref. Removed `animate={true}` and `animationProgress` from all 3 PieChart usages. PieChart now always renders at full size with no dependency on animation timing.
-- **`src/components/PieChart.jsx`** — `showLabels` defaults to `true`, `labelThreshold` reduced to 8. Labels now render with white pill background (`<rect>`) for readability over colored segments.
-- **`src/tests/AnalyticsView.test.jsx`** — Updated "94%" assertion to use `getAllByText` (pie labels now also render on slices)
-- **`src/tests/PieChart.test.jsx`** — Added `showLabels={false}` to center-text test
+### 3. A11y Fixes — Settings form labels
+- **`src/components/Settings.jsx`** — Added `id`/`htmlFor` to report period `<select>`, explicit `id` attributes to 4 section checkboxes with `role="group" aria-labelledby`, and `id`+`aria-labelledby` to notification toggle input.
 
-### 4. Toast Repositioning
-- **`src/App.jsx`** — Main toast moved from `top: '0'` (clipped by `overflow: hidden`) to `bottom: '70px'` (above 60px nav bar). Shadow direction flipped upward. Animation changed from `slideDown` → `toastSlideUp`.
-- **`src/components/Settings.jsx`** — Settings toast updated to match: same `bottom: '70px'` position, `var(--bg-color)` background, accent/error border, `toastSlideUp` animation.
-- **`src/index.css`** — Replaced broken `slideDown` keyframe (had `translateX(-50%)` bug from old `left: 50%` centering) with clean `toastSlideUp` (`translateY(12px)` → `translateY(0)`)
-
-### 5. Settings Cleanup
-- **`src/components/Settings.jsx`** — Privacy & Analytics card wrapped in `{/* */}` JSX comment. Code preserved.
-- **`src/tests/Settings.test.jsx`** — Removed test for "Privacy & Analytics" text
+### 4. defaultProps Cleanup
+- **`src/components/TransactionHistory.jsx`** (continued from earlier) — Converted `defaultProps` block to ES6 default parameters, eliminating React 19+ deprecation warning.
+- **Verified:** No other components use React `defaultProps` — codebase is fully clean.
 
 ---
 
@@ -54,44 +50,35 @@
 
 | File | Status | Change |
 |---|---|---|
-| `src/notifications.js` | ✅ Committed | Pure Web API rewrite, no Capacitor deps |
-| `public/sw.js` | ✅ Committed | Removed dead comment code |
-| `src/components/ReminderManager.jsx` | ✅ Committed | Removed isServiceWorkerActive import |
-| `src/components/TransactionForm.jsx` | ✅ Committed | Category/subcategory modal refactor |
-| `src/components/AnalyticsView.jsx` | ✅ Committed | Removed animation, PieChart always full size |
-| `src/components/PieChart.jsx` | ✅ Committed | showLabels default true, white pill labels |
-| `src/App.jsx` | ✅ Committed | Toast moved to bottom position |
-| `src/components/Settings.jsx` | ✅ Committed | Toast matched to main, Privacy disabled |
-| `src/index.css` | ✅ Committed | toastSlideUp keyframe added |
-| `src/tests/notifications.test.js` | ✅ Committed | Removed Capacitor mocks |
-| `src/tests/PieChart.test.jsx` | ✅ Committed | showLabels=false for center-text test |
-| `src/tests/AnalyticsView.test.jsx` | ✅ Committed | getAllByText for 94% |
-| `src/tests/Settings.test.jsx` | ✅ Committed | Removed Privacy card test |
+| `src/notifications.js` | ✅ Committed | Complete rewrite — @capacitor/local-notifications, 7 exports |
+| `src/components/PieChart.jsx` | ✅ Committed | LabelPill sub-component, dynamic sizing, edge clamping |
+| `src/components/Settings.jsx` | ✅ Committed | Notification section enabled + a11y label fixes |
+| `src/components/ReminderManager.jsx` | ✅ Committed | registerServiceWorker removed, native scheduling |
+| `src/App.jsx` | ✅ Committed | Permission request on native startup |
+| `src/components/TransactionHistory.jsx` | ✅ Committed | defaultProps → ES6 default params |
+| `src/tests/notifications.test.js` | ✅ Committed | Full rewrite, 33 tests |
 
 ---
 
 # 📦 ALL COMMITS THIS SESSION
 
 ```
+[new] feat: native notification rewrite, PieChart label fix, a11y fixes
 7521c5f feat: notification refactor, category modal UX, PieChart fix, toast fix, settings cleanup
 4c6f104 feat: add success toasts for transaction add/edit/delete/batch-delete
-64d5f10 docs: update SESSION_STATE.md with toast implementations
 ```
-
-Working tree: **CLEAN** — committed and pushed to `origin/master`.
 
 ---
 
 # 🐛 BUGS / ISSUES
 
-- None known. All 955 tests pass across 27 suites.
+- None known. All 964 tests pass across 28 suites.
 
 ---
 
 # 🛡️ SAFETY CHECK (CRITICAL)
 
 - CORE_RULES.md: Single source of truth ✅ | Safe data layer ✅ | Failure isolation ✅ | Update consistency ✅
-- SAFE_CODE_RULES.md: Read before edit ✅ | Minimal fix only ✅ | Follow existing patterns ✅
 - CODE_FLOW.md: Read → understand → identify → minimal fix ✅
 - Financial logic intact? YES
 - Any risk introduced? NO — all changes are UI or isolated utility. No financial logic touched.
@@ -101,8 +88,8 @@ Working tree: **CLEAN** — committed and pushed to `origin/master`.
 # 🧪 TEST STATUS
 
 - **Test files:** 27 passed, 1 skipped (28 total)
-- **Tests:** 955 passed, 1 skipped (956 total)
-- **Duration:** ~10s
+- **Tests:** 964 passed, 1 skipped (965 total)
+- **Duration:** ~12s
 - **Failing:** 0
 - **Critical failures:** 0
 
@@ -111,8 +98,8 @@ Working tree: **CLEAN** — committed and pushed to `origin/master`.
 # 📦 GIT INFO
 
 - Branch: master
-- HEAD: `7521c5f` — feat: notification refactor, category modal UX, PieChart fix, toast fix, settings cleanup
-- Working tree: **CLEAN** — all changes committed and pushed to `origin/master`
+- Working tree: **PENDING COMMIT** — 9 files modified
+- Next action: commit and push changes
 
 ---
 

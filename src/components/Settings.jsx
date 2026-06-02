@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { 
-  ArrowLeft, RefreshCw, Upload,
+  ArrowLeft, Bell, RefreshCw, Upload,
   Info, Shield, CheckCircle, XCircle, FileText
 } from 'lucide-react';
 import { generatePDFReport } from '../lib/pdf';
@@ -18,6 +18,11 @@ import {
   flushEvents,
 } from '../lib/analytics';
 import { isSupabaseConfigured } from '../lib/supabase';
+import {
+  isNotificationSupported,
+  getNotificationPermission,
+  requestNotificationPermission,
+} from '../notifications';
 
 export default function Settings({
   onExportDatabase,
@@ -125,26 +130,38 @@ export default function Settings({
   };
 
   // Reset Data State
-  // [REMINDERS] Notification permission state — kept for future implementation
-  // const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
+  // Notification permission state — native Android via @capacitor/local-notifications
+  const [notificationPermission, setNotificationPermission] = useState('default');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    return localStorage.getItem('pocket_khata_notifications_enabled') === 'true';
+  });
+  const notifSupported = isNotificationSupported();
 
-  // [REMINDERS] Request notification permission
-  // const handleRequestNotificationPermission = async () => {
-  //   const result = await requestNotificationPermission();
-  //   setNotificationPermission(result);
-  // };
+  useEffect(() => {
+    if (notifSupported) {
+      getNotificationPermission().then(setNotificationPermission).catch(() => {});
+    }
+  }, [notifSupported]);
 
-  // [REMINDERS] Schedule a test reminder notification
-  // const handleScheduleReminder = async () => {
-  //   try {
-  //     const { scheduleNotification } = await import('../notifications');
-  //     await scheduleNotification('Test Reminder', 'This is a test notification from Pocket Khata', new Date(Date.now() + 5000));
-  //     alert('Test notification scheduled for 5 seconds from now.');
-  //   } catch (e) {
-  //     console.error('Failed to schedule test notification:', e);
-  //     alert('Failed to schedule test notification.');
-  //   }
-  // };
+  const handleToggleNotifications = async () => {
+    try {
+      if (notificationPermission !== 'granted') {
+        const result = await requestNotificationPermission();
+        setNotificationPermission(result);
+        if (result !== 'granted') return;
+      }
+      const newVal = !notificationsEnabled;
+      setNotificationsEnabled(newVal);
+      localStorage.setItem('pocket_khata_notifications_enabled', String(newVal));
+      if (newVal) {
+        setToast({ type: 'success', message: 'Notifications enabled for bill reminders' });
+      } else {
+        setToast({ type: 'success', message: 'Notifications disabled' });
+      }
+    } catch {
+      setToast({ type: 'error', message: 'Failed to update notification settings' });
+    }
+  };
 
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -216,8 +233,9 @@ export default function Settings({
 
             {/* Period Selector */}
             <div style={styles.formGroup}>
-              <label style={styles.formLabel}>{t('reports.selectPeriod', lang)}</label>
+              <label htmlFor="report-period" style={styles.formLabel}>{t('reports.selectPeriod', lang)}</label>
               <select
+                id="report-period"
                 className="neo-pressed-sm"
                 style={styles.formSelect}
                 value={reportPeriod}
@@ -232,25 +250,25 @@ export default function Settings({
             </div>
 
             {/* Section Toggles */}
-            <label style={styles.formLabel}>{t('reports.sectionSelect', lang)}</label>
-            <div style={styles.sectionToggles}>
+            <span id="section-toggles-label" style={styles.formLabel}>{t('reports.sectionSelect', lang)}</span>
+            <div style={styles.sectionToggles} role="group" aria-labelledby="section-toggles-label">
               <label style={styles.checkboxLabel}>
-                <input type="checkbox" checked={reportSections.summary}
+                <input type="checkbox" id="section-summary" checked={reportSections.summary}
                   onChange={(e) => setReportSections(s => ({ ...s, summary: e.target.checked }))} />
                 <span style={styles.checkboxText}>{t('reports.sectionSummary', lang)}</span>
               </label>
               <label style={styles.checkboxLabel}>
-                <input type="checkbox" checked={reportSections.accounts}
+                <input type="checkbox" id="section-accounts" checked={reportSections.accounts}
                   onChange={(e) => setReportSections(s => ({ ...s, accounts: e.target.checked }))} />
                 <span style={styles.checkboxText}>{t('reports.sectionAccounts', lang)}</span>
               </label>
               <label style={styles.checkboxLabel}>
-                <input type="checkbox" checked={reportSections.transactions}
+                <input type="checkbox" id="section-transactions" checked={reportSections.transactions}
                   onChange={(e) => setReportSections(s => ({ ...s, transactions: e.target.checked }))} />
                 <span style={styles.checkboxText}>{t('reports.sectionTransactions', lang)}</span>
               </label>
               <label style={styles.checkboxLabel}>
-                <input type="checkbox" checked={reportSections.analytics}
+                <input type="checkbox" id="section-analytics" checked={reportSections.analytics}
                   onChange={(e) => setReportSections(s => ({ ...s, analytics: e.target.checked }))} />
                 <span style={styles.checkboxText}>{t('reports.sectionAnalytics', lang)}</span>
               </label>
@@ -270,38 +288,51 @@ export default function Settings({
             </button>
           </div>
 
-          {/* [REMINDERS] SECTION: Notification Settings — kept for future implementation */}
-          {/* <div className="neo-raised" style={styles.card}>
-            <div style={styles.cardHeader}>
-              <Bell size={16} style={{ color: 'var(--accent-color)' }} />
-              <h3 style={styles.cardTitle}>{t('notif.title', lang)}</h3>
+          {/* SECTION: Notification Settings — native Android via @capacitor/local-notifications */}
+          {notifSupported && (
+            <div className="neo-raised" style={styles.card}>
+              <div style={styles.cardHeader}>
+                <Bell size={16} style={{ color: 'var(--accent-color)' }} />
+                <h3 style={styles.cardTitle}>{t('notif.title', lang)}</h3>
+              </div>
+              <p style={styles.cardDesc}>{t('notif.notificationDesc', lang)}</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('notif.permission', lang)}</span>
+                <span style={{
+                  fontSize: '10px', fontWeight: '700', padding: '2px 10px', borderRadius: '20px',
+                  backgroundColor: notificationPermission === 'granted'
+                    ? 'color-mix(in srgb, var(--color-income) 15%, transparent)'
+                    : notificationPermission === 'denied'
+                      ? 'color-mix(in srgb, var(--color-expense) 15%, transparent)'
+                      : 'color-mix(in srgb, var(--text-secondary) 15%, transparent)',
+                  color: notificationPermission === 'granted' ? 'var(--color-income)' : notificationPermission === 'denied' ? 'var(--color-expense)' : 'var(--text-secondary)',
+                }}>
+                  {notificationPermission === 'granted' ? t('notif.granted', lang) : notificationPermission === 'denied' ? t('notif.denied', lang) : '—'}
+                </span>
+              </div>
+              {/* Enable Notifications toggle */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span id="notif-toggle-label" style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  {t('notif.enableToggle', lang)}
+                </span>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="notif-toggle"
+                    aria-labelledby="notif-toggle-label"
+                    checked={notificationsEnabled}
+                    onChange={handleToggleNotifications}
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
+              {notificationPermission === 'denied' && (
+                <p style={{ fontSize: '10px', color: 'var(--color-expense)', fontWeight: '500' }}>
+                  {t('notif.permissionDeniedHint', lang)}
+                </p>
+              )}
             </div>
-            <p style={styles.cardDesc}>{t('notif.notificationDesc', lang)}</p>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('notif.permission', lang)}</span>
-              <span style={{
-                fontSize: '10px', fontWeight: '700', padding: '2px 10px', borderRadius: '20px',
-                backgroundColor: notificationPermission === 'granted'
-                  ? 'color-mix(in srgb, var(--color-income) 15%, transparent)'
-                  : 'color-mix(in srgb, var(--text-secondary) 15%, transparent)',
-                color: notificationPermission === 'granted' ? 'var(--color-income)' : 'var(--text-secondary)',
-              }}>
-                {notificationPermission === 'granted' ? t('notif.granted', lang) : notificationPermission === 'denied' ? t('notif.denied', lang) : '—'}
-              </span>
-            </div>
-            {notificationPermission !== 'granted' && (
-              <button className="neo-btn" style={{ width: '100%', height: '36px', fontSize: '11px', justifyContent: 'center' }}
-                onClick={handleRequestNotificationPermission}>
-                {t('notif.requestPermission', lang)}
-              </button>
-            )}
-            {notificationPermission === 'granted' && (
-              <button className="neo-btn" style={{ width: '100%', height: '36px', fontSize: '11px', justifyContent: 'center', marginTop: '8px' }}
-                onClick={handleScheduleReminder}>
-                {t('notif.testNotification', lang)}
-              </button>
-            )}
-          </div> */}
+          )}
 
           {/* SECTION 2: Data Portability */}
           <div className="neo-raised" style={styles.card}>

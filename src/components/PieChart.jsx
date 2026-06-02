@@ -142,32 +142,7 @@ export default function PieChart({
             }}
           />
           {showLabels && seg.percentage > labelThreshold && !seg.skipLabel && (
-            <g>
-              {/* White background pill for better readability over colored slices */}
-              <rect
-                x={seg.labelX - 14}
-                y={seg.labelY - 7}
-                width="28"
-                height="14"
-                rx="7"
-                fill="rgba(255,255,255,0.85)"
-                style={{ pointerEvents: 'none' }}
-              />
-              <text
-                x={seg.labelX}
-                y={seg.labelY}
-                fill="var(--text-primary)"
-                fontSize="9"
-                fontWeight="800"
-                textAnchor="middle"
-                dominantBaseline="central"
-                style={{
-                  pointerEvents: 'none',
-                }}
-              >
-                {seg.percentage}%
-              </text>
-            </g>
+            <LabelPill text={`${seg.percentage}%`} x={seg.labelX} y={seg.labelY} size={size} />
           )}
         </g>
       ))}
@@ -202,6 +177,53 @@ export default function PieChart({
         </text>
       )}
     </svg>
+  );
+}
+
+/**
+ * Small SVG label pill for pie segment percentage labels.
+ * Dynamically sizes the background pill to fit text and clamps position
+ * within SVG bounds to prevent edge clipping.
+ */
+LabelPill.propTypes = {
+  text: PropTypes.string.isRequired,
+  x: PropTypes.number.isRequired,
+  y: PropTypes.number.isRequired,
+  size: PropTypes.number.isRequired,
+};
+
+function LabelPill({ text, x, y, size }) {
+  // ~5.5px per char at font-size 9, +4px padding either side
+  const textWidth = text.length * 5.5 + 8;
+  const pillWidth = Math.max(28, textWidth);
+  const halfPill = pillWidth / 2;
+  // Clamp to stay within SVG viewBox
+  const clampedX = Math.max(halfPill, Math.min(size - halfPill, x));
+
+  return (
+    <g>
+      <rect
+        x={clampedX - halfPill}
+        y={y - 7}
+        width={pillWidth}
+        height="14"
+        rx="7"
+        fill="rgba(255,255,255,0.85)"
+        style={{ pointerEvents: 'none' }}
+      />
+      <text
+        x={clampedX}
+        y={y}
+        fill="var(--text-primary)"
+        fontSize="9"
+        fontWeight="800"
+        textAnchor="middle"
+        dominantBaseline="central"
+        style={{ pointerEvents: 'none' }}
+      >
+        {text}
+      </text>
+    </g>
   );
 }
 

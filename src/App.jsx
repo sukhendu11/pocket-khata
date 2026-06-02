@@ -23,7 +23,7 @@ const CalendarView = lazy(() => import('./components/CalendarView'));
 const Settings = lazy(() => import('./components/Settings'));
 const ReminderManager = lazy(() => import('./components/ReminderManager'));
 
-import { registerServiceWorker } from './notifications';
+import { requestNotificationPermission, getNotificationPermission } from './notifications';
 const AccountManager = lazy(() => import('./components/AccountManager'));
 const CategoryManager = lazy(() => import('./components/CategoryManager'));
 const BudgetManager = lazy(() => import('./components/BudgetManager'));
@@ -202,7 +202,14 @@ export default function App() {
     const loadedSavingsGoals = db.getSavingsGoals();
     const loadedReminders = db.getReminders();
 
-    registerServiceWorker();
+    // Request notification permissions on Android (runs silently on first load)
+    if (Capacitor.isNativePlatform()) {
+      getNotificationPermission().then((perm) => {
+        if (perm === 'default') {
+          requestNotificationPermission();
+        }
+      }).catch(() => {});
+    }
     setTheme(initialTheme);
     setAccounts(loadedAccounts);
     setCategories(loadedCategories);

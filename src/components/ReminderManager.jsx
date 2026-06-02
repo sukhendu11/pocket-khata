@@ -11,7 +11,8 @@ import {
   getNotificationPermission,
   requestNotificationPermission,
   isNotificationSupported,
-  registerServiceWorker,
+  scheduleReminderNotification,
+  cancelAllNotifications,
 } from '../notifications';
 
 export default function ReminderManager({
@@ -43,7 +44,7 @@ export default function ReminderManager({
   const [categoryId, setCategoryId] = useState('');
   const [formError, setFormError] = useState('');
 
-  // Notification state — clean and simple
+  // Notification state — uses @capacitor/local-notifications on Android
   const [permission, setPermission] = useState('default');
   const supported = isNotificationSupported();
   const showNotifSection = supported && permission !== 'unsupported';
@@ -59,8 +60,6 @@ export default function ReminderManager({
 
   useEffect(() => {
     if (supported) {
-      registerServiceWorker();
-      // Async permission check (Capacitor native or Web API)
       getNotificationPermission().then(setPermission).catch(() => {});
     }
   }, [supported]);
@@ -75,6 +74,16 @@ export default function ReminderManager({
       const newVal = !notificationsEnabled;
       setNotificationsEnabled(newVal);
       localStorage.setItem('pocket_khata_notifications_enabled', String(newVal));
+      if (newVal && safeReminders.length > 0) {
+        // Schedule notifications for all unpaid reminders
+        for (const rem of safeReminders) {
+          if (rem.status === 'unpaid') {
+            await scheduleReminderNotification(rem);
+          }
+        }
+      } else {
+        await cancelAllNotifications();
+      }
     } catch {
       // Silently fail
     }
@@ -254,10 +263,12 @@ export default function ReminderManager({
               <span className="toggle-slider" />
             </label>
           </label>
-          {/* Subtle status indicator */}
+          {/* Permission denied hint */}
           {permission === 'denied' && notificationsEnabled && (
             <div style={styles.notifDeniedHint}>
-              <span style={styles.notifDeniedText}>{t('notif.permissionDenied', lang)}</span>
+              <span style={styles.notifDeniedText}>
+                {t('notif.permissionDenied', lang)} — {t('notif.permissionDeniedHint', lang)}
+              </span>
             </div>
           )}
         </div>
