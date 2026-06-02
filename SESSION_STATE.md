@@ -7,51 +7,50 @@
 
 # 📍 CURRENT STATE (MOST IMPORTANT)
 
-- **Last completed task:** Session finalized — all work committed and pushed to remote
-- **Current active task:** None — session complete
-- **Immediate next step:** Await new feature request in next session
+- **Last completed task:** Fixed 6 stability/UI issues (transaction sorting, pie chart 100% bug, category quick-add, calendar reminder editing, settings title)
+- **Current active task:** None — awaiting user direction
+- **Immediate next step:** Await new feature request
 
-- **Active module:** N/A — session finalized
+- **Active module:** Multiple — Dashboard, CalendarView, PieChart, TransactionForm, Settings
 - **Current user flow:** N/A
-- **Risk zone:** LOW — 938 tests passing, git clean, remote in sync
+- **Risk zone:** LOW — 938 tests passing, git clean
 
 ---
 
 # 🧩 WORK COMPLETED THIS SESSION
 
-1. **Removed in-app hydration splash screen** — No `isHydrated` gate; app opens directly to Dashboard after Android system splash.
+1. **Transaction sorting (all lists)** — Dashboard recent transactions + CalendarView selected-date transactions now have `createdAt` secondary sort (newest first within same date). TransactionHistory was already fixed in a prior session.
 
-2. **Fixed Settings version display** — `Settings.jsx` now shows `v{db.getAppVersion()}` dynamically.
+2. **PieChart 100% single-segment fix** — Split 360° SVG arcs into two 180° half-circles to prevent invisible chart when a single category = 100%. Added `skipLabel` flag on second half to prevent duplicate labels.
 
-3. **Version unification** — `version.properties` as single source of truth.
+3. **Quick-add category/subcategory in TransactionForm** — Added "+ New Category" inline form with name input + save, and "+ Add Subcategory" button. Both wired via `onAddCategory`/`onUpdateCategory` from App.jsx.
 
-4. **Build pipeline** — `build-apk.bat` rewritten with tiered modes (`--sync`, `--full`, `--clean`). Created `sync-capacitor.bat` for fast web-only sync (5s vs 3min).
+4. **Calendar reminder editing** — Added `onClick={() => onNavigate('reminders')}` to reminder cards in CalendarView day details panel.
 
-5. **Transaction sorting fix** — Secondary sort by `createdAt` descending within date groups. Newest transactions appear at top of each date group. 3 new tests added.
+5. **Settings About card title** — Changed hardcoded `"Pocket Khata Vault v2.4.0"` to `"Pocket Khata"` in i18n. Dynamic version display preserved.
 
-6. **Test mock fix** — Added `getAppVersion` to `db` mock in `App.test.jsx`.
-
-7. **Release APK build** — Built signed release APK v2.4.1 (versionCode 7), 3.34 MB, ProGuard-optimized.
+6. **Install compatibility verified** — Signing config, AndroidManifest (exported activity, POST_NOTIFICATIONS), and build.gradle confirmed correct.
 
 ---
 
 # ⚙️ CODE STATUS
 
-- App.jsx: MODIFIED — removed hydration splash gate; added version badge in header
-- TransactionHistory.jsx: MODIFIED — secondary sort by createdAt within date groups
-- Settings.jsx: MODIFIED — dynamic version display
-- scripts/build-apk.bat: MODIFIED — tiered build modes (+ --release flag)
-- scripts/sync-capacitor.bat: NEW — fast web-only sync
-- src/tests/App.test.jsx: MODIFIED — added getAppVersion mock
-- src/tests/TransactionHistory.test.jsx: MODIFIED — added 3 sorting tests
-- version.properties: versionCode=7, versionName=2.4.1 (incremented for release build)
+- App.jsx: MODIFIED — added onAddCategory/onUpdateCategory/onNavigate props for TransactionForm
+- Dashboard.jsx: MODIFIED — added createdAt secondary sort to recentTransactions
+- CalendarView.jsx: MODIFIED — added createdAt sort + reminder edit navigation
+- PieChart.jsx: MODIFIED — split 360° arcs into two 180° half-circles for 100% segments
+- TransactionForm.jsx: MODIFIED — added quick-add category/subcategory inline buttons
+- i18n.js: MODIFIED — fixed Settings About card title
+- src/tests/PieChart.test.jsx: MODIFIED — updated expectations for 100% segment (2 paths)
 - All other modules: UNCHANGED
 
 ---
 
-# 📦 ALL COMMITS THIS SESSION (9 total)
+# 📦 ALL COMMITS THIS SESSION (10 total)
 
 ```
+a0976d3 fix: address 6 stability and UI issues across the app
+373a7f0 docs: finalize SESSION_STATE.md with complete session summary
 b79e0f6 feat: add --release mode to build-apk.bat
 1db4d8f docs: update SESSION_STATE.md to reflect release APK build
 8c98e34 chore: bump versionCode to 6 for release build
@@ -63,19 +62,20 @@ cd124ec fix: remove splash screen, fix version display, integrate calendar remin
 a92e628 test: add edge case tests for notifications.js
 ```
 
-**Key files changed:**
-- `src/App.jsx` — splash removal + version badge
-- `src/components/TransactionHistory.jsx` — createdAt secondary sort
-- `src/components/Settings.jsx` — dynamic version display
-- `scripts/build-apk.bat` — tiered build modes + --release
-- `scripts/sync-capacitor.bat` — NEW fast sync script
-- `version.properties` — versionCode=7, versionName=2.4.1
+**Key files changed this session:**
+- `src/App.jsx` — new TransactionForm props
+- `src/components/Dashboard.jsx` — createdAt sort
+- `src/components/CalendarView.jsx` — sort + reminder edit
+- `src/components/PieChart.jsx` — 360° arc fix
+- `src/components/TransactionForm.jsx` — quick-add category/subcategory
+- `src/i18n.js` — settings title fix
+- `src/tests/PieChart.test.jsx` — test expectations updated
 
 ---
 
 # 🐛 BUGS / ISSUES
 
-- None known. 938 tests pass (28 suites), git clean, remote in sync, signed release APK ready.
+- None known. 938 tests pass (28 suites), git clean.
 
 ---
 
@@ -83,6 +83,7 @@ a92e628 test: add edge case tests for notifications.js
 
 - CORE_RULES.md: Single source of truth ✅ | Safe data layer ✅ | Failure isolation ✅ | Update consistency ✅
 - SAFE_CODE_RULES.md: Read before edit ✅ | Minimal fix only ✅ | No refactoring ✅
+- CODE_FLOW.md: Read → understand → identify → minimal fix ✅
 - Financial logic intact? YES
 - Any risk introduced? NO
 
@@ -94,15 +95,15 @@ a92e628 test: add edge case tests for notifications.js
 - Passing: 938
 - Failing: 0
 - Skipped: 2
-- Duration: 23.22s
+- Duration: 12.26s
 
 ---
 
 # 📦 GIT INFO
 
-- Branch: master (up to date with origin/master — all pushed)
-- HEAD: `b79e0f6` — feat: add --release mode to build-apk.bat
-- Working tree: CLEAN — all changes committed and pushed
+- Branch: master
+- HEAD: `a0976d3` — fix: address 6 stability and UI issues across the app
+- Working tree: CLEAN — all changes committed (not yet pushed)
 
 ---
 
@@ -110,5 +111,5 @@ a92e628 test: add edge case tests for notifications.js
 
 > This is the ONLY instruction for continuation:
 
-- **Session complete — no unfinished work.** Git clean, remote in sync, 938/940 tests passing, signed release APK (v2.4.1, versionCode 7) at `android/app/build/outputs/apk/release/app-release.apk`.
-- Next session can resume from this state with any new feature request.
+- **Session complete — all 6 issues fixed and committed.** Git clean (not yet pushed). 938/940 tests passing.
+- Next session can resume from this state with any new feature request, or push the commit to remote.
