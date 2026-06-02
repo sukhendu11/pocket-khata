@@ -137,7 +137,37 @@ vi.mock('../components/TransactionHistory', () => ({
 vi.mock('../components/AnalyticsView', () => makeLazyMock('AnalyticsView'));
 vi.mock('../components/CalendarView', () => makeLazyMock('CalendarView'));
 vi.mock('../components/Settings', () => makeLazyMock('Settings'));
-vi.mock('../components/AccountManager', () => makeLazyMock('AccountManager'));
+vi.mock('../components/AccountManager', () => ({
+  default: (props) => (
+    <div data-testid="account-manager-screen">
+      <span data-testid="account-manager-lang">{props.lang}</span>
+      <span data-testid="account-manager-accounts">{JSON.stringify(props.accounts || [])}</span>
+      <button data-testid="account-manager-back" onClick={() => props.onNavigate('dashboard')}>Back</button>
+      {props.onCreateBalanceAdjustment && (
+        <>
+          <button
+            data-testid="account-manager-balance-increase"
+            onClick={() => props.onCreateBalanceAdjustment('acc_1', 25000, '2026-06-01')}
+          >
+            Increase Balance
+          </button>
+          <button
+            data-testid="account-manager-balance-decrease"
+            onClick={() => props.onCreateBalanceAdjustment('acc_2', 50000, '2026-06-02')}
+          >
+            Decrease Balance
+          </button>
+          <button
+            data-testid="account-manager-balance-invalid"
+            onClick={() => props.onCreateBalanceAdjustment('nonexistent', 99999, '2026-07-01')}
+          >
+            Adjust Invalid
+          </button>
+        </>
+      )}
+    </div>
+  ),
+}));
 vi.mock('../components/CategoryManager', () => makeLazyMock('CategoryManager'));
 vi.mock('../components/BudgetManager', () => makeLazyMock('BudgetManager'));
 vi.mock('../components/SavingsTracker', () => makeLazyMock('SavingsTracker'));
@@ -194,6 +224,7 @@ vi.mock('../i18n', () => ({
       'toast.transactionAdded': 'Transaction added',
       'toast.transactionDeleted': 'Transaction deleted',
       'toast.batchDeleted': '{count} transaction(s) deleted',
+      'toast.balanceAdjusted': 'Balance adjusted',
     };
     return map[key] || key;
   },
@@ -592,6 +623,133 @@ describe('App — Transaction CRUD', () => {
     const { getByTestId } = render(<App />);
     clickAddButton();
     expect(getByTestId('tf-delete')).toBeTruthy();
+  });
+});
+
+// ==============================================================================
+// 7b. Balance Adjustment
+// ==============================================================================
+
+describe('App — Balance Adjustment (handleBalanceAdjustment)', () => {
+  beforeEach(() => {
+    mockDb.addTransaction.mockReset();
+    mockDb.getAccounts.mockReturnValue([...mockAccounts]);
+    mockDb.getTransactions.mockReturnValue([...mockTransactions]);
+  });
+
+  it('creates an income transaction when balance increases', async () => {
+    render(<App />);
+
+    // Navigate to Accounts screen
+    fireEvent.click(screen.getByTestId('dash-nav-accounts'));
+    await waitFor(() => expect(screen.getByTestId('account-manager-screen')).toBeTruthy());
+
+    // Click the Increase Balance button (triggers onCreateBalanceAdjustment('acc_1', 25000, '2026-06-01'))
+    // Cash account has balance 15000, so diff = 10000 -> income
+    fireEvent.click(screen.getByTestId('account-manager-balance-increase'));
+
+    await waitFor(() => {
+      expect(mockDb.addTransaction).toHaveBeenCalledOnce();
+    });
+
+    const txArg = mockDb.addTransaction.mock.calls[0][0];
+    expect(txArg.type).toBe('income');
+    expect(txArg.amount).toBe(10000);
+    expect(txArg.accountId).toBe('acc_1');
+    expect(txArg.date).toBe('2026-06-01');
+    expect(txArg.notes).toContain('Balance adjustment');
+    expect(txArg.notes).toMatch(/15,?000/);
+    expect(txArg.notes).toMatch(/25,?000/);
+  });
+
+  it('creates an expense transaction when balance decreases', async () => {
+    render(<App />);
+
+    // Navigate to Accounts screen
+    fireEvent.click(screen.getByTestId('dash-nav-accounts'));
+    await waitFor(() => expect(screen.getByTestId('account-manager-screen')).toBeTruthy());
+
+    // Click the Decrease Balance button (acc_2: 85000 -> 50000, diff = -35000 -> expense)
+    fireEvent.click(screen.getByTestId('account-manager-balance-decrease'));
+
+    await waitFor(() => {
+      expect(mockDb.addTransaction).toHaveBeenCalledOnce();
+    });
+
+    const txArg = mockDb.addTransaction.mock.calls[0][0];
+    expect(txArg.type).toBe('expense');
+    expect(txArg.amount).toBe(35000);
+    expect(txArg.accountId).toBe('acc_2');
+    expect(txArg.date).toBe('2026-06-02');
+    expect(txArg.notes).toContain('Balance reduction');
+    expect(txArg.notes).toMatch(/85,?000/);
+    expect(txArg.notes).toMatch(/50,?000/);
+  });
+
+  it('shows toast after successful balance adjustment', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByTestId('dash-nav-accounts'));
+    await waitFor(() => expect(screen.getByTestId('account-manager-screen')).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId('account-manager-balance-increase'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Balance adjusted')).toBeTruthy();
+    });
+  });
+
+  it('tracks balance_adjustment action with correct params', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByTestId('dash-nav-accounts'));
+    await waitFor(() => expect(screen.getByTestId('account-manager-screen')).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId('account-manager-balance-increase'));
+
+    await waitFor(() => {
+      expect(mockTrackAction).toHaveBeenCalledWith('balance_adjustment', {
+        accountId: 'acc_1',
+        oldBalance: 15000,
+        newBalance: 25000,
+        diff: 10000,
+      });
+    });
+  });
+
+  it('catches errors and calls trackError', async () => {
+    const testError = new Error('Adjustment failed');
+    mockDb.addTransaction.mockImplementation(() => { throw testError; });
+
+    render(<App />);
+
+    fireEvent.click(screen.getByTestId('dash-nav-accounts'));
+    await waitFor(() => expect(screen.getByTestId('account-manager-screen')).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId('account-manager-balance-increase'));
+
+    await waitFor(() => {
+      expect(mockTrackError).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Adjustment failed' }),
+        expect.objectContaining({ handler: 'handleBalanceAdjustment', accountId: 'acc_1' }),
+      );
+    });
+  });
+
+  it('does nothing when account is not found', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByTestId('dash-nav-accounts'));
+    await waitFor(() => expect(screen.getByTestId('account-manager-screen')).toBeTruthy());
+
+    // Click button that calls with a non-existent account ID
+    fireEvent.click(screen.getByTestId('account-manager-balance-invalid'));
+
+    // Small delay to let the handler run
+    await new Promise(r => setTimeout(r, 50));
+
+    // Handler should guard and exit early — no transaction created
+    expect(mockDb.addTransaction).not.toHaveBeenCalled();
   });
 });
 

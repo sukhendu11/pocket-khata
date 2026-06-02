@@ -7,42 +7,43 @@
 
 # 📍 CURRENT STATE (MOST IMPORTANT)
 
-- **Last completed task:** PieChart label fix + native notification system rewrite + a11y fixes + defaultProps cleanup — ALL COMMITTED & PUSHED
-- **Current active task:** None — all work committed and pushed to remote
-- **Immediate next step:** Await user request
+- **Last completed task:** Balance adjustment tests fixed (expense + not-found paths) — tests properly cover all handleBalanceAdjustment code paths
+- **Current active task:** None — awaiting commit
+- **Immediate next step:** Commit and push all session changes
 
-- **Active module:** None (post-commit)
-- **Current user flow:** N/A
-- **Risk zone:** LOW — all changes committed and tested
+- **Active module:** AccountManager balance edit → transaction integration
+- **Current user flow:** Balance adjustment via AccountManager drawer
+- **Risk zone:** LOW — all changes tested, financial logic validated
 
 ---
 
-# 🧩 WORK COMPLETED THIS SESSION (ALL COMMITTED)
+# 🧩 WORK COMPLETED THIS SESSION
 
-## Commit `pending` — feat: native notification rewrite, PieChart label fix, a11y fixes
+## Part 1: PieChart Label Z-Order Fix
+- **`src/components/PieChart.jsx`** — Restructured SVG render order: segments rendered first, donut hole circle + center text second, labels rendered LAST in a separate pass. Labels no longer hidden behind the inner circle — fully visible on initial render.
 
-### 1. PieChart Label Positioning Fix
-- **`src/components/PieChart.jsx`** — Extracted `LabelPill` sub-component. Dynamically sizes pill width based on text content (min 28px). Clamps X position within SVG viewBox bounds to prevent edge clipping. Labels render fully visible on first render — no interaction dependency.
+## Part 2: AccountManager Stale State Fix
+- **`src/components/AccountManager.jsx`** — Added `useEffect` to sync `selectedAccount` with the `accounts` prop after any update. The edit drawer now shows the fresh balance immediately after save — no stale values.
 
-### 2. Native Notification System — @capacitor/local-notifications
-- **`src/notifications.js`** — **Complete rewrite.** Old Web Notification API removed. Uses `@capacitor/local-notifications` plugin:
-  - `isNotificationSupported()` — checks Capacitor native platform
-  - `getNotificationPermission()` / `requestPermission()` — uses `LocalNotifications.checkPermissions()` / `.requestPermissions()` which triggers Android 13+ native `POST_NOTIFICATIONS` dialog
-  - `scheduleReminderNotification()` / `cancelReminderNotification()` — schedule/cancel by ID using `LocalNotifications.schedule()` / `.cancel()`
-  - `cancelAllNotifications()` — fetches pending IDs via `getPending()` then cancels them
-  - `scheduleAllReminders()` — bulk schedule for all unpaid reminders
-  - Android 12 and below: permission auto-granted, no runtime dialog
-- **`src/components/Settings.jsx`** — Uncommented notification section with Enable Notifications toggle + permission status badge + denied hint text
-- **`src/components/ReminderManager.jsx`** — Removed `registerServiceWorker()`, added `scheduleReminderNotification`/`cancelAllNotifications` to notification toggle flow. Enabling schedules all unpaid reminders; disabling cancels all.
-- **`src/App.jsx`** — Replaced `registerServiceWorker` import with permission request logic. Silently requests permission on native startup if status is `default`.
-- **`src/tests/notifications.test.js`** — **Complete rewrite.** 33 tests mocking `@capacitor/core` and `@capacitor/local-notifications`. Covers all 7 exported functions.
+## Part 3: Balance Edit → Transaction Integration
+- **`src/components/AccountManager.jsx`** — Added date picker input in edit balance drawer + `onCreateBalanceAdjustment` prop callback
+- **`src/App.jsx`** — New `handleBalanceAdjustment` handler:
+  - Calculates diff between old and new balance
+  - Creates an income transaction (balance increased) or expense transaction (balance decreased) via `db.addTransaction()`
+  - Uses selected date, formatted notes, Bonus/Other category
+  - Shows success toast, tracks analytics
+  - Error handling via `trackError`
+- **`src/i18n.js`** — Added keys: `accounts.adjustmentDate` (EN/BN), `toast.balanceAdjusted` (EN/BN)
 
-### 3. A11y Fixes — Settings form labels
-- **`src/components/Settings.jsx`** — Added `id`/`htmlFor` to report period `<select>`, explicit `id` attributes to 4 section checkboxes with `role="group" aria-labelledby`, and `id`+`aria-labelledby` to notification toggle input.
-
-### 4. defaultProps Cleanup
-- **`src/components/TransactionHistory.jsx`** (continued from earlier) — Converted `defaultProps` block to ES6 default parameters, eliminating React 19+ deprecation warning.
-- **Verified:** No other components use React `defaultProps` — codebase is fully clean.
+## Part 4: Balance Adjustment Tests
+- **`src/tests/App.test.jsx`** — 6 tests added for `handleBalanceAdjustment`:
+  - Income path (diff > 0, `type: 'income'`, amount validation)
+  - Expense path (diff < 0, `type: 'expense'`, "Balance reduction" wording)
+  - Toast display after adjustment
+  - Analytics tracking (`trackAction` with correct params)
+  - Error handling (`addTransaction` throws → `trackError`)
+  - Account not found guard (early return, no transaction created)
+  - Mock updated with 3 buttons (increase, decrease, invalid account)
 
 ---
 
@@ -50,46 +51,34 @@
 
 | File | Status | Change |
 |---|---|---|
-| `src/notifications.js` | ✅ Committed | Complete rewrite — @capacitor/local-notifications, 7 exports |
-| `src/components/PieChart.jsx` | ✅ Committed | LabelPill sub-component, dynamic sizing, edge clamping |
-| `src/components/Settings.jsx` | ✅ Committed | Notification section enabled + a11y label fixes |
-| `src/components/ReminderManager.jsx` | ✅ Committed | registerServiceWorker removed, native scheduling |
-| `src/App.jsx` | ✅ Committed | Permission request on native startup |
-| `src/components/TransactionHistory.jsx` | ✅ Committed | defaultProps → ES6 default params |
-| `src/tests/notifications.test.js` | ✅ Committed | Full rewrite, 33 tests |
-
----
-
-# 📦 ALL COMMITS THIS SESSION
-
-```
-[new] feat: native notification rewrite, PieChart label fix, a11y fixes
-7521c5f feat: notification refactor, category modal UX, PieChart fix, toast fix, settings cleanup
-4c6f104 feat: add success toasts for transaction add/edit/delete/batch-delete
-```
+| `src/components/PieChart.jsx` | ✅ Modified | Labels render LAST in SVG (above inner circle) |
+| `src/components/AccountManager.jsx` | ✅ Modified | Stale state sync + date picker + balance adjustment prop |
+| `src/App.jsx` | ✅ Modified | New handleBalanceAdjustment handler (income/expense tx creation) |
+| `src/i18n.js` | ✅ Modified | Added 2 new keys (adjustmentDate, balanceAdjusted) |
+| `src/tests/App.test.jsx` | ✅ Modified | 6 new balance adjustment tests, 3 mock buttons |
+| `FIX_LOG.md` | ✅ Modified | Fix validation rules added |
 
 ---
 
 # 🐛 BUGS / ISSUES
 
-- None known. All 964 tests pass across 28 suites.
+- None known. All 970 tests pass.
 
 ---
 
 # 🛡️ SAFETY CHECK (CRITICAL)
 
 - CORE_RULES.md: Single source of truth ✅ | Safe data layer ✅ | Failure isolation ✅ | Update consistency ✅
-- CODE_FLOW.md: Read → understand → identify → minimal fix ✅
-- Financial logic intact? YES
-- Any risk introduced? NO — all changes are UI or isolated utility. No financial logic touched.
+- Financial logic intact? YES — balance changes now create corresponding transactions, single source of truth
+- Any risk introduced? NO — all changes are additive or re-render fixes. Financial logic validated by tests.
 
 ---
 
 # 🧪 TEST STATUS
 
 - **Test files:** 27 passed, 1 skipped (28 total)
-- **Tests:** 964 passed, 1 skipped (965 total)
-- **Duration:** ~12s
+- **Tests:** 970 passed, 1 skipped (971 total)
+- **Duration:** ~16s
 - **Failing:** 0
 - **Critical failures:** 0
 
@@ -98,7 +87,7 @@
 # 📦 GIT INFO
 
 - Branch: master
-- Working tree: **PENDING COMMIT** — 9 files modified
+- Working tree: **PENDING COMMIT** — 6 files modified
 - Next action: commit and push changes
 
 ---

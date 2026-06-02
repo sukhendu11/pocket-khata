@@ -1,20 +1,17 @@
 
-# 🐛 FIX LOG — Pocket Khata
+FIX VALIDATION RULE (CRITICAL)
 
-## STATUS FLOW
-PENDING → IN_PROGRESS → TECH_DONE → DONE (USER_CONFIRMED)
+- No fix is considered complete unless BOTH conditions are met:
+  1. Technical verification (code is updated and logic is applied correctly)
+  2. User confirmation (user explicitly approves the fix)
 
----
+- Agent MUST mark fixes as:
+  - TECH_DONE → code fixed but NOT user confirmed
+  - DONE → ONLY after user confirmation
 
-## RULES
-- Agent manages ACTIVE FIXES automatically
-- User only confirms final DONE state
-- TECH_DONE = code fixed but waiting for user confirmation
-- DONE = user confirmed working
+- Agent must NEVER assume a fix is completed without:
+  - verifying code change exists
+  - checking expected behavior in context
+  - awaiting user confirmation
 
----
-
-## ACTIVE FIXES
-- Managed dynamically by agent during session
-- No manual listing required here
-- Must always sync with real codebase state
+- SESSION_STATE.md and FIX_LOG.md must always reflect this distinction

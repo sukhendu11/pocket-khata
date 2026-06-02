@@ -335,6 +335,44 @@ export default function App() {
     }
   };
 
+  // Balance adjustment — creates a single transaction to represent the balance change.
+  // db.addTransaction() automatically adjusts the account balance internally,
+  // so we do NOT call db.updateAccount() separately (avoiding double-adjustment).
+  const handleBalanceAdjustment = (accountId, newBalance, date) => {
+    try {
+      const account = accounts.find(a => a.id === accountId);
+      if (!account) return;
+      const oldBalance = account.balance;
+      const diff = newBalance - oldBalance;
+      if (diff === 0) return;
+
+      // Find a suitable category for the adjustment
+      const incomeCategories = categories.filter(c => c.type === 'income');
+      const adjustmentCat = incomeCategories.find(c => c.name === 'Bonus' || c.name.includes('Bonus'))
+        || incomeCategories[0];
+
+      // Only create the transaction — db.addTransaction() auto-updates the balance
+      db.addTransaction({
+        type: diff > 0 ? 'income' : 'expense',
+        amount: Math.abs(diff),
+        date,
+        accountId,
+        categoryId: adjustmentCat?.id || '',
+        notes: diff > 0
+          ? `Balance adjustment: ৳${oldBalance.toLocaleString()} → ৳${newBalance.toLocaleString()}`
+          : `Balance reduction: ৳${oldBalance.toLocaleString()} → ৳${newBalance.toLocaleString()}`,
+      });
+
+      setAccounts(db.getAccounts());
+      setTransactions(db.getTransactions());
+      setToast({ key: 'toast.balanceAdjusted', count: 1 });
+      trackAction('balance_adjustment', { accountId, oldBalance, newBalance, diff });
+    } catch (e) {
+      trackError(e, { handler: 'handleBalanceAdjustment', accountId });
+      console.error('Failed to adjust balance:', e);
+    }
+  };
+
   const handleDeleteAccount = (id) => {
     try {
       db.deleteAccount(id);
@@ -693,6 +731,7 @@ export default function App() {
             onAddAccount={handleAddAccount}
             onUpdateAccount={handleUpdateAccount}
             onDeleteAccount={handleDeleteAccount}
+            onCreateBalanceAdjustment={handleBalanceAdjustment}
             onNavigate={handleNavigate}
             lang={lang}
           />

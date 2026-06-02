@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   ArrowLeft, Plus, Landmark, CreditCard, Wallet, 
-  Trash2, X, AlertCircle, Info, Pencil 
+  Trash2, X, AlertCircle, Info, Pencil, Calendar
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
@@ -14,6 +14,7 @@ export default function AccountManager({
   onAddAccount = () => {},
   onUpdateAccount = () => {},
   onDeleteAccount = () => {},
+  onCreateBalanceAdjustment = () => {},
   onNavigate = () => {},
   lang = 'en',
 }) {
@@ -30,6 +31,17 @@ export default function AccountManager({
   const [showEditBalance, setShowEditBalance] = useState(false);
   const [editBalanceValue, setEditBalanceValue] = useState('');
   const [editBalanceError, setEditBalanceError] = useState('');
+  const [editBalanceDate, setEditBalanceDate] = useState(() => new Date().toISOString().split('T')[0]);
+
+  // Sync selectedAccount when accounts prop changes (fixes stale state after balance edit)
+  useEffect(() => {
+    if (selectedAccount) {
+      const fresh = accounts.find(a => a.id === selectedAccount.id);
+      if (fresh && fresh.balance !== selectedAccount.balance) {
+        setSelectedAccount(fresh);
+      }
+    }
+  }, [accounts, selectedAccount?.id]);
 
   const colors = ['#4a90e2', '#3cd070', '#ff5a79', '#ff8a00', '#8e44ad', '#00c9db', '#ff7b54', '#718096'];
 
@@ -319,6 +331,16 @@ export default function AccountManager({
                 />
               </div>
 
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>{t('accounts.adjustmentDate', lang)}</label>
+                <input
+                  type="date"
+                  value={editBalanceDate}
+                  onChange={(e) => setEditBalanceDate(e.target.value)}
+                  className="neo-input"
+                />
+              </div>
+
               <button
                 className="neo-btn neo-btn-primary"
                 style={{ height: '42px', marginTop: '10px' }}
@@ -329,7 +351,7 @@ export default function AccountManager({
                     return;
                   }
                   setEditBalanceError('');
-                  onUpdateAccount({ ...selectedAccount, balance: newBalance });
+                  onCreateBalanceAdjustment(selectedAccount.id, newBalance, editBalanceDate);
                   setShowEditBalance(false);
                 }}
               >
@@ -440,6 +462,7 @@ AccountManager.propTypes = {
   onAddAccount: PropTypes.func,
   onUpdateAccount: PropTypes.func,
   onDeleteAccount: PropTypes.func,
+  onCreateBalanceAdjustment: PropTypes.func,
   onNavigate: PropTypes.func,
   lang: PropTypes.string,
 };

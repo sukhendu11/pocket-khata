@@ -138,6 +138,7 @@ const translations = {
   'accounts.editBalance': { en: 'Edit Balance', bn: 'ব্যালেন্স সম্পাদনা' },
   'accounts.saveBalance': { en: 'Save Balance', bn: 'ব্যালেন্স সেভ করুন' },
   'accounts.balancePlaceholder': { en: 'Enter new balance', bn: 'নতুন ব্যালেন্স লিখুন' },
+  'accounts.adjustmentDate': { en: 'Adjustment Date', bn: 'সমন্বয় তারিখ' },
   'accounts.deleteWarning': {
     en: 'Warning: This account has existing transactions in your ledger. Deleting the account will keep the ledger transactions but delete the account itself. Proceed?',
     bn: 'সতর্কতা: এই একাউন্টে বিদ্যমান লেনদেন আছে। একাউন্ট মুছলে লেনদেন থাকবে কিন্তু একাউন্ট মুছে যাবে। চালিয়ে যেতে চান?'
@@ -475,6 +476,7 @@ const translations = {
   'toast.transactionEdited': { en: 'Transaction updated', bn: 'লেনদেন আপডেট করা হয়েছে' },
   'toast.transactionDeleted': { en: 'Transaction deleted', bn: 'লেনদেন মুছে ফেলা হয়েছে' },
   'toast.batchDeleted': { en: '{count} transaction(s) deleted', bn: '{count} টি লেনদেন মুছে ফেলা হয়েছে' },
+  'toast.balanceAdjusted': { en: 'Balance adjusted', bn: 'ব্যালেন্স সমন্বয় করা হয়েছে' },
 
   // ===== PDF REPORT CONTENT =====
   'pdf.title': { en: 'Pocket Khata', bn: 'পকেট খাতা' },

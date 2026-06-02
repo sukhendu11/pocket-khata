@@ -141,16 +141,13 @@ export default function PieChart({
               cursor: onSliceClick ? 'pointer' : 'default',
             }}
           />
-          {showLabels && seg.percentage > labelThreshold && !seg.skipLabel && (
-            <LabelPill text={`${seg.percentage}%`} x={seg.labelX} y={seg.labelY} size={size} />
-          )}
         </g>
       ))}
 
-      {/* Inner white core for donut effect */}
+      {/* Inner white core for donut effect — rendered BEFORE labels so labels sit on top */}
       <circle cx={cx} cy={cy} r={innerRadius} fill="var(--bg-color)" />
 
-      {/* Center text */}
+      {/* Center text — rendered BEFORE labels but AFTER the donut hole */}
       {centerText && (
         <text
           x={cx}
@@ -176,6 +173,13 @@ export default function PieChart({
           {centerSubtext}
         </text>
       )}
+
+      {/* Percentage labels rendered LAST to stay on top of all chart elements */}
+      {segments.map((seg, idx) => (
+        showLabels && seg.percentage > labelThreshold && !seg.skipLabel && (
+          <LabelPill key={`label-${seg.id || idx}`} text={`${seg.percentage}%`} x={seg.labelX} y={seg.labelY} size={size} />
+        )
+      ))}
     </svg>
   );
 }
