@@ -66,7 +66,7 @@ const translations = {
   'txForm.freqYearly': { en: 'Yearly', bn: 'বার্ষিক' },
 
   // ===== TRANSACTION HISTORY =====
-  'txHistory.title': { en: 'Ledger Ledger', bn: 'লেজার খাতা' },
+  'txHistory.title': { en: 'Transaction History', bn: 'লেজার খাতা' },
   'txHistory.searchPlaceholder': { en: 'Search notes, amount, category, account...', bn: 'নোট, পরিমাণ, ক্যাটাগরি, একাউন্ট দিয়ে খুঁজুন...' },
   'txHistory.type': { en: 'TYPE', bn: 'ধরণ' },
   'txHistory.allTransactions': { en: 'All Transactions', bn: 'সকল লেনদেন' },
@@ -471,6 +471,10 @@ const translations = {
 
   // ===== TOAST NOTIFICATIONS =====
   'toast.recurringCreated': { en: '{count} recurring transaction(s) created automatically', bn: '{count} টি পুনরাবৃত্ত লেনদেন স্বয়ংক্রিয়ভাবে তৈরি হয়েছে' },
+  'toast.transactionAdded': { en: 'Transaction added', bn: 'লেনদেন যোগ করা হয়েছে' },
+  'toast.transactionEdited': { en: 'Transaction updated', bn: 'লেনদেন আপডেট করা হয়েছে' },
+  'toast.transactionDeleted': { en: 'Transaction deleted', bn: 'লেনদেন মুছে ফেলা হয়েছে' },
+  'toast.batchDeleted': { en: '{count} transaction(s) deleted', bn: '{count} টি লেনদেন মুছে ফেলা হয়েছে' },
 
   // ===== PDF REPORT CONTENT =====
   'pdf.title': { en: 'Pocket Khata', bn: 'পকেট খাতা' },

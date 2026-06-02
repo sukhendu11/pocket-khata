@@ -273,6 +273,7 @@ export default function App() {
       setAccounts(db.getAccounts());
       setShowTransactionForm(false);
       setEditingTransaction(null);
+      setToast({ key: isEdit ? 'toast.transactionEdited' : 'toast.transactionAdded' });
       trackAction(isEdit ? 'edit_transaction' : 'add_transaction', {
         type: tx.type,
         hasRecurring: !!tx.recurring && typeof tx.recurring === 'object',
@@ -292,6 +293,7 @@ export default function App() {
         setAccounts(db.getAccounts());
         setShowTransactionForm(false);
         setEditingTransaction(null);
+        setToast({ key: 'toast.transactionDeleted' });
         trackAction('delete_transaction', { type: txType });
       }
     } catch (e) {
@@ -530,6 +532,7 @@ export default function App() {
       ids.forEach(id => db.deleteTransaction(id));
       setTransactions(db.getTransactions());
       setAccounts(db.getAccounts());
+      setToast({ key: 'toast.batchDeleted', count: ids.length });
       trackAction('batch_delete_transactions', { count: ids.length });
     } catch (e) {
       trackError(e, { handler: 'handleBatchDelete', count: ids.length });

@@ -85,7 +85,7 @@ afterEach(() => { vi.unstubAllGlobals(); });
 describe('TransactionHistory — Rendering', () => {
   it('renders without crashing', () => {
     render(<TransactionHistory {...defaultProps} />);
-    expect(screen.getByText('Ledger Ledger')).toBeTruthy();
+    expect(screen.getByText('Transaction History')).toBeTruthy();
   });
 
   it('shows the back, select, and filter buttons', () => {
@@ -764,35 +764,35 @@ describe('TransactionHistory — Sorting', () => {
 describe('TransactionHistory — Edge Cases', () => {
   it('handles empty transactions', () => {
     render(<TransactionHistory {...defaultProps} transactions={[]} />);
-    expect(screen.getByText('Ledger Ledger')).toBeTruthy();
+    expect(screen.getByText('Transaction History')).toBeTruthy();
     expect(screen.getByText('No matching transactions found.')).toBeTruthy();
   });
 
   it('handles empty accounts gracefully', () => {
     render(<TransactionHistory {...defaultProps} accounts={[]} />);
-    expect(screen.getByText('Ledger Ledger')).toBeTruthy();
+    expect(screen.getByText('Transaction History')).toBeTruthy();
     expect(screen.getByText('Bus pass')).toBeTruthy();
   });
 
   it('handles empty categories gracefully', () => {
     render(<TransactionHistory {...defaultProps} categories={[]} />);
-    expect(screen.getByText('Ledger Ledger')).toBeTruthy();
+    expect(screen.getByText('Transaction History')).toBeTruthy();
     expect(screen.getByText('Bus pass')).toBeTruthy();
   });
 
   it('handles undefined transactions gracefully', () => {
     render(<TransactionHistory {...defaultProps} transactions={undefined} />);
-    expect(screen.getByText('Ledger Ledger')).toBeTruthy();
+    expect(screen.getByText('Transaction History')).toBeTruthy();
   });
 
   it('handles undefined accounts and categories gracefully', () => {
     render(<TransactionHistory {...defaultProps} accounts={undefined} categories={undefined} />);
-    expect(screen.getByText('Ledger Ledger')).toBeTruthy();
+    expect(screen.getByText('Transaction History')).toBeTruthy();
   });
 
   it('handles missing optional props gracefully', () => {
     render(<TransactionHistory transactions={mockTransactions} onNavigate={() => {}} />);
-    expect(screen.getByText('Ledger Ledger')).toBeTruthy();
+    expect(screen.getByText('Transaction History')).toBeTruthy();
   });
 
   it('handles all data empty', () => {

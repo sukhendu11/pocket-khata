@@ -118,7 +118,22 @@ function makeLazyMock(name) {
   };
 }
 
-vi.mock('../components/TransactionHistory', () => makeLazyMock('TransactionHistory'));
+vi.mock('../components/TransactionHistory', () => ({
+  default: (props) => (
+    <div data-testid="transaction-history-screen">
+      <span data-testid="transaction-history-lang">{props.lang}</span>
+      <span data-testid="transaction-history-accounts">{JSON.stringify(props.accounts || [])}</span>
+      <span data-testid="transaction-history-categories">{JSON.stringify(props.categories || [])}</span>
+      <button data-testid="transaction-history-back" onClick={() => props.onNavigate('dashboard')}>Back</button>
+      {props.onEditTransaction && (
+        <button data-testid="transaction-history-edit" onClick={() => props.onEditTransaction(mockTransactions[0])}>Edit</button>
+      )}
+      {props.onBatchDelete && (
+        <button data-testid="transaction-history-batch-delete" onClick={() => props.onBatchDelete(['tx_1', 'tx_2'])}>Batch Delete</button>
+      )}
+    </div>
+  ),
+}));
 vi.mock('../components/AnalyticsView', () => makeLazyMock('AnalyticsView'));
 vi.mock('../components/CalendarView', () => makeLazyMock('CalendarView'));
 vi.mock('../components/Settings', () => makeLazyMock('Settings'));
@@ -176,6 +191,9 @@ vi.mock('../i18n', () => ({
       'nav.categories': 'Categories',
       'calendar.title': 'Calendar',
       'recurringCreated': '{count} recurring transaction(s) created automatically',
+      'toast.transactionAdded': 'Transaction added',
+      'toast.transactionDeleted': 'Transaction deleted',
+      'toast.batchDeleted': '{count} transaction(s) deleted',
     };
     return map[key] || key;
   },
@@ -723,6 +741,82 @@ describe('App — Toast', () => {
     expect(screen.getByText(/recurring transaction/)).toBeTruthy();
     advanceTimers(5000);
     expect(screen.queryByText(/recurring transaction/)).toBeNull();
+  });
+
+  it('shows toast icon and translation after saving a transaction', async () => {
+    // Reset addTransaction mock in case a previous test set it to throw
+    mockDb.addTransaction.mockReset();
+    mockDb.getTransactions.mockReturnValue([...mockTransactions, { id: 'tx_new' }]);
+
+    render(<App />);
+    clickAddButton();
+    await waitFor(() => expect(screen.getByTestId('tf-mode').textContent).toBe('add'));
+
+    // Click save — this triggers handleSaveTransaction which calls setToast
+    fireEvent.click(screen.getByTestId('tf-save'));
+
+    // Wait for the toast to appear (CheckCircle icon is rendered inside toast)
+    await waitFor(() => {
+      expect(screen.getByTestId('icon-check')).toBeTruthy();
+    });
+
+    // Verify the translated text is shown
+    expect(screen.getByText('Transaction added')).toBeTruthy();
+  });
+
+  it('shows toast icon and translation after deleting a transaction', async () => {
+    // Reset mocks that may have been set to throw by previous tests
+    mockDb.deleteTransaction.mockReset();
+    // Simulate the edit-then-delete flow
+    render(<App />);
+
+    // Step 1: Navigate to TransactionHistory
+    fireEvent.click(screen.getByTestId('dash-nav-transactions'));
+    await waitFor(() => expect(screen.getByTestId('transaction-history-screen')).toBeTruthy());
+
+    // Step 2: Click the Edit button to set editingTransaction
+    fireEvent.click(screen.getByTestId('transaction-history-edit'));
+    await waitFor(() => expect(screen.getByTestId('transaction-form')).toBeTruthy());
+    expect(screen.getByTestId('tf-mode').textContent).toBe('edit');
+
+    // Step 3: Click the Delete button
+    fireEvent.click(screen.getByTestId('tf-delete'));
+
+    // Step 4: Wait for the toast to appear
+    await waitFor(() => {
+      expect(screen.getByTestId('icon-check')).toBeTruthy();
+    });
+
+    // Verify delete was called on the correct transaction
+    expect(mockDb.deleteTransaction).toHaveBeenCalledWith('tx_1');
+
+    // Verify the translated toast text is shown
+    expect(screen.getByText('Transaction deleted')).toBeTruthy();
+  });
+
+  it('shows toast icon and count after batch deleting transactions', async () => {
+    mockDb.deleteTransaction.mockReset();
+    render(<App />);
+
+    // Navigate to TransactionHistory
+    fireEvent.click(screen.getByTestId('dash-nav-transactions'));
+    await waitFor(() => expect(screen.getByTestId('transaction-history-screen')).toBeTruthy());
+
+    // Click Batch Delete button with 2 IDs
+    fireEvent.click(screen.getByTestId('transaction-history-batch-delete'));
+
+    // Wait for the toast to appear
+    await waitFor(() => {
+      expect(screen.getByTestId('icon-check')).toBeTruthy();
+    });
+
+    // Verify both transactions were deleted
+    expect(mockDb.deleteTransaction).toHaveBeenCalledWith('tx_1');
+    expect(mockDb.deleteTransaction).toHaveBeenCalledWith('tx_2');
+    expect(mockDb.deleteTransaction).toHaveBeenCalledTimes(2);
+
+    // Verify the toast shows the count using regex
+    expect(screen.getByText(/2 transaction\(s\) deleted/)).toBeTruthy();
   });
 });
 
