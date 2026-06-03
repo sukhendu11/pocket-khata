@@ -1017,3 +1017,119 @@ describe('App — Preload TransactionHistory', () => {
     expect(screen.getByTestId('dashboard-screen')).toBeTruthy();
   });
 });
+
+// ==============================================================================
+// 15. Bottom Navigation Active Indicator
+// ==============================================================================
+
+describe('App — Bottom Nav Indicator', () => {
+  function getIndicator() {
+    return document.querySelector('.nav-indicator');
+  }
+
+  it('renders the nav-indicator element', () => {
+    render(<App />);
+    expect(getIndicator()).toBeTruthy();
+  });
+
+  it('is hidden (width: 0px) on the dashboard screen (no matching data-nav button)', () => {
+    render(<App />);
+    const indicator = getIndicator();
+    expect(indicator.style.width).toBe('0px');
+    expect(indicator.style.left).toBe('0px');
+  });
+
+  it('becomes visible (width: 36px) after navigating to a bottom nav tab', async () => {
+    render(<App />);
+    const indicator = getIndicator();
+
+    // Initially hidden on dashboard
+    expect(indicator.style.width).toBe('0px');
+
+    // Navigate to Analytics tab
+    fireEvent.click(screen.getByText('Analytics'));
+    await waitFor(() => {
+      expect(indicator.style.width).toBe('36px');
+    });
+  });
+
+  it('stays visible with correct width when navigating between tabs', async () => {
+    render(<App />);
+    const indicator = getIndicator();
+
+    // Navigate to Analytics
+    fireEvent.click(screen.getByText('Analytics'));
+    await waitFor(() => {
+      expect(indicator.style.width).toBe('36px');
+    });
+
+    // Navigate to Income & Expense — indicator should stay visible
+    fireEvent.click(screen.getByText('Income & Expense'));
+    await waitFor(() => {
+      expect(indicator.style.width).toBe('36px');
+    });
+
+    // Navigate to Calendar
+    fireEvent.click(screen.getByText('Calendar'));
+    await waitFor(() => {
+      expect(indicator.style.width).toBe('36px');
+    });
+  });
+
+  it('nav buttons have data-nav attributes', () => {
+    render(<App />);
+    // Check each nav button has data-nav
+    const analyticsBtn = document.querySelector('[data-nav="analytics"]');
+    const transactionsBtn = document.querySelector('[data-nav="transactions"]');
+    const categoriesBtn = document.querySelector('[data-nav="categories"]');
+    const calendarBtn = document.querySelector('[data-nav="calendar"]');
+
+    expect(analyticsBtn).toBeTruthy();
+    expect(transactionsBtn).toBeTruthy();
+    expect(categoriesBtn).toBeTruthy();
+    expect(calendarBtn).toBeTruthy();
+    // Center + button should NOT have data-nav
+    expect(document.querySelector('[data-nav=""]')).toBeNull();
+  });
+
+  it('hides indicator again when navigating back to dashboard', async () => {
+    render(<App />);
+    const indicator = getIndicator();
+
+    // Navigate to a tab
+    fireEvent.click(screen.getByText('Analytics'));
+    await waitFor(() => {
+      expect(indicator.style.width).toBe('36px');
+    });
+
+    // Navigate back to dashboard from the screen
+    const backBtn = screen.getByTestId('analytics-view-back');
+    fireEvent.click(backBtn);
+    await waitFor(() => {
+      // Dashboard has no data-nav button — indicator should hide
+      expect(indicator.style.width).toBe('0px');
+      expect(indicator.style.left).toBe('0px');
+    });
+  });
+
+  it('does not crash on window resize', async () => {
+    render(<App />);
+    const indicator = getIndicator();
+
+    // Navigate to a tab first
+    fireEvent.click(screen.getByText('Analytics'));
+    await waitFor(() => {
+      expect(indicator.style.width).toBe('36px');
+    });
+
+    // Trigger window resize — should not throw
+    expect(() => {
+      act(() => {
+        window.dispatchEvent(new Event('resize'));
+      });
+    }).not.toThrow();
+
+    // Indicator should still be visible after resize
+    expect(indicator.style.width).toBe('36px');
+  });
+});

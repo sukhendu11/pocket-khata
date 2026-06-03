@@ -180,6 +180,8 @@ export default function App() {
   const [theme, setTheme] = useState('light');
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
+  const navRef = useRef(null);
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: '0px', width: '0px' });
   // Lock screen removed (direct entry)
 
   // Apply theme/language to <html> synchronously BEFORE any render to prevent flash.
@@ -636,6 +638,29 @@ export default function App() {
     trackAction('open_transaction_form');
   }, []);
 
+  // Measure the active nav button and position the indicator precisely under it
+  const updateIndicator = useCallback(() => {
+    if (!navRef.current) return;
+    const activeBtn = navRef.current.querySelector(`[data-nav="${currentScreen}"]`);
+    if (activeBtn) {
+      const navRect = navRef.current.getBoundingClientRect();
+      const btnRect = activeBtn.getBoundingClientRect();
+      setIndicatorStyle({
+        left: `${btnRect.left - navRect.left + (btnRect.width - 36) / 2}px`,
+        width: '36px',
+      });
+    } else {
+      setIndicatorStyle({ left: '0px', width: '0px' });
+    }
+  }, [currentScreen]);
+
+  // Re-measure on screen change and on resize for responsive alignment
+  useEffect(() => {
+    updateIndicator();
+    window.addEventListener('resize', updateIndicator);
+    return () => window.removeEventListener('resize', updateIndicator);
+  }, [updateIndicator]);
+
   // Wrap handleNavigate to push to browser history
   const handleNavigate = useCallback((screen) => {
     if (screen === currentScreen) return;
@@ -1000,28 +1025,17 @@ export default function App() {
       )}
 
       {/* D. Bottom Navigation Bar */}
-      <div style={{ ...bottomNavStyles.container, position: 'relative' }}>
+      <div ref={navRef} style={{ ...bottomNavStyles.container, position: 'relative' }}>
 
-        {/* Active indicator pill */}
+        {/* Active indicator pill — precisely positioned via DOM measurement */}
         <div
           className="nav-indicator"
-          style={{
-            left: (() => {
-              const screens = ['analytics', 'transactions', '', 'categories', 'calendar'];
-              const idx = screens.indexOf(currentScreen);
-              if (idx === -1) return '0px';
-              const positions = ['8%', '28%', '', '68%', '88%'];
-              return positions[idx] || '0px';
-            })(),
-            width: (() => {
-              const screens = ['analytics', 'transactions', 'categories', 'calendar'];
-              return screens.includes(currentScreen) ? '36px' : '0px';
-            })(),
-          }}
+          style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
         />
 
         {/* Analytics */}
         <button
+          data-nav="analytics"
           style={{
             ...bottomNavStyles.btn,
             color: currentScreen === 'analytics' ? 'var(--accent-color)' : 'var(--text-secondary)',
@@ -1038,6 +1052,7 @@ export default function App() {
 
         {/* Income & Expense (unified) */}
         <button
+          data-nav="transactions"
           style={{
             ...bottomNavStyles.btn,
             color: currentScreen === 'transactions' ? 'var(--accent-color)' : 'var(--text-secondary)',
@@ -1079,6 +1094,7 @@ export default function App() {
 
         {/* Categories */}
         <button
+          data-nav="categories"
           style={{
             ...bottomNavStyles.btn,
             color: currentScreen === 'categories' ? 'var(--accent-color)' : 'var(--text-secondary)',
@@ -1096,6 +1112,7 @@ export default function App() {
 
         {/* Calendar */}
         <button
+          data-nav="calendar"
           style={{
             ...bottomNavStyles.btn,
             color: currentScreen === 'calendar' ? 'var(--accent-color)' : 'var(--text-secondary)',
