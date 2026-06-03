@@ -36,6 +36,12 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { t } from './i18n';
 import { Menu, CheckCircle } from 'lucide-react';
+import {
+  scheduleReminderNotification,
+  cancelReminderNotification,
+  getNotificationPermission,
+  createNotificationChannel,
+} from './notifications';
 
 const globalLangStyles = {
   pill: {
@@ -522,11 +528,22 @@ export default function App() {
     }
   };
 
-  // -- Reminders
+  // -- Reminders --
+  // Helper: schedule a notification for a reminder if notifications are enabled
+  const maybeScheduleReminder = (reminder) => {
+    getNotificationPermission().then((perm) => {
+      if (perm === 'granted') {
+        createNotificationChannel(); // ensure channel exists
+        scheduleReminderNotification(reminder);
+      }
+    }).catch(() => {});
+  };
+
   const handleAddReminder = (reminder) => {
     try {
-      db.addReminder(reminder);
+      const saved = db.addReminder(reminder);
       setReminders(db.getReminders());
+      maybeScheduleReminder(saved);
     } catch (e) {
       trackError(e, { handler: 'handleAddReminder' });
       console.error('Failed to add reminder:', e);
@@ -537,6 +554,9 @@ export default function App() {
     try {
       db.updateReminder(reminder);
       setReminders(db.getReminders());
+      // Cancel old notification, then schedule new one for updated date
+      cancelReminderNotification(reminder.id);
+      maybeScheduleReminder(reminder);
     } catch (e) {
       trackError(e, { handler: 'handleUpdateReminder', reminderId: reminder?.id });
       console.error('Failed to update reminder:', e);
@@ -549,6 +569,8 @@ export default function App() {
       setReminders(db.getReminders());
       setTransactions(db.getTransactions());
       setAccounts(db.getAccounts());
+      // Bill is paid — cancel its notification
+      cancelReminderNotification(id);
     } catch (e) {
       trackError(e, { handler: 'handlePayReminder', reminderId: id });
       console.error('Failed to pay reminder:', e);
@@ -559,6 +581,7 @@ export default function App() {
     try {
       db.deleteReminder(id);
       setReminders(db.getReminders());
+      cancelReminderNotification(id);
     } catch (e) {
       trackError(e, { handler: 'handleDeleteReminder', reminderId: id });
       console.error('Failed to delete reminder:', e);

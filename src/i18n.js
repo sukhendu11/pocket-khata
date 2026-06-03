@@ -451,10 +451,7 @@ const translations = {
   'notif.enable': { en: 'Enable', bn: 'চালু করুন' },
   'notif.denied': { en: 'Permission denied', bn: 'অনুমতি নেই' },
   'notif.granted': { en: 'Notifications active', bn: 'নোটিফিকেশন সক্রিয়' },
-  'notif.testButton': { en: 'Send Test Notification', bn: 'পরীক্ষামূলক নোটিফিকেশন পাঠান' },
-  'notif.testSending': { en: 'Sending…', bn: 'পাঠানো হচ্ছে…' },
-  'notif.testSent': { en: 'Test notification sent! Check your notification bar.', bn: 'পরীক্ষামূলক নোটিফিকেশন পাঠানো হয়েছে! নোটিফিকেশন বার চেক করুন।' },
-  'notif.testFailed': { en: 'Failed to send test notification. Check notification permissions.', bn: 'পরীক্ষামূলক নোটিফিকেশন পাঠানো ব্যর্থ। নোটিফিকেশন অনুমতি চেক করুন।' },
+
 
   'common.localWallet': { en: 'Local Wallet', bn: 'স্থানীয় ওয়ালেট' },
   'common.manualEntry': { en: 'Manual Entry', bn: 'ম্যানুয়াল এন্ট্রি' },

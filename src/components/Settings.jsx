@@ -13,6 +13,7 @@ import {
   isNotificationSupported,
   getNotificationPermission,
   requestNotificationPermission,
+  createNotificationChannel,
   cancelAllNotifications,
   deleteNotificationChannel,
 } from '../notifications';
@@ -130,10 +131,12 @@ export default function Settings({
       setToast({ type: 'success', message: t('notif.disabled', lang) || 'Notifications disabled' });
       return;
     }
-    // Toggle ON — request system permission
+    // Toggle ON — request system permission + create channel
     const result = await requestNotificationPermission();
     setNotifPermission(result);
     if (result === 'granted') {
+      // Create the Android notification channel (required for delivery)
+      await createNotificationChannel();
       setToast({ type: 'success', message: t('notif.enabled', lang) || 'Notifications enabled' });
     } else {
       setToast({ type: 'error', message: t('notif.permissionDenied', lang) || 'Notifications are disabled. Enable them in your device settings.' });
