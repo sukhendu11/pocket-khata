@@ -13,7 +13,8 @@ import {
   isNotificationSupported,
   getNotificationPermission,
   requestNotificationPermission,
-  sendTestNotification,
+  cancelAllNotifications,
+  deleteNotificationChannel,
 } from '../notifications';
 
 export default function Settings({
@@ -102,17 +103,12 @@ export default function Settings({
   };
 
   // ── Notification Toggle ──
-  // Toggle ON → native Android permission popup → result determines state
-  // Toggle OFF → sets opt-out flag (persisted across restarts)
-  // On mount: state = permission === 'granted' && !optOut
+  // Toggle ON → request native Android permission
+  // Toggle OFF → revoke: cancelAll + deleteChannel
   const notifSupported = isNotificationSupported();
-  const [notificationsOptedOut, setNotificationsOptedOut] = useState(() => {
-    return localStorage.getItem('pocket_khata_notif_opted_out') === 'true';
-  });
   const [notifPermission, setNotifPermission] = useState('default');
-  const [isSendingTest, setIsSendingTest] = useState(false);
 
-  const notificationsEnabled = notifPermission === 'granted' && !notificationsOptedOut;
+  const notificationsEnabled = notifPermission === 'granted';
 
   useEffect(() => {
     if (!notifSupported) return;
@@ -121,43 +117,26 @@ export default function Settings({
     }).catch(() => {});
   }, [notifSupported]);
 
-  /** Send a test notification and show result toast */
-  const fireTestNotification = async () => {
-    setIsSendingTest(true);
-    try {
-      const ok = await sendTestNotification();
-      if (ok) {
-        setToast({ type: 'success', message: t('notif.testSent', lang) || 'Test notification sent! Check your notification bar.' });
-      } else {
-        setToast({ type: 'error', message: t('notif.testFailed', lang) || 'Failed to send test notification.' });
-      }
-    } catch {
-      setToast({ type: 'error', message: t('notif.testFailed', lang) || 'Failed to send test notification.' });
-    }
-    setIsSendingTest(false);
-  };
-
   const handleToggleNotifications = async () => {
     if (notificationsEnabled) {
-      // Toggle OFF — set opt-out flag to persist choice
-      setNotificationsOptedOut(true);
-      localStorage.setItem('pocket_khata_notif_opted_out', 'true');
+      // Toggle OFF — revoke at system level
+      try {
+        await cancelAllNotifications();
+        await deleteNotificationChannel();
+      } catch (e) {
+        // Best-effort revoke
+      }
+      setNotifPermission('denied');
       setToast({ type: 'success', message: t('notif.disabled', lang) || 'Notifications disabled' });
       return;
     }
-    if (notifPermission === 'granted') {
-      // Permission already granted but user had opted out — re-enable and test
-      setNotificationsOptedOut(false);
-      localStorage.removeItem('pocket_khata_notif_opted_out');
-      await fireTestNotification();
-      return;
-    }
+    // Toggle ON — request system permission
     const result = await requestNotificationPermission();
     setNotifPermission(result);
     if (result === 'granted') {
-      setNotificationsOptedOut(false);
-      localStorage.removeItem('pocket_khata_notif_opted_out');
-      await fireTestNotification();
+      setToast({ type: 'success', message: t('notif.enabled', lang) || 'Notifications enabled' });
+    } else {
+      setToast({ type: 'error', message: t('notif.permissionDenied', lang) || 'Notifications are disabled. Enable them in your device settings.' });
     }
   };
 
@@ -193,7 +172,7 @@ export default function Settings({
 
 
   return (
-    <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <div style={styles.container}>
         
         {/* Header Bar */}
@@ -300,20 +279,7 @@ export default function Settings({
                   <span className="toggle-slider" />
                 </label>
               </div>
-              {notificationsEnabled && (
-                <button
-                  className="neo-btn neo-btn-primary"
-                  style={{ ...styles.exportBtn, marginTop: '14px' }}
-                  onClick={fireTestNotification}
-                  disabled={isSendingTest}
-                >
-                  {isSendingTest ? (
-                    <><RefreshCw size={14} className="spin-anim" /> {t('notif.testSending', lang) || 'Sending…'}</>
-                  ) : (
-                    t('notif.testButton', lang) || 'Send Test Notification'
-                  )}
-                </button>
-              )}
+  
             </div>
           )}
 
@@ -437,7 +403,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     overflowY: 'auto',
-    height: '100%',
+    minHeight: 0,
     paddingRight: '2px',
   },
   header: {
