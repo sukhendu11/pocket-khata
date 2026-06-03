@@ -1,5 +1,7 @@
 // Local database management for Pocket Khata using localStorage
 
+/* global __APP_VERSION__, __BUILD_VERSION__ */
+
 import { trackError } from './lib/analytics';
 
 const KEYS = {

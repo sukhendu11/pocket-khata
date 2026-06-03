@@ -14,7 +14,6 @@ export default function TransactionForm({
   onClose,
   onAddCategory,
   onUpdateCategory,
-  onNavigate,
   lang
 }) {
   const [type, setType] = useState('expense'); // 'income', 'expense', 'transfer'
@@ -632,7 +631,6 @@ TransactionForm.propTypes = {
   onClose: PropTypes.func,
   onAddCategory: PropTypes.func,
   onUpdateCategory: PropTypes.func,
-  onNavigate: PropTypes.func,
   lang: PropTypes.string,
 };
 

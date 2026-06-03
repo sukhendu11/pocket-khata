@@ -572,7 +572,6 @@ describe('App — Transaction CRUD', () => {
   });
 
   it('deletes a transaction and refreshes data', async () => {
-    const editedTx = { id: 'tx_1', type: 'expense', amount: 1500, accountId: 'acc_1', categoryId: 'cat_1', notes: 'Lunch' };
     render(<App />);
     // Open form in edit mode (simulate clicking edit on a transaction)
     // We can't use the '+' button — that opens in add mode. Instead we simulate

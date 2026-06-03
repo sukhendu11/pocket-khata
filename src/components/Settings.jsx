@@ -14,8 +14,8 @@ import {
   getNotificationPermission,
   requestNotificationPermission,
   createNotificationChannel,
+  sendTestNotification,
   cancelAllNotifications,
-  deleteNotificationChannel,
 } from '../notifications';
 
 export default function Settings({
@@ -104,12 +104,20 @@ export default function Settings({
   };
 
   // ── Notification Toggle ──
-  // Toggle ON → request native Android permission
-  // Toggle OFF → revoke: cancelAll + deleteChannel
+  // Toggle ON  → request native Android permission, create channel, send test notification
+  // Toggle OFF → cancel all delivered/scheduled notifications, persist opt-out
+  //
+  // The toggle reflects TWO independent signals:
+  //   1. Real Android permission (checkPermissions) — shows the actual OS state
+  //   2. User opt-out (localStorage) — the user explicitly disabled notifications
+  // A user can have 'granted' permission but have the toggle OFF (opt-out).
   const notifSupported = isNotificationSupported();
   const [notifPermission, setNotifPermission] = useState('default');
+  const [notificationsOptedOut, setNotificationsOptedOut] = useState(() => {
+    return localStorage.getItem('pocket_khata_notifications_opted_out') === 'true';
+  });
 
-  const notificationsEnabled = notifPermission === 'granted';
+  const notificationsEnabled = notifPermission === 'granted' && !notificationsOptedOut;
 
   useEffect(() => {
     if (!notifSupported) return;
@@ -120,26 +128,35 @@ export default function Settings({
 
   const handleToggleNotifications = async () => {
     if (notificationsEnabled) {
-      // Toggle OFF — revoke at system level
+      // Toggle OFF — cancel all notifications, persist opt-out
       try {
         await cancelAllNotifications();
-        await deleteNotificationChannel();
       } catch (e) {
-        // Best-effort revoke
+        // Best-effort
       }
-      setNotifPermission('denied');
+      localStorage.setItem('pocket_khata_notifications_opted_out', 'true');
+      setNotificationsOptedOut(true);
       setToast({ type: 'success', message: t('notif.disabled', lang) || 'Notifications disabled' });
       return;
     }
-    // Toggle ON — request system permission + create channel
+    // Toggle ON — request system permission
     const result = await requestNotificationPermission();
     setNotifPermission(result);
     if (result === 'granted') {
-      // Create the Android notification channel (required for delivery)
+      // Create the Android notification channel (required for delivery on API 26+)
       await createNotificationChannel();
-      setToast({ type: 'success', message: t('notif.enabled', lang) || 'Notifications enabled' });
+      // Clear the opt-out flag
+      localStorage.removeItem('pocket_khata_notifications_opted_out');
+      setNotificationsOptedOut(false);
+      // Send a test notification so the user can visually confirm delivery
+      const sent = await sendTestNotification();
+      if (sent) {
+        setToast({ type: 'success', message: t('notif.enabled', lang) || 'Notifications active — a test notification was sent!' });
+      } else {
+        setToast({ type: 'success', message: t('notif.enabled', lang) || 'Notifications enabled' });
+      }
     } else {
-      setToast({ type: 'error', message: t('notif.permissionDenied', lang) || 'Notifications are disabled. Enable them in your device settings.' });
+      setToast({ type: 'error', message: t('notif.permissionDenied', lang) || 'Notification permission was denied. Enable it in your device settings.' });
     }
   };
 

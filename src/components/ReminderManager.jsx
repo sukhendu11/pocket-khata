@@ -21,7 +21,6 @@ export default function ReminderManager({
   lang,
 }) {
   // Safeguard against undefined/null props
-  const safeReminders = reminders || [];
   const safeAccounts = accounts || [];
   const safeCategories = categories || [];
 
@@ -42,11 +41,11 @@ export default function ReminderManager({
   const today = new Date().toISOString().split('T')[0];
 
   const processedReminders = useMemo(() => {
-    return safeReminders.map(rem => ({
+    return (reminders || []).map(rem => ({
       ...rem,
       isOverdue: rem.status === 'unpaid' && rem.dueDate < today,
-    })).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
-  }, [safeReminders, today]);
+    })).sort((a, bn) => new Date(a.dueDate) - new Date(bn.dueDate));
+  }, [reminders, today]);
 
   const filteredReminders = useMemo(() => {
     if (filterTab === 'unpaid') return processedReminders.filter(r => r.status === 'unpaid');

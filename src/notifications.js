@@ -106,6 +106,11 @@ export async function sendNotification({ id, title, body, at }) {
     const perm = await LocalNotifications.checkPermissions();
     if (perm.display !== 'granted') return false;
 
+    // Ensure the notification channel exists before scheduling.
+    // Required on Android 8+ (API 26+). Safe to call multiple times —
+    // Android ignores duplicate channel creation.
+    await createNotificationChannel();
+
     const numericId = typeof id === 'number' ? id : stringToNumericId(id);
     const schedule = at ? { at } : undefined;
 
@@ -164,6 +169,36 @@ export async function cancelReminderNotification(id) {
 }
 
 /**
+ * Send an immediate test notification to confirm delivery on a real device.
+ * Called when the user toggles notifications ON to verify the system works.
+ */
+export async function sendTestNotification() {
+  if (!isNotificationSupported()) return false;
+  try {
+    const perm = await LocalNotifications.checkPermissions();
+    if (perm.display !== 'granted') return false;
+
+    // Ensure channel exists (safe to call multiple times)
+    await createNotificationChannel();
+
+    // Schedule immediately (no `at` means fire right away)
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: 9999,
+        title: 'Pocket Khata',
+        body: 'Notifications are working! \u2705',
+        channelId: NOTIF_CHANNEL_ID,
+        schedule: { at: new Date(Date.now() + 500) }, // 500ms delay
+      }],
+    });
+    return true;
+  } catch (e) {
+    console.error('[PocketKhata] sendTestNotification failed:', e);
+    return false;
+  }
+}
+
+/**
  * Cancel all scheduled and delivered notifications.
  * Called when the user toggles notifications OFF.
  */
@@ -173,5 +208,53 @@ export async function cancelAllNotifications() {
     await LocalNotifications.cancelAll();
   } catch (e) {
     console.error('[PocketKhata] cancelAllNotifications failed:', e);
+  }
+}
+
+/**
+ * Re-schedule all unpaid reminders on app startup.
+ *
+ * Capacitor LocalNotifications persists scheduled alarms across app restarts
+ * and reboots via Android AlarmManager. However, when the APK is rebuilt and
+ * reinstalled (common during development), ALL pending alarms are cleared by
+ * the OS. This function re-registers notifications for all unpaid reminders so
+ * they fire reliably even after an app update or reinstall.
+ *
+ * @param {Array} reminders - Full array of reminder objects from the DB
+ */
+export async function rescheduleAllReminders(reminders) {
+  if (!isNotificationSupported() || !Array.isArray(reminders) || reminders.length === 0) return;
+  try {
+    const perm = await LocalNotifications.checkPermissions();
+    if (perm.display !== 'granted') return;
+
+    // Ensure the notification channel exists before scheduling
+    await createNotificationChannel();
+
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const unpaid = reminders.filter(r => r.status === 'unpaid' && r.id && r.dueDate);
+    const overdue = unpaid.filter(r => r.dueDate < todayStr);
+    const future = unpaid.filter(r => r.dueDate >= todayStr);
+
+    // Schedule future reminders at 09:00 on their due date
+    if (future.length > 0) {
+      await Promise.all(future.map(reminder => scheduleReminderNotification(reminder)));
+    }
+
+    // For overdue reminders, send ONE summary notification (avoid flooding)
+    if (overdue.length > 0) {
+      await LocalNotifications.schedule({
+        notifications: [{
+          id: 8888,
+          title: 'Overdue Bills',
+          body: `You have ${overdue.length} overdue bill${overdue.length > 1 ? 's' : ''}. Tap to view.`,
+          channelId: NOTIF_CHANNEL_ID,
+          schedule: { at: new Date(Date.now() + 3000) },
+        }],
+      });
+    }
+  } catch (e) {
+    console.error('[PocketKhata] rescheduleAllReminders failed:', e);
   }
 }

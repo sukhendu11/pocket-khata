@@ -50,7 +50,6 @@ function blobToBase64(blob) {
  */
 export async function saveBlob(blob, filename) {
   const isNative = Capacitor.isNativePlatform();
-  const mimeType = blob.type || (filename.endsWith('.pdf') ? 'application/pdf' : 'application/json');
 
   // ── Method 1: Native Share plugin (Android / iOS) — shows folder picker ─
   // Uses the native Capacitor Share plugin to open the system share sheet.

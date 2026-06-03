@@ -41,6 +41,7 @@ import {
   cancelReminderNotification,
   getNotificationPermission,
   createNotificationChannel,
+  rescheduleAllReminders,
 } from './notifications';
 
 const globalLangStyles = {
@@ -210,7 +211,18 @@ export default function App() {
     // Notification permission is NOT auto-requested here.
     // It is only requested when the user explicitly interacts with the
     // notification toggle in Settings → handleToggleNotifications.
-    setTheme(initialTheme);
+    setTheme(localStorage.getItem('pocket_khata_theme') || 'light');
+
+    // Re-schedule notifications for existing reminders (needed after APK rebuild/reinstall
+    // which clears all native Android scheduled alarms). Respects opt-out flag.
+    const notifOptedOut = localStorage.getItem('pocket_khata_notifications_opted_out') === 'true';
+    if (!notifOptedOut && loadedReminders.length > 0) {
+      getNotificationPermission().then((perm) => {
+        if (perm === 'granted') {
+          rescheduleAllReminders(loadedReminders);
+        }
+      }).catch(() => {});
+    }
     setAccounts(loadedAccounts);
     setCategories(loadedCategories);
     setTransactions(loadedTransactions);
@@ -232,7 +244,7 @@ export default function App() {
         if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
           await document.documentElement.requestFullscreen();
         }
-      } catch (e) {
+      } catch (_e) {
         // Silent fallback for non-Android browsers
       }
     }, 1200);
@@ -244,7 +256,7 @@ export default function App() {
             if (document.documentElement.requestFullscreen) {
               await document.documentElement.requestFullscreen();
             }
-          } catch (e) {}
+          } catch (_e) { /* silent */ }
         }, 500);
       }
     };
@@ -529,8 +541,11 @@ export default function App() {
   };
 
   // -- Reminders --
-  // Helper: schedule a notification for a reminder if notifications are enabled
+  // Helper: schedule a notification for a reminder if notifications are enabled.
+  // Checks both the OS permission AND the app-level opt-out flag from Settings.
   const maybeScheduleReminder = (reminder) => {
+    const optedOut = localStorage.getItem('pocket_khata_notifications_opted_out') === 'true';
+    if (optedOut) return;
     getNotificationPermission().then((perm) => {
       if (perm === 'granted') {
         createNotificationChannel(); // ensure channel exists

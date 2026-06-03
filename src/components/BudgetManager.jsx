@@ -33,12 +33,12 @@ export default function BudgetManager({
 
   // Compute spending per budget with rollover support
   const budgetsWithSpending = useMemo(() => {
-    return budgets.map(b => {
-      const cat = categories.find(c => c.id === b.categoryId);
+    return budgets.map(bgt => {
+      const cat = categories.find(c => c.id === bgt.categoryId);
       const spent = transactions
         .filter(tx => {
           if (tx.type !== 'expense') return false;
-          if (tx.categoryId !== b.categoryId) return false;
+          if (tx.categoryId !== bgt.categoryId) return false;
           const d = new Date(tx.date);
           return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
         })
@@ -48,7 +48,7 @@ export default function BudgetManager({
       let rolloverAmount = 0;
       let hasRollover = false;
       const prevBudget = budgets.find(pb =>
-        pb.categoryId === b.categoryId &&
+        pb.categoryId === bgt.categoryId &&
         pb.month === prevMonthIndex &&
         pb.year === prevMonthYear
       );
@@ -56,7 +56,7 @@ export default function BudgetManager({
         const prevSpent = transactions
           .filter(tx => {
             if (tx.type !== 'expense') return false;
-            if (tx.categoryId !== b.categoryId) return false;
+            if (tx.categoryId !== bgt.categoryId) return false;
             const d = new Date(tx.date);
             return d.getMonth() === prevMonthIndex && d.getFullYear() === prevMonthYear;
           })
@@ -65,11 +65,11 @@ export default function BudgetManager({
         hasRollover = rolloverAmount > 0;
       }
 
-      const effectiveLimit = b.limit + rolloverAmount;
+      const effectiveLimit = bgt.limit + rolloverAmount;
       const percentage = effectiveLimit > 0 ? Math.min((spent / effectiveLimit) * 100, 100) : (spent > 0 ? 100 : 0);
       const displayPct = effectiveLimit === 0 && spent > 0 ? '100%+' : formatPercent(percentage, lang);
       return {
-        ...b,
+        ...bgt,
         categoryName: cat?.name || 'Unknown',
         categoryColor: cat?.color || '#bdc3c7',
         spent,
@@ -85,7 +85,7 @@ export default function BudgetManager({
         const subcatMap = {};
         transactions.forEach(tx => {
           if (tx.type !== 'expense') return;
-          if (tx.categoryId !== b.categoryId) return;
+          if (tx.categoryId !== bgt.categoryId) return;
           const d = new Date(tx.date);
           if (d.getMonth() !== currentMonth || d.getFullYear() !== currentYear) return;
           const name = tx.subcategory ? tx.subcategory.trim() : '';
@@ -101,7 +101,7 @@ export default function BudgetManager({
           .sort((a, b) => b.amount - a.amount);
       })(),
   }
-    }).sort((a, b) => b.percentage - a.percentage);
+    }).sort((a, bn) => bn.percentage - a.percentage);
   }, [budgets, categories, transactions, currentMonth, currentYear, prevMonthIndex, prevMonthYear, lang]);
 
   // Total budget stats (using effective limits)

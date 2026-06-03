@@ -9,6 +9,7 @@ import {
   cancelReminderNotification,
   cancelAllNotifications,
   deleteNotificationChannel,
+  rescheduleAllReminders,
 } from '../notifications';
 
 // Mock Capacitor
@@ -239,6 +240,7 @@ describe('sendNotification', () => {
   beforeEach(() => {
     setIsNative(true);
     mockCheckPermissions.mockResolvedValue({ display: 'granted' });
+    mockCreateChannel.mockResolvedValue(undefined);
     mockSchedule.mockResolvedValue(undefined);
   });
 
@@ -249,6 +251,7 @@ describe('sendNotification', () => {
   it('schedules notification with numeric id and channel', async () => {
     const result = await sendNotification({ id: 'rem_123', title: 'Test', body: 'Hello' });
     expect(result).toBe(true);
+    expect(mockCreateChannel).toHaveBeenCalled();
     expect(mockSchedule).toHaveBeenCalledWith({
       notifications: expect.arrayContaining([
         expect.objectContaining({
@@ -272,6 +275,14 @@ describe('sendNotification', () => {
     const result = await sendNotification({ id: 'rem_1', title: 'T', body: 'B' });
     expect(result).toBe(false);
   });
+
+  it('creates notification channel before scheduling', async () => {
+    await sendNotification({ id: 'rem_test', title: 'T', body: 'B' });
+    // Channel must be created BEFORE schedule is called
+    expect(mockCreateChannel.mock.invocationCallOrder[0]).toBeLessThan(
+      mockSchedule.mock.invocationCallOrder[0]
+    );
+  });
 });
 
 // ==============================================================================
@@ -282,6 +293,7 @@ describe('scheduleReminderNotification', () => {
   beforeEach(() => {
     setIsNative(true);
     mockCheckPermissions.mockResolvedValue({ display: 'granted' });
+    mockCreateChannel.mockResolvedValue(undefined);
     mockSchedule.mockResolvedValue(undefined);
   });
 
@@ -295,6 +307,7 @@ describe('scheduleReminderNotification', () => {
     const dueDate = futureDate.toISOString().split('T')[0];
 
     await scheduleReminderNotification({ id: 'rem_1', name: 'Rent', amount: 15000, dueDate });
+    expect(mockCreateChannel).toHaveBeenCalled();
     expect(mockSchedule).toHaveBeenCalled();
   });
 
@@ -337,6 +350,101 @@ describe('cancelReminderNotification', () => {
     await cancelReminderNotification(null);
     await cancelReminderNotification(undefined);
     expect(mockCancel).not.toHaveBeenCalled();
+  });
+});
+
+// ==============================================================================
+// rescheduleAllReminders
+// ==============================================================================
+
+describe('rescheduleAllReminders', () => {
+  const futureDate = new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0];
+  const pastDate = new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0];
+
+  const mockReminders = [
+    { id: 'rem_1', name: 'Rent', amount: 15000, dueDate: futureDate, status: 'unpaid' },
+    { id: 'rem_2', name: 'Electricity', amount: 2500, dueDate: pastDate, status: 'unpaid' },
+    { id: 'rem_3', name: 'Paid Bill', amount: 1000, dueDate: pastDate, status: 'paid' },
+  ];
+
+  beforeEach(() => {
+    setIsNative(true);
+    mockCheckPermissions.mockResolvedValue({ display: 'granted' });
+    mockCreateChannel.mockResolvedValue(undefined);
+    mockSchedule.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('schedules future reminder and summary for overdue', async () => {
+    await rescheduleAllReminders(mockReminders);
+
+    // Should schedule the future reminder
+    expect(mockSchedule).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notifications: expect.arrayContaining([
+          expect.objectContaining({
+            title: 'Bill Reminder',
+            body: expect.stringContaining('Rent'),
+          }),
+        ]),
+      })
+    );
+
+    // Should also schedule overdue summary (id: 8888)
+    expect(mockSchedule).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notifications: expect.arrayContaining([
+          expect.objectContaining({
+            id: 8888,
+            title: 'Overdue Bills',
+            body: expect.stringContaining('1 overdue bill'),
+          }),
+        ]),
+      })
+    );
+  });
+
+  it('does nothing when no reminders are provided', async () => {
+    await rescheduleAllReminders([]);
+    await rescheduleAllReminders(null);
+    await rescheduleAllReminders(undefined);
+    expect(mockSchedule).not.toHaveBeenCalled();
+  });
+
+  it('does nothing on non-native platforms', async () => {
+    setIsNative(false);
+    await rescheduleAllReminders(mockReminders);
+    expect(mockSchedule).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when permission is not granted', async () => {
+    mockCheckPermissions.mockResolvedValue({ display: 'denied' });
+    await rescheduleAllReminders(mockReminders);
+    expect(mockSchedule).not.toHaveBeenCalled();
+  });
+
+  it('does not schedule for paid reminders', async () => {
+    const paidOnly = [
+      { id: 'rem_paid', name: 'Paid Bill', amount: 500, dueDate: futureDate, status: 'paid' },
+    ];
+    await rescheduleAllReminders(paidOnly);
+    // Only the overdue summary should fire (but there are no overdue either)
+    // Actually with no unpaid reminders, neither branch fires
+    expect(mockSchedule).not.toHaveBeenCalled();
+  });
+
+  it('creates notification channel before scheduling', async () => {
+    await rescheduleAllReminders(mockReminders);
+    expect(mockCreateChannel).toHaveBeenCalled();
+  });
+
+  it('handles errors gracefully', async () => {
+    mockCreateChannel.mockRejectedValue(new Error('Channel error'));
+    // Should not throw
+    await expect(rescheduleAllReminders(mockReminders)).resolves.not.toThrow();
   });
 });
 

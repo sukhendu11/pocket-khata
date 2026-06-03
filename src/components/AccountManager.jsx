@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { 
   ArrowLeft, Plus, Landmark, CreditCard, Wallet, 
-  Trash2, X, AlertCircle, Info, Pencil, Calendar
+  Trash2, X, AlertCircle, Info, Pencil
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
@@ -12,7 +12,6 @@ export default function AccountManager({
   accounts = [],
   transactions = [],
   onAddAccount = () => {},
-  onUpdateAccount = () => {},
   onDeleteAccount = () => {},
   onCreateBalanceAdjustment = () => {},
   onNavigate = () => {},
@@ -41,7 +40,7 @@ export default function AccountManager({
         setSelectedAccount(fresh);
       }
     }
-  }, [accounts, selectedAccount?.id]);
+  }, [accounts, selectedAccount]);
 
   const colors = ['#4a90e2', '#3cd070', '#ff5a79', '#ff8a00', '#8e44ad', '#00c9db', '#ff7b54', '#718096'];
 
@@ -460,7 +459,7 @@ AccountManager.propTypes = {
   accounts: PropTypes.array,
   transactions: PropTypes.array,
   onAddAccount: PropTypes.func,
-  onUpdateAccount: PropTypes.func,
+
   onDeleteAccount: PropTypes.func,
   onCreateBalanceAdjustment: PropTypes.func,
   onNavigate: PropTypes.func,

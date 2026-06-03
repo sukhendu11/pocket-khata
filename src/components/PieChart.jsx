@@ -216,7 +216,7 @@ export default function PieChart({
     });
 
     return { slices, extremes, labels, centerOverride };
-  }, [data, activeIndex, size, rad, innerRad, cx, cy, paddingAngle, gradients]);
+  }, [data, activeIndex, size, rad, innerRad, cx, cy, padRad, gradients]);
 
   // ── Determine center display ───────────────────────────────────────
   const centerDisplay = chart.centerOverride || { text: centerText, subtext: centerSubtext };
