@@ -70,22 +70,15 @@ const LoadingFallback = () => (
   <div style={{
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '60px 20px',
-    gap: '12px',
+    padding: '24px 12px',
+    gap: '14px',
   }}>
-    <div className="spinner" style={{
-      width: '28px',
-      height: '28px',
-      border: '3px solid var(--text-secondary)',
-      borderTopColor: 'var(--accent-color)',
-      borderRadius: '50%',
-      animation: 'spin 0.8s linear infinite',
-    }} />
-    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '500' }}>
-      Loading…
-    </span>
+    {/* Skeleton shimmer cards matching typical screen layout */}
+    <div className="shimmer-card" style={{ height: '80px', width: '100%' }} />
+    <div className="shimmer-card" style={{ height: '48px', width: '100%' }} />
+    <div className="shimmer-card" style={{ height: '60px', width: '100%' }} />
+    <div className="shimmer-card" style={{ height: '100px', width: '100%' }} />
+    <div className="shimmer-card" style={{ height: '48px', width: '70%' }} />
   </div>
 );
 
@@ -879,7 +872,7 @@ export default function App() {
               gap: '8px',
               animation: 'toastSlideUp 0.3s ease-out',
             }}>
-              <CheckCircle size={18} color="var(--color-income)" />
+              <CheckCircle size={18} color="var(--color-income)" className="toast-icon" />
               <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>
                 {t(toast.key, lang).replace('{count}', toast.count)}
               </span>
@@ -1007,7 +1000,25 @@ export default function App() {
       )}
 
       {/* D. Bottom Navigation Bar */}
-      <div style={bottomNavStyles.container}>
+      <div style={{ ...bottomNavStyles.container, position: 'relative' }}>
+
+        {/* Active indicator pill */}
+        <div
+          className="nav-indicator"
+          style={{
+            left: (() => {
+              const screens = ['analytics', 'transactions', '', 'categories', 'calendar'];
+              const idx = screens.indexOf(currentScreen);
+              if (idx === -1) return '0px';
+              const positions = ['8%', '28%', '', '68%', '88%'];
+              return positions[idx] || '0px';
+            })(),
+            width: (() => {
+              const screens = ['analytics', 'transactions', 'categories', 'calendar'];
+              return screens.includes(currentScreen) ? '36px' : '0px';
+            })(),
+          }}
+        />
 
         {/* Analytics */}
         <button

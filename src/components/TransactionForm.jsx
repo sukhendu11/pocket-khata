@@ -183,7 +183,18 @@ export default function TransactionForm({
         <div className="drawer-scrollable">
 
         {/* 1. Transaction Type Segment Toggle */}
-        <div className="neo-pressed-sm" style={styles.segmentContainer}>
+        <div className="neo-pressed-sm seg-sliding-container" style={styles.segmentContainer}>
+          {/* Sliding active pill */}
+          <div
+            className="seg-sliding-pill"
+            style={{
+              left: (() => {
+                const idx = ['expense', 'income', 'transfer'].indexOf(type);
+                return `${idx * 33.33}%`;
+              })(),
+              width: '33.33%',
+            }}
+          />
         {['expense', 'income', 'transfer'].map(txType => (
           <button
             key={txType}
@@ -191,7 +202,9 @@ export default function TransactionForm({
             className="neo-btn"
             style={{
               ...styles.segmentBtn,
-              boxShadow: type === txType ? 'var(--neomorphic-raised-sm)' : 'none',
+              position: 'relative',
+              zIndex: 1,
+              boxShadow: 'none',
               color: type === txType 
                 ? txType === 'income' 
                   ? 'var(--color-income)' 
@@ -200,7 +213,6 @@ export default function TransactionForm({
                     : 'var(--color-transfer)'
                 : 'var(--text-secondary)',
               fontWeight: type === txType ? '700' : '500',
-              border: type === txType ? '1px solid rgba(255,255,255,0.4)' : '1px solid transparent',
             }}
           >
             {t(txType === 'expense' ? 'expense' : txType === 'income' ? 'income' : 'transfer', lang).toUpperCase()}

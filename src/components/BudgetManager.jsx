@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Plus, X, AlertCircle, Bell, Trash2, Edit3 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
@@ -22,6 +22,7 @@ export default function BudgetManager({
   const [rollover, setRollover] = useState(false);
   const [formError, setFormError] = useState('');
   const [breakdownBudgetId, setBreakdownBudgetId] = useState(null);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -103,6 +104,14 @@ export default function BudgetManager({
   }
     }).sort((a, bn) => bn.percentage - a.percentage);
   }, [budgets, categories, transactions, currentMonth, currentYear, prevMonthIndex, prevMonthYear, lang]);
+
+  useEffect(() => {
+    if (budgetsWithSpending.length > 0) {
+      setInitialLoad(true);
+      const timer = setTimeout(() => setInitialLoad(false), 1800);
+      return () => clearTimeout(timer);
+    }
+  }, [budgetsWithSpending.length]);
 
   // Total budget stats (using effective limits)
   const totalStats = useMemo(() => {
@@ -228,10 +237,13 @@ export default function BudgetManager({
             <p style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>{t('budget.noBudgetsDesc', lang)}</p>
           </div>
         ) : (
-          budgetsWithSpending.map(b => (
-            <div key={b.id} className="neo-raised-sm" style={{
+          budgetsWithSpending.map((b, index) => {
+            const staggerIdx = Math.min(index, 14);
+            return (
+            <div key={b.id} className={`neo-raised-sm${initialLoad ? ' list-stagger' : ''}`} style={{
               ...styles.budgetCard,
               borderLeft: `4px solid ${b.categoryColor}`,
+              animationDelay: initialLoad ? `${staggerIdx * 0.06}s` : '0s',
             }}>
               <div style={styles.cardTop}>
                 <div style={styles.cardLeft}>
@@ -350,7 +362,8 @@ export default function BudgetManager({
                 </button>
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
 

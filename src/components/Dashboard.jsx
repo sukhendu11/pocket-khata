@@ -381,7 +381,12 @@ export default function Dashboard({
               stroke="var(--color-income)"
               strokeWidth="3.5"
               strokeLinecap="round"
-              style={{ filter: 'drop-shadow(0px 4px 6px rgba(38,222,129,0.25))' }}
+              className="line-chart-path"
+              style={{
+                '--line-length': '400',
+                filter: 'drop-shadow(0px 4px 6px rgba(38,222,129,0.25))',
+                animationDelay: '0.1s',
+              }}
             />
 
             {/* Expense Bézier Path */}
@@ -391,7 +396,12 @@ export default function Dashboard({
               stroke="var(--color-expense)"
               strokeWidth="3.5"
               strokeLinecap="round"
-              style={{ filter: 'drop-shadow(0px 4px 6px rgba(255,94,87,0.25))' }}
+              className="line-chart-path"
+              style={{
+                '--line-length': '400',
+                filter: 'drop-shadow(0px 4px 6px rgba(255,94,87,0.25))',
+                animationDelay: '0.4s',
+              }}
             />
 
             {/* Interactive Nodes for Income */}

@@ -211,6 +211,14 @@ export default function TransactionHistory({
     return item?.type === 'header' ? 36 : 58;
   }, [flatItems]);
 
+  // Staggered entrance animation — fires on initial mount and when filters change
+  const [initialLoad, setInitialLoad] = useState(true);
+  useEffect(() => {
+    setInitialLoad(true);
+    const timer = setTimeout(() => setInitialLoad(false), 1800);
+    return () => clearTimeout(timer);
+  }, [flatItems.length]);
+
   const rowVirtualizer = useVirtualizer({
     count: flatItems.length,
     getScrollElement: () => parentRef.current,
@@ -288,7 +296,18 @@ export default function TransactionHistory({
       </div>
 
       {/* Segmented control: All | Income | Expense */}
-      <div className="neo-pressed-sm" style={styles.segmentContainer}>
+      <div className="neo-pressed-sm seg-sliding-container" style={styles.segmentContainer}>
+        {/* Sliding active pill */}
+        <div
+          className="seg-sliding-pill"
+          style={{
+            left: (() => {
+              const idx = ['all', 'income', 'expense'].indexOf(typeFilter);
+              return `${idx * 33.33}%`;
+            })(),
+            width: '33.33%',
+          }}
+        />
         {[
           { value: 'all', label: t('txHistory.allTransactions', lang) },
           { value: 'income', label: t('income', lang) },
@@ -301,9 +320,11 @@ export default function TransactionHistory({
               onClick={() => setTypeFilter(seg.value)}
               style={{
                 ...styles.segmentBtn,
-                boxShadow: isActive ? 'var(--neomorphic-raised-sm)' : 'none',
-                backgroundColor: isActive ? 'var(--bg-color)' : 'transparent',
-                borderColor: isActive ? 'rgba(255,255,255,0.4)' : 'transparent',
+                position: 'relative',
+                zIndex: 1,
+                boxShadow: 'none',
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
                 color: isActive 
                   ? seg.value === 'income' 
                     ? 'var(--color-income)' 
@@ -478,7 +499,7 @@ export default function TransactionHistory({
       <div ref={parentRef} style={{ ...styles.listContainer, overflowY: 'auto' }}>
         {flatItems.length === 0 ? (
           <div className="neo-pressed-sm" style={styles.emptyState}>
-            <Eye size={28} style={{ color: 'var(--text-secondary)', opacity: 0.5, marginBottom: '8px' }} />
+            <Eye size={28} style={{ color: 'var(--text-secondary)', opacity: 0.5, marginBottom: '8px' }} className="empty-float" />
             <p>{t('txHistory.noMatching', lang)}</p>
             <p style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>{t('txHistory.tryWidening', lang)}</p>
           </div>
@@ -507,6 +528,7 @@ export default function TransactionHistory({
                   </div>
                 );
               }
+              const staggerIndex = virtualRow.index;
               return (
                 <div
                   key={item?.key || virtualRow.index}
@@ -519,20 +541,27 @@ export default function TransactionHistory({
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  <TransactionItem
-                    transaction={item.tx}
-                    account={item.acc}
-                    category={item.cat}
-                    toAccount={item.toAcc}
-                    onClick={selectMode ? undefined : () => onEditTransaction(item.tx)}
-                    showEdit={!selectMode}
-                    showDate={false}
-                    variant="default"
-                    lang={lang}
-                    selectable={selectMode}
-                    selected={selectedIds.has(item.tx.id)}
-                    onSelect={() => toggleSelection(item.tx.id)}
-                  />
+                  <div
+                    className={initialLoad ? 'virtual-stagger' : ''}
+                    style={{
+                      animationDelay: initialLoad ? `${Math.min(staggerIndex, 14) * 0.06}s` : '0s',
+                    }}
+                  >
+                    <TransactionItem
+                      transaction={item.tx}
+                      account={item.acc}
+                      category={item.cat}
+                      toAccount={item.toAcc}
+                      onClick={selectMode ? undefined : () => onEditTransaction(item.tx)}
+                      showEdit={!selectMode}
+                      showDate={false}
+                      variant="default"
+                      lang={lang}
+                      selectable={selectMode}
+                      selected={selectedIds.has(item.tx.id)}
+                      onSelect={() => toggleSelection(item.tx.id)}
+                    />
+                  </div>
                 </div>
               );
             })}

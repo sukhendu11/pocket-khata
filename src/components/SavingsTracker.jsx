@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Plus, X, AlertCircle, Target, Wallet, Trash2, Edit3, TrendingUp } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
@@ -27,6 +27,7 @@ export default function SavingsTracker({
   const [contributeAmount, setContributeAmount] = useState('');
   const [contributeAccountId, setContributeAccountId] = useState('');
   const [formError, setFormError] = useState('');
+  const [initialLoad, setInitialLoad] = useState(true);
 
   const goalsWithProgress = useMemo(() => {
     return savingsGoals.map(g => ({
@@ -36,6 +37,14 @@ export default function SavingsTracker({
       isCompleted: g.currentAmount >= g.targetAmount,
     })).sort((a, b) => b.percentage - a.percentage);
   }, [savingsGoals]);
+
+  useEffect(() => {
+    if (goalsWithProgress.length > 0) {
+      setInitialLoad(true);
+      const timer = setTimeout(() => setInitialLoad(false), 1800);
+      return () => clearTimeout(timer);
+    }
+  }, [goalsWithProgress.length]);
 
   const totalStats = useMemo(() => {
     const totalTarget = savingsGoals.reduce((s, g) => s + g.targetAmount, 0);
@@ -153,11 +162,14 @@ export default function SavingsTracker({
             <p style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>{t('savings.noGoalsDesc', lang)}</p>
           </div>
         ) : (
-          goalsWithProgress.map(g => (
-            <div key={g.id} className="neo-raised-sm" style={{
+          goalsWithProgress.map((g, idx) => {
+            const staggerIdx = Math.min(idx, 14);
+            return (
+            <div key={g.id} className={`neo-raised-sm${initialLoad ? ' list-stagger' : ''}`} style={{
               ...styles.goalCard,
               borderLeft: `4px solid ${g.color}`,
               opacity: g.isCompleted ? 0.8 : 1,
+              animationDelay: initialLoad ? `${staggerIdx * 0.06}s` : '0s',
             }}>
               <div style={styles.cardTop}>
                 <div style={styles.cardLeft}>
@@ -200,7 +212,8 @@ export default function SavingsTracker({
                 </button>
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
 

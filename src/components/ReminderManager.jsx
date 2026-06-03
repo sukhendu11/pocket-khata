@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   ArrowLeft, Plus, Calendar, BellRing,
   CheckCircle, AlertCircle, Trash2, X, CreditCard
@@ -29,6 +29,18 @@ export default function ReminderManager({
   const [showPaySelectModal, setShowPaySelectModal] = useState(false);
   const [selectedReminderToPay, setSelectedReminderToPay] = useState(null);
   const [editingReminder, setEditingReminder] = useState(null);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const prevReminderCount = useRef(0);
+
+  useEffect(() => {
+    const count = filteredReminders.length;
+    if (count > 0 && count !== prevReminderCount.current) {
+      prevReminderCount.current = count;
+      setInitialLoad(true);
+      const timer = setTimeout(() => setInitialLoad(false), 1800);
+      return () => clearTimeout(timer);
+    }
+  }, [filteredReminders.length]);
 
   // Form states
   const [name, setName] = useState('');
@@ -201,10 +213,12 @@ export default function ReminderManager({
             <p>{t('reminders.noReminders', lang)}</p>
           </div>
         ) : (
-          filteredReminders.map(rem => (
+          filteredReminders.map((rem, idx) => {
+            const staggerIdx = Math.min(idx, 14);
+            return (
             <div
               key={rem.id}
-              className={rem.status === 'paid' ? 'neo-pressed-sm' : 'neo-raised-sm'}
+              className={`${rem.status === 'paid' ? 'neo-pressed-sm' : 'neo-raised-sm'}${initialLoad ? ' list-stagger' : ''}`}
               style={{
                 ...styles.reminderCard,
                 boxShadow: rem.isOverdue
@@ -215,6 +229,7 @@ export default function ReminderManager({
                 borderLeft: `4px solid ${getCategoryColor(rem.categoryId)}`,
                 opacity: rem.status === 'paid' ? 0.75 : 1,
                 cursor: rem.status === 'unpaid' ? 'pointer' : 'default',
+                animationDelay: initialLoad ? `${staggerIdx * 0.06}s` : '0s',
               }}
               onClick={() => rem.status === 'unpaid' && handleEdit(rem)}
             >
@@ -274,7 +289,8 @@ export default function ReminderManager({
                 )}
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
 

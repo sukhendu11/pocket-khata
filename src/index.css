@@ -188,7 +188,7 @@ body {
   border-radius: 20px;
   background-color: var(--bg-color);
   border: 1px solid rgba(255, 255, 255, 0.4);
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.4s ease, box-shadow 0.4s ease;
 }
 
 .neo-raised-sm {
@@ -196,7 +196,7 @@ body {
   border-radius: 12px;
   background-color: var(--bg-color);
   border: 1px solid rgba(255, 255, 255, 0.4);
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.4s ease, box-shadow 0.4s ease;
 }
 
 .neo-pressed-sm {
@@ -204,7 +204,7 @@ body {
   border-radius: 12px;
   background-color: var(--bg-color);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.4s ease, box-shadow 0.4s ease;
 }
 
 /* Interactive Neo Button */
@@ -599,6 +599,102 @@ body {
 
 [data-theme="dark"] .header-logo-sm:hover {
   filter: drop-shadow(0 4px 12px rgba(84, 160, 255, 0.5)) brightness(1.08);
+}
+
+/* ── Skeleton shimmer for loading placeholders ── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer-card {
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-color) 25%,
+    color-mix(in srgb, var(--text-secondary) 8%, var(--bg-color)) 37%,
+    var(--bg-color) 63%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  min-height: 16px;
+}
+
+/* ── Empty state icon gentle float ── */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.empty-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* ── Line chart draw animation ── */
+@keyframes drawLine {
+  from { stroke-dashoffset: var(--line-length, 1000); }
+  to { stroke-dashoffset: 0; }
+}
+
+.line-chart-path {
+  stroke-dasharray: var(--line-length, 1000);
+  stroke-dashoffset: var(--line-length, 1000);
+  animation: drawLine 1.2s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+/* ── Bottom nav active indicator ── */
+.nav-indicator {
+  position: absolute;
+  bottom: 0;
+  height: 3px;
+  border-radius: 2px;
+  background-color: var(--accent-color);
+  transition: left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: none;
+}
+
+/* ── Segmented control sliding pill ── */
+.seg-sliding-container {
+  position: relative;
+}
+
+.seg-sliding-pill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 10px;
+  background-color: var(--bg-color);
+  box-shadow: var(--neomorphic-raised-sm);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Toast icon entrance pulse ── */
+@keyframes toastIconPulse {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.toast-icon {
+  animation: toastIconPulse 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* ── Staggered entrance for virtual list items ── */
+@keyframes fadeInItem {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.virtual-stagger {
+  animation: fadeInItem 0.45s ease both;
+}
+
+/* ── Staggered entrance for regular list items (Budget, Savings, Reminders) ── */
+.list-stagger {
+  animation: fadeInItem 0.45s ease both;
 }
 
 /* Hide scrollbar utility */
