@@ -57,6 +57,26 @@ TAGS:
 
 ---
 
+## [BUILD] [NOTIFICATION] — v2.4.1 — Notification Channel Hardening + Lint Cleanup
+
+DETAILS:
+- Change: Made sendNotification() self-sufficient by creating the Android notification
+  channel before scheduling (was previously delegated to callers). Fixed 16 lint errors
+  and 4 warnings across 10 files. Rewrote README from codebase scan. Bumped versionCode
+  to 8 for APK upgrade path.
+- Reason: Eliminate fragile channel-creation delegation pattern; achieve clean CI gate;
+  ensure accurate documentation; enable APK upgrades.
+- Files: notifications.js, App.jsx, Settings.jsx, db.js, AccountManager.jsx,
+  BudgetManager.jsx, PieChart.jsx, ReminderManager.jsx, TransactionForm.jsx,
+  download.js, 5 test files, README.md, version.properties, CHANGELOG.md
+- Result: Notification channel always created before scheduling; 0 lint issues;
+  accurate v2.4.1 docs; versionCode 8 release-ready.
+
+TAGS:
+#notification #lint #build #release #v2.4.1
+
+---
+
 ## [BUILD] [CORE] — Production Hardening + System Upgrade
 
 DETAILS:
