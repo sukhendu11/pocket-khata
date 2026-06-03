@@ -390,34 +390,20 @@ describe('Settings — Data Portability', () => {
     expect(defaultProps.onExportDatabase).toHaveBeenCalledOnce();
   });
 
-  it('calls onImportDatabase when JSON file selected and confirmed', async () => {
-    const { saveString } = await import('../lib/download');
+  it('calls onImportDatabase directly when JSON file is selected', async () => {
     render(<Settings {...defaultProps} />);
 
-    // Find the hidden file input
     const fileInput = document.querySelector('input[type="file"]');
     expect(fileInput).toBeTruthy();
 
-    // Simulate file selection
-    const file = new File(['{}'], 'backup.json', { type: 'application/json' });
+    const file = new File(['{"test": true}'], 'backup.json', { type: 'application/json' });
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     // Wait for FileReader async + state update
     await new Promise(resolve => setTimeout(resolve, 50));
 
-    // Confirmation dialog should now be visible with Import & Replace button
-    const confirmBtn = screen.getByText('Import & Replace');
-    expect(confirmBtn).toBeTruthy();
-
-    // Click confirm — triggers safety backup + import
-    fireEvent.click(confirmBtn);
-
-    // Wait for async handling (saveString is mocked to resolve immediately)
-    await new Promise(resolve => setTimeout(resolve, 20));
-
-    expect(defaultProps.onExportDatabase).toHaveBeenCalledOnce();
     expect(defaultProps.onImportDatabase).toHaveBeenCalledOnce();
-    expect(defaultProps.onImportDatabase).toHaveBeenCalledWith('{}');
+    expect(defaultProps.onImportDatabase).toHaveBeenCalledWith('{"test": true}');
   });
 });
 

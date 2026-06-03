@@ -23,7 +23,6 @@ const CalendarView = lazy(() => import('./components/CalendarView'));
 const Settings = lazy(() => import('./components/Settings'));
 const ReminderManager = lazy(() => import('./components/ReminderManager'));
 
-import { requestNotificationPermission, getNotificationPermission } from './notifications';
 const AccountManager = lazy(() => import('./components/AccountManager'));
 const CategoryManager = lazy(() => import('./components/CategoryManager'));
 const BudgetManager = lazy(() => import('./components/BudgetManager'));
@@ -202,14 +201,9 @@ export default function App() {
     const loadedSavingsGoals = db.getSavingsGoals();
     const loadedReminders = db.getReminders();
 
-    // Request notification permissions on Android (runs silently on first load)
-    if (Capacitor.isNativePlatform()) {
-      getNotificationPermission().then((perm) => {
-        if (perm === 'default') {
-          requestNotificationPermission();
-        }
-      }).catch(() => {});
-    }
+    // Notification permission is NOT auto-requested here.
+    // It is only requested when the user explicitly interacts with the
+    // notification toggle in Settings → handleToggleNotifications.
     setTheme(initialTheme);
     setAccounts(loadedAccounts);
     setCategories(loadedCategories);

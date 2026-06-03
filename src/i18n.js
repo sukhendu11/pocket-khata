@@ -446,6 +446,7 @@ const translations = {
   'notif.dueTomorrow': { en: '{name}: ৳{amount} — due tomorrow', bn: '{name}: ৳{amount} — আগামীকাল পরিশোধ' },
   'notif.overdueDays': { en: '{name}: ৳{amount} — overdue by {days} day{s}', bn: '{name}: ৳{amount} — {days} দিন মেয়াদোত্তীর্ণ' },
   'notif.enabled': { en: 'Notifications active', bn: 'নোটিফিকেশন সক্রিয়' },
+  'notif.disabled': { en: 'Notifications disabled', bn: 'নোটিফিকেশন নিষ্ক্রিয়' },
   'notif.permissionDenied': { en: 'Notifications are disabled. Enable them in your device settings.', bn: 'নোটিফিকেশন বন্ধ। ডিভাইস সেটিংস থেকে চালু করুন।' },
   'notif.enable': { en: 'Enable', bn: 'চালু করুন' },
   'notif.denied': { en: 'Permission denied', bn: 'অনুমতি নেই' },

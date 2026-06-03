@@ -321,6 +321,70 @@ FIX VALIDATION RULE (CRITICAL)
 
 ---
 
+## FIX-014: Notification Toggle Rewrite — Real Permission Sync
+
+| Field | Value |
+|-------|-------|
+| **Commit** | PENDING |
+| **Status** | ⏳ TECH_DONE |
+| **Type** | Bug (wrong toggle behavior) |
+| **Module** | Settings, App |
+
+**Problems:**
+1. Toggle state was stored in localStorage (`pocket_khata_notifications_enabled`) independent of the actual Android permission — could show ON when permission was never granted
+2. App.jsx silently requested `POST_NOTIFICATIONS` permission on every startup via `requestNotificationPermission()` in the mount `useEffect`, triggering the popup without user action
+3. Toggling OFF still triggered the permission popup because the `newVal` check was after the permission check
+
+**Fixes:**
+1. **Removed silent startup request** from App.jsx `useEffect` — permission is only requested when the user explicitly taps the toggle in Settings
+2. **Rewrote toggle logic** in Settings.jsx:
+   - Removed `notificationsEnabled` state + localStorage persistence
+   - Added `notificationsOptedOut` state (localStorage) for when user explicitly disables
+   - Derived: `notificationsEnabled = notificationPermission === 'granted' && !notificationsOptedOut`
+   - Toggle ON → request system permission → result determines state
+   - Toggle OFF → set opt-out flag (system permission stays granted, but toggle reflects the choice)
+   - First launch: permission='default', optedOut=false → toggle OFF automatically
+3. **Cleaned up** unused `requestNotificationPermission`/`getNotificationPermission` imports from App.jsx
+
+**Behavior on first launch:**
+- `notificationPermission` = 'default' (never requested) → toggle OFF
+- `notificationsOptedOut` = false (no localStorage key)
+- No popup appears until user explicitly taps toggle
+
+**Behavior when toggling:**
+- Tap ON → if permission not granted, native Android popup appears → granted=ON, denied=OFF
+- Tap OFF → sets opt-out flag → toggle OFF (permission remains granted at system level)
+- Tap ON again (previously granted but opted out) → clears opt-out → toggle ON (no re-request needed)
+
+**Files changed:** `src/components/Settings.jsx`, `src/App.jsx`
+
+---
+
+## FIX-016: Notification Opt-Out Persistence + Import Button Fix + Data Reset + Icon Fix
+
+| Field | Value |
+|-------|-------|
+| **Commit** | PENDING |
+| **Status** | ✅ DONE |
+| **Type** | Bug fix + feature |
+| **Module** | Settings, notifications, notifications.js |
+
+**Problems:**
+1. Toggle OFF didn't persist — resetting to ON on next app launch because system permission remained 'granted'
+2. Import button was invisible (same visual weight as non-primary buttons)
+3. Data Portability section had no Reset Data option for clearing all app data
+4. Notification smallIcon 'ic_stat_notification' referenced in sendTestNotification() didn't exist in Android resources, could cause rendering issues
+
+**Fixes:**
+1. **Opt-out persistence**: Added `notificationsOptedOut` state backed by localStorage. Toggle OFF saves `localStorage.setItem('pocket_khata_notifications_opted_out', 'true')`. On mount: `enabled = permission === 'granted' && !optedOut`. Toggle ON clears the opt-out flag and either requests permission (if not granted) or fires a test notification (if already granted).
+2. **Import button visibility**: Changed from `className="neo-btn"` (subtle) to `className="neo-btn neo-btn-primary"` — same accent-colored border as Export button for equal visual weight.
+3. **Data Reset button**: Added red-bordered button at bottom of Data Portability card with `window.confirm()` safety dialog. Calls `onResetDatabase()` (handler already wired from App.jsx). Uses existing i18n keys: `resetDataConfirm`, `resetData`, `resetSuccess`. XCircle icon already imported.
+4. **Icon fix**: Removed `smallIcon: 'ic_stat_notification'` from `sendTestNotification()` Capacitor notification options. Capacitor provides a default icon, so this avoids a missing resource error.
+
+**Files changed:** `src/components/Settings.jsx`, `src/notifications.js`
+
+---
+
 # 📊 SUMMARY
 
 | # | Fix | Files | Status |
@@ -338,5 +402,8 @@ FIX VALIDATION RULE (CRITICAL)
 | FIX-011 | Data Portability — import confirmation + safety backup + `--border-color` | 4 | ✅ DONE |
 | FIX-012 | Scroll-triggered entrance animations + counters + DollarSign removal | 7 | ✅ DONE |
 | FIX-013 | Notification visibility — Android 12+ verified | 2 | ✅ DONE |
+| FIX-014 | Notification toggle — permission popup on OFF | 1 | ⏳ TECH_DONE |
+| FIX-015 | Settings clean reset — stripped notification & data portability, cleaned dead code | 5 | ✅ DONE |
+| FIX-016 | Notification opt-out persistence + Import button fix + Data Reset + icon fix | 2 | ✅ DONE |
 
 ---

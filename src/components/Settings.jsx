@@ -1,23 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { 
   ArrowLeft, Bell, RefreshCw, Upload,
-  Info, Shield, CheckCircle, XCircle, FileText
+  Info, CheckCircle, XCircle, FileText
 } from 'lucide-react';
 import { generatePDFReport } from '../lib/pdf';
 import { saveString } from '../lib/download';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
-import { trackAction, trackError } from '../lib/analytics';
+import { trackAction } from '../lib/analytics';
 import { db } from '../db';
-import {
-  getConsent,
-  resetConsent,
-  getQueuedEventCount,
-  getLastSyncDisplay,
-  isTrackingAllowed,
-  flushEvents,
-} from '../lib/analytics';
-import { isSupabaseConfigured } from '../lib/supabase';
 import {
   isNotificationSupported,
   getNotificationPermission,
@@ -90,26 +81,6 @@ export default function Settings({
     setIsGeneratingPDF(false);
   };
 
-  // Sync Now state
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState(null); // null | 'success' | 'error'
-
-  const handleSyncNow = async () => {
-    setIsSyncing(true);
-    setSyncResult(null);
-    try {
-      await flushEvents();
-      setSyncResult('success');
-      // Reset feedback after 3 seconds
-      setTimeout(() => setSyncResult(null), 3000);
-    } catch (e) {
-      trackError(e, { handler: 'handleSyncNow' });
-      setSyncResult('error');
-      setTimeout(() => setSyncResult(null), 3000);
-    }
-    setIsSyncing(false);
-  };
-
   // JSON Export download
   const handleExportJSON = async () => {
     const jsonStr = onExportDatabase();
@@ -130,76 +101,68 @@ export default function Settings({
     }
   };
 
-  // Reset Data State
-  // Notification permission state — native Android via @capacitor/local-notifications
-  const [notificationPermission, setNotificationPermission] = useState('default');
-  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
-    return localStorage.getItem('pocket_khata_notifications_enabled') === 'true';
-  });
+  // ── Notification Toggle ──
+  // Toggle ON → native Android permission popup → result determines state
+  // Toggle OFF → sets opt-out flag (persisted across restarts)
+  // On mount: state = permission === 'granted' && !optOut
   const notifSupported = isNotificationSupported();
+  const [notificationsOptedOut, setNotificationsOptedOut] = useState(() => {
+    return localStorage.getItem('pocket_khata_notif_opted_out') === 'true';
+  });
+  const [notifPermission, setNotifPermission] = useState('default');
+  const [isSendingTest, setIsSendingTest] = useState(false);
+
+  const notificationsEnabled = notifPermission === 'granted' && !notificationsOptedOut;
 
   useEffect(() => {
-    if (notifSupported) {
-      getNotificationPermission().then(setNotificationPermission).catch(() => {});
-    }
+    if (!notifSupported) return;
+    getNotificationPermission().then((perm) => {
+      setNotifPermission(perm);
+    }).catch(() => {});
   }, [notifSupported]);
 
-  const handleToggleNotifications = async () => {
-    try {
-      if (notificationPermission !== 'granted') {
-        const result = await requestNotificationPermission();
-        setNotificationPermission(result);
-        if (result !== 'granted') return;
-      }
-      const newVal = !notificationsEnabled;
-      setNotificationsEnabled(newVal);
-      localStorage.setItem('pocket_khata_notifications_enabled', String(newVal));
-      if (newVal) {
-        setToast({ type: 'success', message: 'Notifications enabled for bill reminders' });
-      } else {
-        setToast({ type: 'success', message: 'Notifications disabled' });
-      }
-    } catch {
-      setToast({ type: 'error', message: 'Failed to update notification settings' });
-    }
-  };
-
-  const [isSendingTestNotif, setIsSendingTestNotif] = useState(false);
-
-  const handleSendTestNotification = async () => {
-    if (isSendingTestNotif) return;
-    setIsSendingTestNotif(true);
+  /** Send a test notification and show result toast */
+  const fireTestNotification = async () => {
+    setIsSendingTest(true);
     try {
       const ok = await sendTestNotification();
       if (ok) {
-        setToast({ type: 'success', message: t('notif.testSent', lang) });
-        trackAction('send_test_notification', { success: true });
+        setToast({ type: 'success', message: t('notif.testSent', lang) || 'Test notification sent! Check your notification bar.' });
       } else {
-        setToast({ type: 'error', message: t('notif.testFailed', lang) });
-        trackAction('send_test_notification', { success: false });
+        setToast({ type: 'error', message: t('notif.testFailed', lang) || 'Failed to send test notification.' });
       }
     } catch {
-      setToast({ type: 'error', message: t('notif.testFailed', lang) });
+      setToast({ type: 'error', message: t('notif.testFailed', lang) || 'Failed to send test notification.' });
     }
-    setIsSendingTestNotif(false);
+    setIsSendingTest(false);
   };
 
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-
-  const handleResetData = () => {
-    setShowResetConfirm(false);
-    if (onResetDatabase) {
-      onResetDatabase();
-      setToast({ type: 'success', message: t('settings.resetSuccess', lang) });
-      if (onNavigate) onNavigate('dashboard');
+  const handleToggleNotifications = async () => {
+    if (notificationsEnabled) {
+      // Toggle OFF — set opt-out flag to persist choice
+      setNotificationsOptedOut(true);
+      localStorage.setItem('pocket_khata_notif_opted_out', 'true');
+      setToast({ type: 'success', message: t('notif.disabled', lang) || 'Notifications disabled' });
+      return;
+    }
+    if (notifPermission === 'granted') {
+      // Permission already granted but user had opted out — re-enable and test
+      setNotificationsOptedOut(false);
+      localStorage.removeItem('pocket_khata_notif_opted_out');
+      await fireTestNotification();
+      return;
+    }
+    const result = await requestNotificationPermission();
+    setNotifPermission(result);
+    if (result === 'granted') {
+      setNotificationsOptedOut(false);
+      localStorage.removeItem('pocket_khata_notif_opted_out');
+      await fireTestNotification();
     }
   };
 
-  // ── Import Confirmation State ──
-  const [importPreview, setImportPreview] = useState(null);
-  const [showImportConfirm, setShowImportConfirm] = useState(false);
 
-  // JSON Import via file input
+  // JSON Import — simple file picker, direct import after validation
   const fileInputRef = useRef(null);
 
   const handleImportClick = () => {
@@ -211,65 +174,21 @@ export default function Settings({
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (evt) => {
-      const jsonString = evt.target.result;
       try {
-        const parsed = JSON.parse(jsonString);
-        if (!parsed || typeof parsed !== 'object') {
-          setToast({ type: 'error', message: t('settings.importError', lang) });
-          e.target.value = '';
-          return;
+        const jsonString = evt.target.result;
+        JSON.parse(jsonString); // validate
+        const success = onImportDatabase(jsonString);
+        if (success) {
+          setToast({ type: 'success', message: t('settings.importSuccess', lang) });
+        } else {
+          setToast({ type: 'error', message: t('settings.importFailed', lang) });
         }
-        // Show confirmation preview
-        setImportPreview({
-          jsonString,
-          filename: file.name,
-          stats: {
-            accounts: parsed.accounts?.length || 0,
-            categories: parsed.categories?.length || 0,
-            transactions: parsed.transactions?.length || 0,
-            budgets: parsed.budgets?.length || 0,
-            goals: parsed.savingsGoals?.length || 0,
-            reminders: parsed.reminders?.length || 0,
-          },
-        });
-        setShowImportConfirm(true);
-      } catch (parseErr) {
-        console.error('Invalid JSON file:', parseErr);
+      } catch {
         setToast({ type: 'error', message: t('settings.importError', lang) });
       }
     };
     reader.readAsText(file);
     e.target.value = '';
-  };
-
-  const handleConfirmImport = async () => {
-    if (!importPreview) return;
-    try {
-      // 1. Save safety backup of current data before overwriting
-      const currentData = onExportDatabase();
-      if (currentData) {
-        await saveString(currentData, `Pocket_Khata_PreImport_Backup_${new Date().toISOString().split('T')[0]}.json`);
-      }
-
-      // 2. Perform the import
-      const success = onImportDatabase(importPreview.jsonString);
-      trackAction('import_json', { success });
-      if (success) {
-        setToast({ type: 'success', message: t('settings.importSuccess', lang) });
-      } else {
-        setToast({ type: 'error', message: t('settings.importFailed', lang) });
-      }
-    } catch (err) {
-      console.error('Import failed:', err);
-      setToast({ type: 'error', message: t('settings.importFailed', lang) });
-    }
-    setShowImportConfirm(false);
-    setImportPreview(null);
-  };
-
-  const handleCancelImport = () => {
-    setShowImportConfirm(false);
-    setImportPreview(null);
   };
 
 
@@ -361,344 +280,81 @@ export default function Settings({
             </button>
           </div>
 
-          {/* SECTION: Notification Settings — native Android via @capacitor/local-notifications */}
+          {/* SECTION 2: Notifications */}
           {notifSupported && (
             <div className="neo-raised" style={styles.card}>
               <div style={styles.cardHeader}>
                 <Bell size={16} style={{ color: 'var(--accent-color)' }} />
                 <h3 style={styles.cardTitle}>{t('notif.title', lang)}</h3>
               </div>
-              <p style={styles.cardDesc}>{t('notif.notificationDesc', lang)}</p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('notif.permission', lang)}</span>
-                <span style={{
-                  fontSize: '10px', fontWeight: '700', padding: '2px 10px', borderRadius: '20px',
-                  backgroundColor: notificationPermission === 'granted'
-                    ? 'color-mix(in srgb, var(--color-income) 15%, transparent)'
-                    : notificationPermission === 'denied'
-                      ? 'color-mix(in srgb, var(--color-expense) 15%, transparent)'
-                      : 'color-mix(in srgb, var(--text-secondary) 15%, transparent)',
-                  color: notificationPermission === 'granted' ? 'var(--color-income)' : notificationPermission === 'denied' ? 'var(--color-expense)' : 'var(--text-secondary)',
-                }}>
-                  {notificationPermission === 'granted' ? t('notif.granted', lang) : notificationPermission === 'denied' ? t('notif.denied', lang) : '—'}
-                </span>
-              </div>
-              {/* Enable Notifications toggle */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <span id="notif-toggle-label" style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>
                   {t('notif.enableToggle', lang)}
                 </span>
                 <label className="toggle-switch">
                   <input
                     type="checkbox"
-                    id="notif-toggle"
-                    aria-labelledby="notif-toggle-label"
                     checked={notificationsEnabled}
                     onChange={handleToggleNotifications}
                   />
                   <span className="toggle-slider" />
                 </label>
               </div>
-              {/* Send Test Notification — only shown when enabled and permission granted */}
-              {notificationsEnabled && notificationPermission === 'granted' && (
+              {notificationsEnabled && (
                 <button
-                  className="neo-btn"
-                  style={{
-                    width: '100%',
-                    height: '36px',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    border: '1px solid var(--accent-color)',
-                    color: 'var(--accent-color)',
-                    opacity: isSendingTestNotif ? 0.6 : 1,
-                  }}
-                  onClick={handleSendTestNotification}
-                  disabled={isSendingTestNotif}
+                  className="neo-btn neo-btn-primary"
+                  style={{ ...styles.exportBtn, marginTop: '14px' }}
+                  onClick={fireTestNotification}
+                  disabled={isSendingTest}
                 >
-                  <Bell size={14} />
-                  {isSendingTestNotif
-                    ? t('notif.testSending', lang)
-                    : t('notif.testButton', lang)}
+                  {isSendingTest ? (
+                    <><RefreshCw size={14} className="spin-anim" /> {t('notif.testSending', lang) || 'Sending…'}</>
+                  ) : (
+                    t('notif.testButton', lang) || 'Send Test Notification'
+                  )}
                 </button>
-              )}
-
-              {notificationPermission === 'denied' && (
-                <p style={{ fontSize: '10px', color: 'var(--color-expense)', fontWeight: '500' }}>
-                  {t('notif.permissionDeniedHint', lang)}
-                </p>
               )}
             </div>
           )}
 
-          {/* SECTION 2: Data Portability */}
+          {/* SECTION 3: Data Portability */}
           <div className="neo-raised" style={styles.card}>
             <div style={styles.cardHeader}>
               <Upload size={16} style={{ color: 'var(--accent-color)' }} />
               <h3 style={styles.cardTitle}>{t('settings.dataPortability', lang)}</h3>
             </div>
-
-            <p style={styles.cardDesc}>
-              {t('settings.exportDescJSON', lang)}
-            </p>
-
             <button
               className="neo-btn neo-btn-primary"
-              style={styles.exportBtn}
+              style={{ ...styles.exportBtn, marginBottom: '10px' }}
               onClick={handleExportJSON}
             >
-              <Upload size={14} />
-              {t('settings.exportJSON', lang)}
+              <Upload size={14} /> {t('settings.exportJSON', lang)}
+            </button>
+            <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileChange} style={{ display: 'none' }} />
+            <button
+              className="neo-btn neo-btn-primary"
+              style={{ ...styles.exportBtn, marginBottom: '10px' }}
+              onClick={handleImportClick}
+            >
+              <Upload size={14} style={{ transform: 'rotate(180deg)' }} /> {t('settings.importJSON', lang)}
             </button>
 
-            <div style={{ marginTop: '14px', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
-              <p style={styles.cardDesc}>
-                {t('settings.importDesc', lang)}
-              </p>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json"
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-              />
-
-              {!showImportConfirm ? (
-                <button
-                  className="neo-btn"
-                  style={styles.exportBtn}
-                  onClick={handleImportClick}
-                >
-                  <Upload size={14} />
-                  {t('settings.importJSON', lang)}
-                </button>
-              ) : (
-                <div className="neo-pressed-sm" style={styles.resetConfirmPanel}>
-                  <span style={styles.resetConfirmText}>
-                    {t('settings.importConfirmTitle', lang)}
-                  </span>
-
-                  {/* Import file preview stats */}
-                  {importPreview && (
-                    <div style={{ width: '100%', marginBottom: '12px' }}>
-                      <div style={{
-                        fontSize: '9px', fontWeight: '600', color: 'var(--text-secondary)',
-                        textAlign: 'center', marginBottom: '6px',
-                      }}>
-                        {importPreview.filename}
-                      </div>
-                      <div style={{
-                        display: 'flex', flexWrap: 'wrap', gap: '4px 10px',
-                        justifyContent: 'center',
-                      }}>
-                        {Object.entries(importPreview.stats).filter(([_, v]) => v > 0).map(([key, val]) => {
-                          const label = ({
-                            accounts: t('autobackup.accounts', lang),
-                            categories: t('autobackup.categories', lang),
-                            transactions: t('autobackup.transactions', lang),
-                            budgets: t('autobackup.budgets', lang),
-                            goals: t('autobackup.goals', lang),
-                            reminders: t('autobackup.reminders', lang),
-                          })[key] || key;
-                          return (
-                            <span key={key} style={{ fontSize: '10px', color: 'var(--text-primary)', fontWeight: '600' }}>
-                              {val} {label}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  <div style={styles.resetBtnGroup}>
-                    <button
-                      className="neo-btn"
-                      style={styles.resetNoBtn}
-                      onClick={handleCancelImport}
-                    >
-                      {t('settings.resetCancel', lang)}
-                    </button>
-                    <button
-                      className="neo-btn"
-                      style={{
-                        flex: 1, height: '36px', fontSize: '11px', fontWeight: '600',
-                        justifyContent: 'center',
-                        border: '1px solid var(--accent-color)',
-                        backgroundColor: 'var(--accent-color)',
-                        color: '#fff',
-                      }}
-                      onClick={handleConfirmImport}
-                    >
-                      {t('settings.importConfirmAction', lang)}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Reset Data — divider + button */}
-            <div style={{ marginTop: '14px', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
-              <p style={styles.cardDesc}>
-                {t('settings.resetDataDesc', lang)}
-              </p>
-
-              {!showResetConfirm ? (
-                <button
-                  className="neo-btn"
-                  style={styles.resetBtn}
-                  onClick={() => setShowResetConfirm(true)}
-                >
-                  {t('settings.resetData', lang)}
-                </button>
-              ) : (
-                <div className="neo-pressed-sm" style={styles.resetConfirmPanel}>
-                  <span style={styles.resetConfirmText}>
-                    {t('settings.resetDataConfirm', lang)}
-                  </span>
-                  <div style={styles.resetBtnGroup}>
-                    <button
-                      className="neo-btn"
-                      style={styles.resetNoBtn}
-                      onClick={() => setShowResetConfirm(false)}
-                    >
-                      {t('settings.resetCancel', lang)}
-                    </button>
-                    <button
-                      className="neo-btn"
-                      style={styles.resetYesBtn}
-                      onClick={handleResetData}
-                    >
-                      {t('settings.resetConfirmAction', lang)}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Reset Data */}
+            <button
+              className="neo-btn"
+              style={{ ...styles.exportBtn, border: '1px solid var(--color-expense)', color: 'var(--color-expense)' }}
+              onClick={() => {
+                if (window.confirm(t('settings.resetDataConfirm', lang) || 'Are you sure? This will permanently delete all data and cannot be undone.')) {
+                  onResetDatabase();
+                  setToast({ type: 'success', message: t('settings.resetSuccess', lang) || 'Pocket Khata reset to factory defaults.' });
+                }
+              }}
+            >
+              <XCircle size={14} /> {t('settings.resetData', lang)}
+            </button>
           </div>
 
-          {/* [DISABLED] SECTION 3: Privacy & Analytics — kept for future use
-          <div className="neo-raised" style={styles.card}>
-            <div style={styles.cardHeader}>
-              <Shield size={16} style={{ color: 'var(--accent-color)' }} />
-              <h3 style={styles.cardTitle}>{t('privacy.title', lang)}</h3>
-            </div>
-
-            <p style={styles.cardDesc}>
-              {t('privacy.desc', lang)}
-            </p>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                {t('privacy.consentStatus', lang)}
-              </span>
-              <span style={{
-                fontSize: '10px', fontWeight: '700', padding: '2px 10px', borderRadius: '20px',
-                backgroundColor: getConsent() === 'granted'
-                  ? 'color-mix(in srgb, var(--color-income) 15%, transparent)'
-                  : 'color-mix(in srgb, var(--text-secondary) 15%, transparent)',
-                color: getConsent() === 'granted' ? 'var(--color-income)' : 'var(--text-secondary)',
-              }}>
-                {getConsent() === 'granted' ? t('privacy.statusGranted', lang) : t('privacy.statusDenied', lang)}
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                {t('privacy.eventsQueued', lang)}
-              </span>
-              <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                {getQueuedEventCount()}
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                {t('privacy.lastSync', lang)}
-              </span>
-              <span style={{ fontSize: '11px', fontWeight: '500', color: 'var(--text-primary)' }}>
-                {getLastSyncDisplay() ? new Date(getLastSyncDisplay()).toLocaleString() : t('privacy.never', lang)}
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                {t('privacy.supabaseStatus', lang)}
-              </span>
-              <span style={{
-                fontSize: '10px', fontWeight: '700', padding: '2px 10px', borderRadius: '20px',
-                backgroundColor: isSupabaseConfigured
-                  ? 'color-mix(in srgb, var(--color-income) 15%, transparent)'
-                  : 'color-mix(in srgb, var(--color-warning) 15%, transparent)',
-                color: isSupabaseConfigured ? 'var(--color-income)' : 'var(--color-warning)',
-              }}>
-                {isSupabaseConfigured ? t('privacy.configured', lang) : t('privacy.notConfigured', lang)}
-              </span>
-            </div>
-
-            {isTrackingAllowed() && (
-              <button
-                className="neo-btn"
-                style={{
-                  width: '100%',
-                  height: '36px',
-                  fontSize: '11px',
-                  fontWeight: '600',
-                  justifyContent: 'center',
-                  marginBottom: '8px',
-                  gap: '6px',
-                  border: syncResult === 'success'
-                    ? '1px solid var(--color-income)'
-                    : syncResult === 'error'
-                      ? '1px solid var(--color-expense)'
-                      : undefined,
-                  color: syncResult === 'success'
-                    ? 'var(--color-income)'
-                    : syncResult === 'error'
-                      ? 'var(--color-expense)'
-                      : 'var(--text-primary)',
-                }}
-                onClick={handleSyncNow}
-                disabled={isSyncing || !isSupabaseConfigured}
-              >
-                {isSyncing ? (
-                  <RefreshCw size={14} className="spin-anim" />
-                ) : syncResult === 'success' ? (
-                  <CheckCircle size={14} />
-                ) : syncResult === 'error' ? (
-                  <XCircle size={14} />
-                ) : (
-                  <Upload size={14} />
-                )}
-                {isSyncing
-                  ? t('analytics.events.syncing', lang)
-                  : syncResult === 'success'
-                    ? t('analytics.events.synced', lang)
-                    : t('analytics.events.sync', lang)}
-              </button>
-            )}
-
-            {isTrackingAllowed() && (
-              <div style={{ marginBottom: '4px' }}>
-                <button
-                  className="neo-btn"
-                  style={{ width: '100%', height: '36px', fontSize: '11px', justifyContent: 'center' }}
-                  onClick={() => {
-                    if (window.confirm(t('privacy.resetDesc', lang))) {
-                      resetConsent();
-                      window.location.reload();
-                    }
-                  }}
-                >
-                  {t('privacy.resetConsent', lang)}
-                </button>
-              </div>
-            )}
-          </div>
-          */}
-
-          {/* SECTION 5: Info */}
+          {/* SECTION 4: Info */}
           <div className="neo-raised" style={styles.card}>
             <div style={styles.cardHeader}>
               <Info size={16} style={{ color: 'var(--accent-color)' }} />
@@ -831,40 +487,6 @@ const styles = {
     marginBottom: '14px',
   },
 
-  syncBtnRow: {
-    display: 'flex',
-    gap: '12px',
-  },
-  syncBtn: {
-    flex: 1,
-    height: '38px',
-    fontSize: '12px',
-  },
-  restoreBtn: {
-    flex: 1,
-    height: '38px',
-    fontSize: '12px',
-  },
-  syncSuccess: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    fontSize: '11px',
-    fontWeight: '600',
-    color: 'var(--color-income)',
-    marginTop: '10px',
-    paddingLeft: '4px',
-  },
-  syncError: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    fontSize: '11px',
-    fontWeight: '600',
-    color: 'var(--color-expense)',
-    marginTop: '10px',
-    paddingLeft: '4px',
-  },
   exportBtn: {
     width: '100%',
     height: '38px',
@@ -918,100 +540,6 @@ const styles = {
     fontSize: '11px',
     color: 'var(--text-primary)',
     fontWeight: '500',
-  },
-  resetBtn: {
-    width: '100%',
-    height: '38px',
-    fontSize: '12px',
-    justifyContent: 'center',
-    border: '1px solid var(--color-expense)',
-    color: 'var(--color-expense)',
-  },
-  snapshotCard: {
-    padding: '10px 12px',
-    borderRadius: '10px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-    marginBottom: '8px',
-  },
-  snapshotHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  snapshotLabel: {
-    fontSize: '11px',
-    fontWeight: '700',
-    color: 'var(--text-primary)',
-  },
-  snapshotTime: {
-    fontSize: '9px',
-    color: 'var(--text-secondary)',
-    fontWeight: '500',
-  },
-  snapshotStats: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '4px 10px',
-  },
-  snapshotStat: {
-    fontSize: '9px',
-    color: 'var(--text-secondary)',
-    fontWeight: '500',
-  },
-  restoreSnapshotBtn: {
-    alignSelf: 'flex-end',
-    fontSize: '10px',
-    height: '26px',
-    padding: '0 10px',
-    borderRadius: '8px',
-    backgroundColor: 'var(--accent-color)',
-    color: '#fff',
-    border: 'none',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    cursor: 'pointer',
-  },
-  resetConfirmPanel: {
-    padding: '12px',
-    borderRadius: '12px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  resetConfirmText: {
-    fontSize: '11px',
-    fontWeight: '600',
-    color: 'var(--text-primary)',
-    marginBottom: '12px',
-    textAlign: 'center',
-    lineHeight: '1.4',
-  },
-  resetBtnGroup: {
-    display: 'flex',
-    gap: '10px',
-    width: '100%',
-  },
-  resetYesBtn: {
-    flex: 1,
-    height: '36px',
-    fontSize: '11px',
-    fontWeight: '600',
-    justifyContent: 'center',
-    border: '1px solid var(--color-expense)',
-    backgroundColor: 'var(--color-expense)',
-    color: '#fff',
-  },
-  resetNoBtn: {
-    flex: 1,
-    height: '36px',
-    fontSize: '11px',
-    fontWeight: '600',
-    justifyContent: 'center',
-    border: '1px solid var(--border-color)',
-    color: 'var(--text-primary)',
   },
   footer: {
     textAlign: 'center',

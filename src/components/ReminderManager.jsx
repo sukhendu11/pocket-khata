@@ -1,19 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
-  ArrowLeft, Plus, Calendar, Bell, BellRing,
+  ArrowLeft, Plus, Calendar, BellRing,
   CheckCircle, AlertCircle, Trash2, X, CreditCard
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber } from '../utils';
 import { trackAction } from '../lib/analytics';
-import {
-  getNotificationPermission,
-  requestNotificationPermission,
-  isNotificationSupported,
-  scheduleReminderNotification,
-  cancelAllNotifications,
-} from '../notifications';
+
 
 export default function ReminderManager({
   reminders,
@@ -43,57 +37,6 @@ export default function ReminderManager({
   const [dueDate, setDueDate] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [formError, setFormError] = useState('');
-
-  // Notification state — uses @capacitor/local-notifications on Android
-  const [permission, setPermission] = useState('default');
-  const supported = isNotificationSupported();
-  const showNotifSection = supported && permission !== 'unsupported';
-
-  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
-    const stored = localStorage.getItem('pocket_khata_notifications_enabled');
-    return stored === null ? true : stored === 'true';
-  });
-  const [reminderAlertsEnabled, setReminderAlertsEnabled] = useState(() => {
-    const stored = localStorage.getItem('pocket_khata_reminder_alerts_enabled');
-    return stored === null ? true : stored === 'true';
-  });
-
-  useEffect(() => {
-    if (supported) {
-      getNotificationPermission().then(setPermission).catch(() => {});
-    }
-  }, [supported]);
-
-  const handleToggleNotifications = async () => {
-    try {
-      if (permission !== 'granted') {
-        const result = await requestNotificationPermission();
-        setPermission(result);
-        if (result !== 'granted') return;
-      }
-      const newVal = !notificationsEnabled;
-      setNotificationsEnabled(newVal);
-      localStorage.setItem('pocket_khata_notifications_enabled', String(newVal));
-      if (newVal && safeReminders.length > 0) {
-        // Schedule notifications for all unpaid reminders
-        for (const rem of safeReminders) {
-          if (rem.status === 'unpaid') {
-            await scheduleReminderNotification(rem);
-          }
-        }
-      } else {
-        await cancelAllNotifications();
-      }
-    } catch {
-      // Silently fail
-    }
-  };
-
-  const handleToggleReminderAlerts = () => {
-    const newVal = !reminderAlertsEnabled;
-    setReminderAlertsEnabled(newVal);
-    localStorage.setItem('pocket_khata_reminder_alerts_enabled', String(newVal));
-  };
 
   // Filtered lists
   const today = new Date().toISOString().split('T')[0];
@@ -230,49 +173,6 @@ export default function ReminderManager({
           <Plus size={18} />
         </button>
       </div>
-
-      {/* Notification Toggles — clean, no warning banners */}
-      {showNotifSection && (
-        <div className="neo-raised-sm" style={styles.notifToggleSection}>
-          <label style={styles.toggleRow}>
-            <div style={styles.toggleLabelGroup}>
-              <span style={styles.toggleTitle}>{t('notif.enableToggle', lang)}</span>
-              <span style={styles.toggleDesc}>{t('notif.enableToggleDesc', lang)}</span>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={notificationsEnabled}
-                onChange={handleToggleNotifications}
-              />
-              <span className="toggle-slider" />
-            </label>
-          </label>
-          <label style={{ ...styles.toggleRow, marginTop: '4px' }}>
-            <div style={styles.toggleLabelGroup}>
-              <span style={styles.toggleTitle}>{t('notif.reminderAlerts', lang)}</span>
-              <span style={styles.toggleDesc}>{t('notif.reminderAlertsDesc', lang)}</span>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={reminderAlertsEnabled}
-                onChange={handleToggleReminderAlerts}
-                disabled={!notificationsEnabled}
-              />
-              <span className="toggle-slider" />
-            </label>
-          </label>
-          {/* Permission denied hint */}
-          {permission === 'denied' && notificationsEnabled && (
-            <div style={styles.notifDeniedHint}>
-              <span style={styles.notifDeniedText}>
-                {t('notif.permissionDenied', lang)} — {t('notif.permissionDeniedHint', lang)}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Tabs segment controller */}
       <div className="neo-pressed-sm" style={styles.segmentContainer}>
@@ -553,51 +453,6 @@ const styles = {
     borderRadius: '12px',
     backgroundColor: 'transparent',
     boxShadow: 'none',
-  },
-  notifToggleSection: {
-    padding: '10px 12px',
-    borderRadius: '14px',
-    marginBottom: '12px',
-    backgroundColor: 'var(--bg-color)',
-  },
-  toggleRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    cursor: 'pointer',
-    padding: '6px 2px',
-  },
-  toggleLabelGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1px',
-    flex: 1,
-    minWidth: 0,
-    paddingRight: '10px',
-  },
-  toggleTitle: {
-    fontSize: '11px',
-    fontWeight: '700',
-    color: 'var(--text-primary)',
-    lineHeight: '1.3',
-  },
-  toggleDesc: {
-    fontSize: '9px',
-    fontWeight: '400',
-    color: 'var(--text-secondary)',
-    lineHeight: '1.3',
-  },
-  notifDeniedHint: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    marginTop: '6px',
-    padding: '4px 0',
-  },
-  notifDeniedText: {
-    fontSize: '9px',
-    fontWeight: '500',
-    color: 'var(--text-secondary)',
   },
   listContainer: {
     flex: 1,
