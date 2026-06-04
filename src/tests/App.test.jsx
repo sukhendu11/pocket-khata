@@ -177,6 +177,7 @@ vi.mock('../components/SavingsTracker', () => makeLazyMock('SavingsTracker'));
 // ==============================================================================
 
 vi.mock('lucide-react', () => ({
+  Home: () => <div data-testid="icon-home">🏠</div>,
   Menu: () => <div data-testid="icon-menu">M</div>,
   CheckCircle: () => <div data-testid="icon-check">✓</div>,
 }));

@@ -252,14 +252,14 @@ describe('AccountManager — Add Account Modal', () => {
     render(<AccountManager {...defaultProps} />);
     // The + button is typically the second button in the header
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // + button
+    fireEvent.click(buttons[2]); // + button (after back[0], home[1])
     expect(screen.getByText('Add Financial Wallet')).toBeTruthy();
   });
 
   it('shows form fields in the modal', () => {
     render(<AccountManager {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // + button
+    fireEvent.click(buttons[2]); // + button (after back[0], home[1])
 
     expect(screen.getByText('ACCOUNT / WALLET NAME')).toBeTruthy();
     expect(screen.getByText('STARTING BALANCE (৳)')).toBeTruthy();
@@ -271,16 +271,16 @@ describe('AccountManager — Add Account Modal', () => {
   it('closes the modal when clicking X button', () => {
     render(<AccountManager {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // + button
+    fireEvent.click(buttons[2]); // + button (after back[0], home[1])
     expect(screen.getByText('Add Financial Wallet')).toBeTruthy();
 
     // Click X to close — the modal has 2 close buttons: the overlay and the X button
     // The X button in the modal header is typically the last button after adding the modal
     const allButtons = screen.getAllByRole('button');
-    // Header has 2 buttons (back, add), modal has 1 close button + 8 color circles + 1 save = 12 total
-    // The close button (X) is the 3rd button (index 2) — first button in the modal's header
-    if (allButtons.length >= 3) {
-      fireEvent.click(allButtons[2]); // X close button in modal header
+    // Header has 3 buttons (back, home, add), modal has 1 close button + 8 color circles + 1 save = 13 total
+    // The close button (X) is the 4th button (index 3) — first button in the modal's header
+    if (allButtons.length >= 4) {
+      fireEvent.click(allButtons[3]); // X close button in modal header
     }
 
     expect(screen.queryByText('Add Financial Wallet')).toBeNull();
@@ -289,7 +289,7 @@ describe('AccountManager — Add Account Modal', () => {
   it('closes the modal when clicking the overlay', () => {
     render(<AccountManager {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // + button
+    fireEvent.click(buttons[2]); // + button (after back[0], home[1])
     expect(screen.getByText('Add Financial Wallet')).toBeTruthy();
 
     const overlays = document.querySelectorAll('.drawer-overlay');
@@ -307,7 +307,7 @@ describe('AccountManager — Form Validation', () => {
   it('shows error when saving with empty name', () => {
     render(<AccountManager {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // + button
+    fireEvent.click(buttons[2]); // + button (after back[0], home[1])
 
     // Enter a valid balance but leave name empty
     const balanceInput = screen.getByPlaceholderText('0.00');
@@ -321,7 +321,7 @@ describe('AccountManager — Form Validation', () => {
   it('shows error when saving with empty balance', () => {
     render(<AccountManager {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // + button
+    fireEvent.click(buttons[2]); // + button (after back[0], home[1])
 
     // Enter a name but leave balance empty
     const nameInput = screen.getByPlaceholderText('E.g., Prime Bank, My Cash Wallet');
@@ -335,7 +335,7 @@ describe('AccountManager — Form Validation', () => {
   it('shows error when saving with invalid balance', () => {
     render(<AccountManager {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // + button
+    fireEvent.click(buttons[2]); // + button (after back[0], home[1])
 
     const nameInput = screen.getByPlaceholderText('E.g., Prime Bank, My Cash Wallet');
     fireEvent.change(nameInput, { target: { value: 'Test Account' } });
@@ -350,7 +350,7 @@ describe('AccountManager — Form Validation', () => {
   it('clears previous error when re-saving', () => {
     render(<AccountManager {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // + button
+    fireEvent.click(buttons[2]); // + button (after back[0], home[1])
 
     // Trigger error with empty name
     const balanceInput = screen.getByPlaceholderText('0.00');
@@ -377,7 +377,7 @@ describe('AccountManager — Save Account', () => {
     const handleAdd = vi.fn();
     render(<AccountManager {...defaultProps} onAddAccount={handleAdd} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // + button
+    fireEvent.click(buttons[2]); // + button (after back[0], home[1])
 
     const nameInput = screen.getByPlaceholderText('E.g., Prime Bank, My Cash Wallet');
     fireEvent.change(nameInput, { target: { value: 'New Wallet' } });
@@ -399,7 +399,7 @@ describe('AccountManager — Save Account', () => {
   it('closes the modal after successful save', () => {
     render(<AccountManager {...defaultProps} onAddAccount={() => {}} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // + button
+    fireEvent.click(buttons[2]); // + button (after back[0], home[1])
     expect(screen.getByText('Add Financial Wallet')).toBeTruthy();
 
     const nameInput = screen.getByPlaceholderText('E.g., Prime Bank, My Cash Wallet');
@@ -417,7 +417,7 @@ describe('AccountManager — Save Account', () => {
     const handleAdd = vi.fn();
     render(<AccountManager {...defaultProps} onAddAccount={handleAdd} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]);
+    fireEvent.click(buttons[2]); // + button (after back[0], home[1])
 
     const nameInput = screen.getByPlaceholderText('E.g., Prime Bank, My Cash Wallet');
     fireEvent.change(nameInput, { target: { value: 'Cash Wallet' } });
@@ -445,7 +445,7 @@ describe('AccountManager — Color Palette', () => {
   it('renders all color options', () => {
     render(<AccountManager {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // + button
+    fireEvent.click(buttons[2]); // + button (after back[0], home[1])
 
     // Check the color palette container exists
     expect(screen.getByText('BRAND COLOR')).toBeTruthy();
@@ -454,7 +454,7 @@ describe('AccountManager — Color Palette', () => {
   it('selecting a color highlights it', () => {
     render(<AccountManager {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // + button
+    fireEvent.click(buttons[2]); // + button (after back[0], home[1])
 
     // All buttons in the modal: close button, 8 color buttons, Create Wallet button
     const allButtons = screen.getAllByRole('button');
@@ -529,7 +529,7 @@ describe('AccountManager — Bangla Mode', () => {
   it('shows modal labels in Bangla', () => {
     render(<AccountManager {...defaultProps} lang="bn" />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // + button
+    fireEvent.click(buttons[2]); // + button (after back[0], home[1])
     expect(screen.getByText('নতুন ওয়ালেট যোগ করুন')).toBeTruthy();
     expect(screen.getByText('ওয়ালেট তৈরি করুন')).toBeTruthy();
   });
@@ -537,7 +537,7 @@ describe('AccountManager — Bangla Mode', () => {
   it('shows form error messages in Bangla', () => {
     render(<AccountManager {...defaultProps} lang="bn" />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // + button
+    fireEvent.click(buttons[2]); // + button (after back[0], home[1])
 
     // Leave name empty, add balance, try to save
     const balanceInput = screen.getByPlaceholderText('0.00');

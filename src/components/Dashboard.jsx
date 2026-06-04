@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { 
-  Sun, Moon, ArrowUpRight, ArrowDownLeft, Bell,
+  Sun, Moon, ArrowUpRight, ArrowDownLeft, Bell, Home,
   Wallet, Landmark, CreditCard, ChevronRight, HelpCircle,
   PieChart as PieChartIcon, Target,
 } from 'lucide-react';
@@ -23,6 +23,12 @@ export default function Dashboard({
   lang,
 }) {
   const [activeLinePoint, setActiveLinePoint] = useState(null);
+  const incomePathRef = useRef(null);
+  const expensePathRef = useRef(null);
+  const [incomeLineLength, setIncomeLineLength] = useState(400);
+  const [expenseLineLength, setExpenseLineLength] = useState(400);
+  const [pathsReady, setPathsReady] = useState(false);
+  const scrollRef = useRef(null);
 
   // 1. Calculations: Total Net Balance
   const netBalance = useMemo(() => {
@@ -169,6 +175,20 @@ export default function Dashboard({
     };
   }, [monthlyTrends]);
 
+  // Measure actual SVG path lengths via refs for accurate draw animation
+  useEffect(() => {
+    if (incomePathRef.current && typeof incomePathRef.current.getTotalLength === 'function') {
+      const len = Math.ceil(incomePathRef.current.getTotalLength());
+      setIncomeLineLength(len || 400);
+    }
+    if (expensePathRef.current && typeof expensePathRef.current.getTotalLength === 'function') {
+      const len = Math.ceil(expensePathRef.current.getTotalLength());
+      setExpenseLineLength(len || 400);
+    }
+    // Gate the draw animation behind a rAF so the CSS variable is set before animation starts
+    requestAnimationFrame(() => setPathsReady(true));
+  }, [lineChartData]);
+
   // Overdue reminders count for bell badge
   const overdueCount = useMemo(() => {
     if (!reminders) return 0;
@@ -177,7 +197,7 @@ export default function Dashboard({
   }, [reminders]);
 
   return (
-    <div style={styles.scrollContainer}>
+    <div ref={scrollRef} style={styles.scrollContainer}>
       
       {/* 1. Header Toolbar */}
       <div style={styles.header}>          <div style={styles.userInfo}>
@@ -190,6 +210,17 @@ export default function Dashboard({
             </div>
           </div>
         <div style={styles.actions}>
+          <button 
+            className="neo-btn neo-btn-round" 
+            style={styles.actionBtn}
+            title={t('dashboard.scrollToTop', lang)}
+            onClick={() => {
+              scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+              trackAction('scroll_to_top', { source: 'dashboard' });
+            }}
+          >
+            <Home size={18} />
+          </button>
           <button 
             className="neo-btn neo-btn-round" 
             style={styles.actionBtn}
@@ -376,14 +407,15 @@ export default function Dashboard({
 
             {/* Income Bézier Path */}
             <path
+              ref={incomePathRef}
               d={lineChartData.incomePath}
               fill="none"
               stroke="var(--color-income)"
               strokeWidth="3.5"
               strokeLinecap="round"
-              className="line-chart-path"
+              className={pathsReady ? 'line-chart-path' : ''}
               style={{
-                '--line-length': '400',
+                '--line-length': String(incomeLineLength),
                 filter: 'drop-shadow(0px 4px 6px rgba(38,222,129,0.25))',
                 animationDelay: '0.1s',
               }}
@@ -391,14 +423,15 @@ export default function Dashboard({
 
             {/* Expense Bézier Path */}
             <path
+              ref={expensePathRef}
               d={lineChartData.expensePath}
               fill="none"
               stroke="var(--color-expense)"
               strokeWidth="3.5"
               strokeLinecap="round"
-              className="line-chart-path"
+              className={pathsReady ? 'line-chart-path' : ''}
               style={{
-                '--line-length': '400',
+                '--line-length': String(expenseLineLength),
                 filter: 'drop-shadow(0px 4px 6px rgba(255,94,87,0.25))',
                 animationDelay: '0.4s',
               }}

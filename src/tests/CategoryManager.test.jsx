@@ -37,16 +37,16 @@ afterEach(() => { vi.unstubAllGlobals(); });
 // Helpers
 // ==============================================================================
 
-/** Add button is the second button (after back) in the header */
-const getAddBtn = () => screen.getAllByRole('button')[1];
+/** Add button is the third button (after back and home) in the header */
+const getAddBtn = () => screen.getAllByRole('button')[2];
 
 /** Back button is the first button in the header */
 const getBackBtn = () => screen.getAllByRole('button')[0];
 
-/** Delete buttons start after 4 header/tab buttons (back, add, EXPENSE, INCOME) */
+/** Delete buttons start after 5 header/tab buttons (back, home, add, EXPENSE, INCOME) */
 const getDeleteBtns = () => {
   const all = screen.getAllByRole('button');
-  return all.slice(4);
+  return all.slice(5);
 };
 
 /** Open the add modal by clicking the + button */

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, Plus, X, AlertCircle, Target, Wallet, Trash2, Edit3, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Plus, X, AlertCircle, Target, Wallet, Trash2, Edit3, TrendingUp, Home } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber, formatPercent } from '../utils';
@@ -126,9 +126,20 @@ export default function SavingsTracker({
           </div>
           <h2 style={{ ...styles.title, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('savings.title', lang)}</h2>
         </div>
-        <button className="neo-btn neo-btn-round" style={styles.addBtn} onClick={openNew}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            className="neo-btn neo-btn-round home-btn"
+            style={{ width: '36px', height: '36px', borderRadius: '50%', padding: 0 }}
+            title={t('common.home', lang)}
+            aria-label={t('common.home', lang)}
+            onClick={() => { onNavigate('dashboard'); trackAction('home_nav', { source: 'savings' }); }}
+          >
+            <Home size={18} />
+          </button>
+          <button className="neo-btn neo-btn-round" style={styles.addBtn} onClick={openNew}>
           <Plus size={18} />
         </button>
+      </div>
       </div>
 
       {/* Summary */}
@@ -157,7 +168,7 @@ export default function SavingsTracker({
       <div style={styles.listContainer}>
         {goalsWithProgress.length === 0 ? (
           <div className="neo-pressed-sm" style={styles.emptyState}>
-            <Target size={28} style={{ color: 'var(--text-secondary)', opacity: 0.5, marginBottom: '8px' }} />
+            <Target size={28} style={{ color: 'var(--text-secondary)', opacity: 0.5, marginBottom: '8px' }} className="empty-float" />
             <p>{t('savings.noGoals', lang)}</p>
             <p style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>{t('savings.noGoalsDesc', lang)}</p>
           </div>

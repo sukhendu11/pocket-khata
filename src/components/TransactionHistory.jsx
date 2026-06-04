@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { 
-  ArrowLeft, Search, SlidersHorizontal, X, Eye,
+  ArrowLeft, Search, SlidersHorizontal, X, Eye, Home,
   CheckSquare, Square, Trash2, Tag
 } from 'lucide-react';
 import PropTypes from 'prop-types';
@@ -266,7 +266,16 @@ export default function TransactionHistory({
           </div>
           <h2 style={{ ...styles.title, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('txHistory.title', lang)}</h2>
         </div>
-        <div style={{ display: 'flex', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            className="neo-btn neo-btn-round home-btn"
+            style={{ width: '36px', height: '36px', borderRadius: '50%', padding: 0 }}
+            title={t('common.home', lang)}
+            aria-label={t('common.home', lang)}
+            onClick={() => { onNavigate('dashboard'); trackAction('home_nav', { source: 'transactions' }); }}
+          >
+            <Home size={18} />
+          </button>
           <button 
             className="neo-btn neo-btn-round" 
             style={{ 

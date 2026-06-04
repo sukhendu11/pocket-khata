@@ -104,38 +104,38 @@ describe('CalendarView — Month Navigation', () => {
   it('goes to previous month (May → April)', () => {
     useFixedDate();
     render(<CalendarView {...defaultProps} />);
-    const buttons = screen.getAllByRole('button'); // [back, prev, next]
-    fireEvent.click(buttons[1]);
+    const buttons = screen.getAllByRole('button'); // [back, home, prev, next]
+    fireEvent.click(buttons[2]); // prev month
     expect(screen.getByText(/April.*2,025/)).toBeTruthy();
   });
 
   it('goes to next month (May → June)', () => {
     useFixedDate();
     render(<CalendarView {...defaultProps} />);
-    const buttons = screen.getAllByRole('button'); // [back, prev, next]
-    fireEvent.click(buttons[2]);
+    const buttons = screen.getAllByRole('button'); // [back, home, prev, next]
+    fireEvent.click(buttons[3]); // next month
     expect(screen.getByText(/June.*2,025/)).toBeTruthy();
   });
 
   it('navigates across year boundary (Dec → Jan)', () => {
     useFixedDate();
     render(<CalendarView {...defaultProps} />);
-    const navBtns = screen.getAllByRole('button'); // [back, prev, next]
+    const navBtns = screen.getAllByRole('button'); // [back, home, prev, next]
     // Click next 7 times: May → Jun → Jul → Aug → Sep → Oct → Nov → Dec
-    for (let i = 0; i < 7; i++) fireEvent.click(navBtns[2]);
+    for (let i = 0; i < 7; i++) fireEvent.click(navBtns[3]);
     expect(screen.getByText(/December.*2,025/)).toBeTruthy();
-    fireEvent.click(navBtns[2]);
+    fireEvent.click(navBtns[3]);
     expect(screen.getByText(/January.*2,026/)).toBeTruthy();
   });
 
   it('navigates backwards across year boundary (Jan → Dec)', () => {
     useFixedDate();
     render(<CalendarView {...defaultProps} />);
-    const navBtns = screen.getAllByRole('button'); // [back, prev, next]
+    const navBtns = screen.getAllByRole('button'); // [back, home, prev, next]
     // Click prev 4 times: May → Apr → Mar → Feb → Jan
-    for (let i = 0; i < 4; i++) fireEvent.click(navBtns[1]);
+    for (let i = 0; i < 4; i++) fireEvent.click(navBtns[2]);
     expect(screen.getByText(/January.*2,025/)).toBeTruthy();
-    fireEvent.click(navBtns[1]);
+    fireEvent.click(navBtns[2]);
     expect(screen.getByText(/December.*2,024/)).toBeTruthy();
   });
 });

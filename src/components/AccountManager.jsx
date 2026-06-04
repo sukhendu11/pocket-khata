@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { 
-  ArrowLeft, Plus, Landmark, CreditCard, Wallet, 
+  ArrowLeft, Plus, Home, Landmark, CreditCard, Wallet, 
   Trash2, X, AlertCircle, Info, Pencil
 } from 'lucide-react';
 import PropTypes from 'prop-types';
@@ -152,9 +152,20 @@ export default function AccountManager({
           </div>
           <h2 style={{ ...styles.title, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('accounts.title', lang)}</h2>
         </div>
-        <button className="neo-btn neo-btn-round" style={styles.addBtn} onClick={() => setShowAddModal(true)}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            className="neo-btn neo-btn-round home-btn"
+            style={{ width: '36px', height: '36px', borderRadius: '50%', padding: 0 }}
+            title={t('common.home', lang)}
+            aria-label={t('common.home', lang)}
+            onClick={() => { onNavigate('dashboard'); trackAction('home_nav', { source: 'accounts' }); }}
+          >
+            <Home size={18} />
+          </button>
+          <button className="neo-btn neo-btn-round" style={styles.addBtn} onClick={() => setShowAddModal(true)}>
           <Plus size={18} />
         </button>
+      </div>
       </div>
 
       {/* Accounts List Deck */}

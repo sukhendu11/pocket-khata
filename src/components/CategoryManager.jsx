@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  ArrowLeft, Plus, Trash2, X, AlertCircle, Info,
+  ArrowLeft, Plus, Trash2, X, AlertCircle, Info, Home as HomeIcon,
   Briefcase, Globe, TrendingUp, Utensils, ShoppingBag, 
   Home, Lightbulb, Car, Tv, HeartPulse, Plane, GraduationCap, Sparkles,
   Heart, Gift, CreditCard, Tag
@@ -184,10 +184,20 @@ export default function CategoryManager({
             <img src="/pocket-khata-logo.png" alt="" className="header-logo-sm" />
           </div>
           <h2 style={{ ...styles.title, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('categories.title', lang)}</h2>
-        </div>
-        <button className="neo-btn neo-btn-round" style={styles.addBtn} onClick={openNewCategory}>
-          <Plus size={18} />
-        </button>
+        </div>          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button
+              className="neo-btn neo-btn-round home-btn"
+              style={{ width: '36px', height: '36px', borderRadius: '50%', padding: 0 }}
+              title={t('common.home', lang)}
+              aria-label={t('common.home', lang)}
+              onClick={() => { onNavigate('dashboard'); trackAction('home_nav', { source: 'categories' }); }}
+            >
+              <HomeIcon size={18} />
+            </button>
+            <button className="neo-btn neo-btn-round" style={styles.addBtn} onClick={openNewCategory}>
+              <Plus size={18} />
+            </button>
+          </div>
       </div>
 
       {/* Tabs selector */}

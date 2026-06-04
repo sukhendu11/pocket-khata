@@ -848,6 +848,7 @@ export default function App() {
             accounts={accounts}
             categories={categories}
             budgets={budgets}
+            reminders={reminders}
             onNavigate={handleNavigate}
             lang={lang}
           />
@@ -905,7 +906,7 @@ export default function App() {
           </div>
         )}
 
-        {/* Global Header Toolbar — language toggle + menu button */}
+        {/* Global Header Toolbar — menu + language toggle */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
           {/* Menu Button (left) */}
           <div ref={menuRef} style={{ position: 'relative' }}>

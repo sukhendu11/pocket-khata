@@ -35,8 +35,8 @@ const defaultProps = {
 // Helpers
 // ==============================================================================
 
-/** Add button is the second button in the header (after back) */
-const getAddBtn = () => screen.getAllByRole('button')[1];
+/** Add button is the third button in the header (after back and home) */
+const getAddBtn = () => screen.getAllByRole('button')[2];
 
 /** Back button is the first button */
 const getBackBtn = () => screen.getAllByRole('button')[0];
@@ -62,12 +62,12 @@ describe('SavingsTracker — Rendering', () => {
   it('renders the header with back and add buttons', () => {
     render(<SavingsTracker {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    // back(0) + add(1)
-    // Laptop (completed): edit(2) + delete(3) = 2
-    // Emergency: contribute(4) + edit(5) + delete(6) = 3
-    // Vacation: contribute(7) + edit(8) + delete(9) = 3
-    // Total = 10
-    expect(buttons.length).toBe(10);
+    // back(0) + home(1) + add(2)
+    // Laptop (completed): edit(3) + delete(4) = 2
+    // Emergency: contribute(5) + edit(6) + delete(7) = 3
+    // Vacation: contribute(8) + edit(9) + delete(10) = 3
+    // Total = 11
+    expect(buttons.length).toBe(11);
   });
 });
 
@@ -431,12 +431,12 @@ describe('SavingsTracker — Delete Goal', () => {
     render(<SavingsTracker {...defaultProps} onDeleteSavingsGoal={handleDelete} />);
 
     const allButtons = screen.getAllByRole('button');
-    // Indices: back(0), add(1)
-    // Laptop(completed): edit(2), delete(3)
-    // Emergency: contribute(4), edit(5), delete(6)
-    // Vacation: contribute(7), edit(8), delete(9)
-    // Click delete on Laptop (first card, index 3)
-    fireEvent.click(allButtons[3]);
+    // Indices: back(0), home(1), add(2)
+    // Laptop(completed): edit(3), delete(4)
+    // Emergency: contribute(5), edit(6), delete(7)
+    // Vacation: contribute(8), edit(9), delete(10)
+    // Click delete on Laptop (first card, index 4)
+    fireEvent.click(allButtons[4]);
 
     expect(handleDelete).toHaveBeenCalledOnce();
     expect(handleDelete).toHaveBeenCalledWith('goal_laptop');
@@ -447,8 +447,8 @@ describe('SavingsTracker — Delete Goal', () => {
     render(<SavingsTracker {...defaultProps} onDeleteSavingsGoal={handleDelete} />);
 
     const allButtons = screen.getAllByRole('button');
-    // Delete on Emergency (second card, index 6)
-    fireEvent.click(allButtons[6]);
+    // Delete on Emergency (second card, index 7)
+    fireEvent.click(allButtons[7]);
 
     expect(handleDelete).toHaveBeenCalledWith('goal_emergency');
   });
@@ -458,8 +458,8 @@ describe('SavingsTracker — Delete Goal', () => {
     render(<SavingsTracker {...defaultProps} onDeleteSavingsGoal={handleDelete} />);
 
     const allButtons = screen.getAllByRole('button');
-    // Delete on Vacation (last card, index 9)
-    fireEvent.click(allButtons[9]);
+    // Delete on Vacation (last card, index 10)
+    fireEvent.click(allButtons[10]);
 
     expect(handleDelete).toHaveBeenCalledWith('goal_vacation');
   });

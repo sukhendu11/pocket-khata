@@ -173,7 +173,7 @@ describe('Integration: Budget Planner → OnAddBudget Callback', () => {
     render(<BudgetManager {...budgetManagerDefaultProps} onAddBudget={handleAdd} />);
 
     // Open the form
-    const addBtn = screen.getAllByRole('button')[1]; // + button
+    const addBtn = screen.getAllByRole('button')[2]; // + button (after back[0], home[1])
     fireEvent.click(addBtn);
 
     // Select Food category

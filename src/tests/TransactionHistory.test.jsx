@@ -62,7 +62,7 @@ function useFixedDate() {
 function openFilterPanel(props = {}) {
   const utils = render(<TransactionHistory {...defaultProps} {...props} />);
   const buttons = screen.getAllByRole('button');
-  fireEvent.click(buttons[2]); // filter toggle button (buttons[0]=back, [1]=select, [2]=filter)
+  fireEvent.click(buttons[3]); // filter toggle button (buttons[0]=back, [1]=home, [2]=select, [3]=filter)
   return utils;
 }
 
@@ -241,14 +241,14 @@ describe('TransactionHistory — Filter Panel', () => {
     expect(screen.queryByText(/Reset Filters/i)).toBeNull();
 
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[2]); // filter toggle button (0=back, 1=select, 2=filter)
+    fireEvent.click(buttons[3]); // filter toggle button (0=back, 1=home, 2=select, 3=filter)
     expect(screen.getByText(/Reset Filters/i)).toBeTruthy();
   });
 
   it('shows filter labels when panel is open', () => {
     render(<TransactionHistory {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[2]);
+    fireEvent.click(buttons[3]); // filter toggle (0=back, 1=home, 2=select, 3=filter)
 
     expect(screen.getByText('TYPE')).toBeTruthy();
     expect(screen.getByText('ACCOUNT')).toBeTruthy();
@@ -314,7 +314,7 @@ describe('TransactionHistory — Filter Panel', () => {
   it('reset filters button clears all filters', () => {
     render(<TransactionHistory {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[2]); // open filter panel (0=back, 1=select, 2=filter)
+    fireEvent.click(buttons[3]); // open filter panel (0=back, 1=home, 2=select, 3=filter)
 
     // Apply search
     const searchInput = screen.getByPlaceholderText('Search notes, amount, category, account...');
@@ -533,27 +533,27 @@ describe('TransactionHistory — Batch Operations', () => {
   it('shows select mode toggle button in header', () => {
     render(<TransactionHistory {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    // buttons[1] is the select mode toggle
-    fireEvent.click(buttons[1]);
+    // buttons[2] is the select mode toggle (0=back, 1=home, 2=select, 3=filter)
+    fireEvent.click(buttons[2]);
     expect(screen.getByText('Tap transactions to select')).toBeTruthy();
   });
 
   it('toggling select mode shows the select banner and hides edit icons', () => {
     render(<TransactionHistory {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // enter select mode
+    fireEvent.click(buttons[2]); // enter select mode (0=back, 1=home, 2=select)
     
     expect(screen.getByText('Tap transactions to select')).toBeTruthy();
     
     // Click the X button to exit select mode
-    fireEvent.click(buttons[1]);
+    fireEvent.click(buttons[2]);
     expect(screen.queryByText('Tap transactions to select')).toBeNull();
   });
 
   it('cancel button in select banner exits select mode', () => {
     render(<TransactionHistory {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // enter select mode
+    fireEvent.click(buttons[2]); // enter select mode (0=back, 1=home, 2=select)
     
     const cancelBtn = screen.getByText('Cancel');
     fireEvent.click(cancelBtn);
@@ -564,7 +564,7 @@ describe('TransactionHistory — Batch Operations', () => {
   it('selecting transactions increments selected count', () => {
     render(<TransactionHistory {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // enter select mode
+    fireEvent.click(buttons[2]); // enter select mode (0=back, 1=home, 2=select)
     
     // Click on a transaction to select it
     const txItem = screen.getByText('Bus pass').closest('[class*="neo-raised-sm"]');
@@ -578,7 +578,7 @@ describe('TransactionHistory — Batch Operations', () => {
   it('selecting multiple transactions shows correct count and batch toolbar', () => {
     render(<TransactionHistory {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // enter select mode
+    fireEvent.click(buttons[2]); // enter select mode (0=back, 1=home, 2=select)
     
     // Select two transactions
     const tx1 = screen.getByText('Bus pass').closest('[class*="neo-raised-sm"]');
@@ -598,7 +598,7 @@ describe('TransactionHistory — Batch Operations', () => {
     const handleBatchDelete = vi.fn();
     render(<TransactionHistory {...defaultProps} onBatchDelete={handleBatchDelete} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // enter select mode
+    fireEvent.click(buttons[2]); // enter select mode (0=back, 1=home, 2=select)
     
     // Select one transaction
     const txItem = screen.getByText('Bus pass').closest('[class*="neo-raised-sm"]');
@@ -628,7 +628,7 @@ describe('TransactionHistory — Batch Operations', () => {
     const handleBatchCategorize = vi.fn();
     render(<TransactionHistory {...defaultProps} onBatchCategorize={handleBatchCategorize} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // enter select mode
+    fireEvent.click(buttons[2]); // enter select mode (0=back, 1=home, 2=select)
     
     // Select two transactions
     const tx1 = screen.getByText('Bus pass').closest('[class*="neo-raised-sm"]');
@@ -654,7 +654,7 @@ describe('TransactionHistory — Batch Operations', () => {
   it('select all via banner checkbox selects all visible transactions', () => {
     render(<TransactionHistory {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // enter select mode
+    fireEvent.click(buttons[2]); // enter select mode (0=back, 1=home, 2=select)
     
     // Click the select-all checkbox in the banner (the Square icon)
     expect(screen.getByText('Tap transactions to select')).toBeTruthy();
@@ -676,7 +676,7 @@ describe('TransactionHistory — Batch Operations', () => {
     const handleBatchCategorize = vi.fn();
     render(<TransactionHistory {...defaultProps} onBatchCategorize={handleBatchCategorize} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // enter select mode
+    fireEvent.click(buttons[2]); // enter select mode (0=back, 1=home, 2=select)
     
     // Select a transaction
     const txItem = screen.getByText('Bus pass').closest('[class*="neo-raised-sm"]');

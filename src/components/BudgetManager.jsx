@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, Plus, X, AlertCircle, Bell, Trash2, Edit3 } from 'lucide-react';
+import { ArrowLeft, Plus, X, AlertCircle, Bell, Trash2, Edit3, Home } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber, formatPercent } from '../utils';
@@ -191,9 +191,20 @@ export default function BudgetManager({
           </div>
           <h2 style={{ ...styles.title, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('budget.title', lang)}</h2>
         </div>
-        <button className="neo-btn neo-btn-round" style={styles.addBtn} onClick={openNew}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            className="neo-btn neo-btn-round home-btn"
+            style={{ width: '36px', height: '36px', borderRadius: '50%', padding: 0 }}
+            title={t('common.home', lang)}
+            aria-label={t('common.home', lang)}
+            onClick={() => { onNavigate('dashboard'); trackAction('home_nav', { source: 'budgets' }); }}
+          >
+            <Home size={18} />
+          </button>
+          <button className="neo-btn neo-btn-round" style={styles.addBtn} onClick={openNew}>
           <Plus size={18} />
         </button>
+      </div>
       </div>
 
       {/* Summary Card */}
@@ -232,7 +243,7 @@ export default function BudgetManager({
       <div style={styles.listContainer}>
         {budgetsWithSpending.length === 0 ? (
           <div className="neo-pressed-sm" style={styles.emptyState}>
-            <Bell size={28} style={{ color: 'var(--text-secondary)', opacity: 0.5, marginBottom: '8px' }} />
+            <Bell size={28} style={{ color: 'var(--text-secondary)', opacity: 0.5, marginBottom: '8px' }} className="empty-float" />
             <p>{t('budget.noBudgets', lang)}</p>
             <p style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>{t('budget.noBudgetsDesc', lang)}</p>
           </div>

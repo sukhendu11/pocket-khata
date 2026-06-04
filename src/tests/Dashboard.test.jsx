@@ -381,9 +381,9 @@ describe('Dashboard — Navigation', () => {
     useFixedDate();
     const handleToggleTheme = vi.fn();
     render(<Dashboard {...defaultProps} onToggleTheme={handleToggleTheme} />);
-    // buttons[0]=bell icon (reminders), buttons[1]=theme toggle
+    // buttons[0]=home (scroll to top), buttons[1]=bell (reminders), buttons[2]=theme toggle
     const allButtons = screen.getAllByRole('button');
-    fireEvent.click(allButtons[1]);
+    fireEvent.click(allButtons[2]);
     expect(handleToggleTheme).toHaveBeenCalledOnce();
   });
 });

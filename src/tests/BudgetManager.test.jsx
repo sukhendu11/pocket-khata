@@ -63,8 +63,8 @@ function useFixedDate() {
   vi.stubGlobal('Date', MockDate);
 }
 
-/** Add button is the second button in the header (after back) */
-const getAddBtn = () => screen.getAllByRole('button')[1];
+/** Add button is the third button in the header (after back and home) */
+const getAddBtn = () => screen.getAllByRole('button')[2];
 
 /** Back button is the first button */
 const getBackBtn = () => screen.getAllByRole('button')[0];
@@ -92,8 +92,8 @@ describe('BudgetManager — Rendering', () => {
     useFixedDate();
     render(<BudgetManager {...defaultProps} />);
     const buttons = screen.getAllByRole('button');
-    // back (0) + add (1) + 3 edit + 3 delete = 8
-    expect(buttons.length).toBe(8);
+    // back (0) + home (1) + add (2) + 3 edit + 3 delete = 9
+    expect(buttons.length).toBe(9);
   });
 });
 
@@ -486,9 +486,8 @@ describe('BudgetManager — Delete Budget', () => {
 
     // Delete buttons come after back(0), add(1), edit(2,4,6), so they are at [3,5,7]
     const allButtons = screen.getAllByRole('button');
-    // First delete button = Transport (first card, index 3)
-    fireEvent.click(allButtons[3]);
-
+    // First delete button = Transport (first card, index 4)
+    fireEvent.click(allButtons[4]);
     expect(handleDelete).toHaveBeenCalledOnce();
     expect(handleDelete).toHaveBeenCalledWith('budget_transport');
   });
@@ -499,9 +498,8 @@ describe('BudgetManager — Delete Budget', () => {
     render(<BudgetManager {...defaultProps} onDeleteBudget={handleDelete} />);
 
     const allButtons = screen.getAllByRole('button');
-    // Second delete button = Rent (second card, index 5)
-    fireEvent.click(allButtons[5]);
-
+    // Second delete button = Rent (second card, index 6)
+    fireEvent.click(allButtons[6]);
     expect(handleDelete).toHaveBeenCalledWith('budget_rent');
   });
 
@@ -511,9 +509,8 @@ describe('BudgetManager — Delete Budget', () => {
     render(<BudgetManager {...defaultProps} onDeleteBudget={handleDelete} />);
 
     const allButtons = screen.getAllByRole('button');
-    // Third delete button = Food (third card, index 7)
-    fireEvent.click(allButtons[7]);
-
+    // Third delete button = Food (third card, index 8)
+    fireEvent.click(allButtons[8]);
     expect(handleDelete).toHaveBeenCalledWith('budget_food');
   });
 });

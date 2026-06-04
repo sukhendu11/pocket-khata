@@ -35,6 +35,7 @@ const translations = {
   'dashboard.seeAll': { en: 'See All', bn: 'সব দেখুন' },
   'dashboard.noTransactions': { en: 'No transactions posted yet.', bn: 'এখনো কোনো লেনদেন হয়নি।' },
   'dashboard.quickLedger': { en: 'Quick Ledger', bn: 'দ্রুত লেজার' },
+  'dashboard.scrollToTop': { en: 'Scroll to top', bn: 'উপরে স্ক্রোল করুন' },
 
   // ===== TRANSACTION FORM =====
   'txForm.editTitle': { en: 'Edit Transaction', bn: 'লেনদেন সম্পাদনা' },
@@ -227,6 +228,7 @@ const translations = {
   'settings.importConfirmTitle': { en: 'This will replace ALL current data with the imported file. A safety backup will be saved first.', bn: 'এটি বর্তমান সমস্ত ডাটা ইম্পোর্ট করা ফাইল দিয়ে প্রতিস্থাপন করবে। আগে একটি নিরাপত্তা ব্যাকআপ সংরক্ষিত হবে।' },
   'settings.importConfirmAction': { en: 'Import & Replace', bn: 'ইম্পোর্ট ও প্রতিস্থাপন' },
   'settings.noTransactions': { en: 'No transactions to export.', bn: 'এক্সপোর্ট করার মতো কোনো লেনদেন নেই।' },
+  'settings.unavailable': { en: 'Web only — works on Android', bn: 'শুধুমাত্র ওয়েব — অ্যান্ড্রয়েডে কাজ করে' },
   'settings.generatingPDF': { en: 'Generating…', bn: 'উৎপন্ন হচ্ছে…' },
   'settings.resetSuccess': { en: 'Pocket Khata reset to factory defaults.', bn: 'পকেট খাতা ফ্যাক্টরি ডিফল্টে রিসেট হয়েছে।' },
   'settings.resetData': { en: 'Reset Data', bn: 'ডাটা রিসেট' },
@@ -409,6 +411,7 @@ const translations = {
   'common.local': { en: 'Local', bn: 'স্থানীয়' },
   'common.general': { en: 'General', bn: 'সাধারণ' },
   'common.other': { en: 'Other', bn: 'অন্যান্য' },
+  'common.home': { en: 'Home', bn: 'হোম' },
   // ===== REMINDERS =====
   'reminders.title': { en: 'Bill Reminders', bn: 'বিল রিমাইন্ডার' },
   'reminders.noReminders': { en: 'No pending reminders', bn: 'কোনো বাকি রিমাইন্ডার নেই' },
@@ -447,6 +450,7 @@ const translations = {
   'notif.overdueDays': { en: '{name}: ৳{amount} — overdue by {days} day{s}', bn: '{name}: ৳{amount} — {days} দিন মেয়াদোত্তীর্ণ' },
   'notif.enabled': { en: 'Notifications active', bn: 'নোটিফিকেশন সক্রিয়' },
   'notif.disabled': { en: 'Notifications disabled', bn: 'নোটিফিকেশন নিষ্ক্রিয়' },
+  'notif.browserDesc': { en: 'Enable notifications for bills and reminders on your Android device. Your preference is saved here.', bn: 'আপনার Android ডিভাইসে বিল এবং রিমাইন্ডারের জন্য বিজ্ঞপ্তি সক্ষম করুন। আপনার পছন্দ এখানে সংরক্ষিত আছে।' },
   'notif.permissionDenied': { en: 'Notifications are disabled. Enable them in your device settings.', bn: 'নোটিফিকেশন বন্ধ। ডিভাইস সেটিংস থেকে চালু করুন।' },
   'notif.enable': { en: 'Enable', bn: 'চালু করুন' },
   'notif.denied': { en: 'Permission denied', bn: 'অনুমতি নেই' },

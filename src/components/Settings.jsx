@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { 
-  ArrowLeft, Bell, RefreshCw, Upload,
+  ArrowLeft, Bell, RefreshCw, Upload, Home,
   Info, CheckCircle, XCircle, FileText
 } from 'lucide-react';
 import { generatePDFReport } from '../lib/pdf';
@@ -16,6 +16,7 @@ import {
   createNotificationChannel,
   sendTestNotification,
   cancelAllNotifications,
+  rescheduleAllReminders,
 } from '../notifications';
 
 export default function Settings({
@@ -26,6 +27,7 @@ export default function Settings({
   accounts,
   categories,
   budgets,
+  reminders,
   onNavigate,
   lang
 }) {
@@ -104,59 +106,67 @@ export default function Settings({
   };
 
   // ── Notification Toggle ──
-  // Toggle ON  → request native Android permission, create channel, send test notification
+  // Toggle ON  → request native Android permission, create channel
   // Toggle OFF → cancel all delivered/scheduled notifications, persist opt-out
   //
   // The toggle reflects TWO independent signals:
-  //   1. Real Android permission (checkPermissions) — shows the actual OS state
+  //   1. Real Android permission (checkPermissions) — the actual OS state
   //   2. User opt-out (localStorage) — the user explicitly disabled notifications
   // A user can have 'granted' permission but have the toggle OFF (opt-out).
+  // Always shown, but on non-native platforms it stores preference for when the
+  // user switches to an Android device.
   const notifSupported = isNotificationSupported();
   const [notifPermission, setNotifPermission] = useState('default');
   const [notificationsOptedOut, setNotificationsOptedOut] = useState(() => {
     return localStorage.getItem('pocket_khata_notifications_opted_out') === 'true';
   });
 
-  const notificationsEnabled = notifPermission === 'granted' && !notificationsOptedOut;
+  // The toggle reflects the user's opt-out preference (separate from OS permission)
+  const notificationsEnabled = !notificationsOptedOut;
+  const notifUnsupported = notifPermission === 'unsupported';
+  const notifPermissionBlocked = !notifUnsupported && notifPermission !== 'granted';
 
   useEffect(() => {
-    if (!notifSupported) return;
     getNotificationPermission().then((perm) => {
       setNotifPermission(perm);
     }).catch(() => {});
-  }, [notifSupported]);
+  }, []);
 
   const handleToggleNotifications = async () => {
     if (notificationsEnabled) {
       // Toggle OFF — cancel all notifications, persist opt-out
-      try {
-        await cancelAllNotifications();
-      } catch (e) {
-        // Best-effort
+      if (notifSupported) {
+        try {
+          await cancelAllNotifications();
+        } catch (e) {
+          // Best-effort
+        }
       }
       localStorage.setItem('pocket_khata_notifications_opted_out', 'true');
       setNotificationsOptedOut(true);
       setToast({ type: 'success', message: t('notif.disabled', lang) || 'Notifications disabled' });
       return;
     }
-    // Toggle ON — request system permission
-    const result = await requestNotificationPermission();
-    setNotifPermission(result);
-    if (result === 'granted') {
-      // Create the Android notification channel (required for delivery on API 26+)
-      await createNotificationChannel();
-      // Clear the opt-out flag
-      localStorage.removeItem('pocket_khata_notifications_opted_out');
-      setNotificationsOptedOut(false);
-      // Send a test notification so the user can visually confirm delivery
-      const sent = await sendTestNotification();
-      if (sent) {
-        setToast({ type: 'success', message: t('notif.enabled', lang) || 'Notifications active — a test notification was sent!' });
+    // Toggle ON
+    if (notifSupported) {
+      // On native: request real system permission
+      const result = await requestNotificationPermission();
+      setNotifPermission(result);
+      if (result === 'granted') {
+        await createNotificationChannel();
+        localStorage.removeItem('pocket_khata_notifications_opted_out');
+        setNotificationsOptedOut(false);
+        // Re-schedule all existing unpaid reminders immediately
+        rescheduleAllReminders(reminders);
+        setToast({ type: 'success', message: t('notif.enabled', lang) || 'Notifications active' });
       } else {
-        setToast({ type: 'success', message: t('notif.enabled', lang) || 'Notifications enabled' });
+        setToast({ type: 'error', message: t('notif.permissionDenied', lang) || 'Notification permission was denied. Enable it in your device settings.' });
       }
     } else {
-      setToast({ type: 'error', message: t('notif.permissionDenied', lang) || 'Notification permission was denied. Enable it in your device settings.' });
+      // On browser/web: just store preference (notifications work on Android)
+      localStorage.removeItem('pocket_khata_notifications_opted_out');
+      setNotificationsOptedOut(false);
+      setToast({ type: 'success', message: t('notif.enabled', lang) || 'Preference saved. Notifications will work on your Android device.' });
     }
   };
 
@@ -206,7 +216,17 @@ export default function Settings({
             </div>
             <h2 style={{ ...styles.title, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('settings.title', lang)}</h2>
           </div>
-          <div style={{ width: '36px' }} /> {/* alignment placeholder */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button
+              className="neo-btn neo-btn-round home-btn"
+              style={{ width: '36px', height: '36px', borderRadius: '50%', padding: 0 }}
+              title={t('common.home', lang)}
+              aria-label={t('common.home', lang)}
+              onClick={() => { onNavigate('dashboard'); trackAction('home_nav', { source: 'settings' }); }}
+            >
+              <Home size={18} />
+            </button>
+          </div>
         </div>
 
         <div style={styles.content}>
@@ -279,29 +299,71 @@ export default function Settings({
             </button>
           </div>
 
-          {/* SECTION 2: Notifications */}
-          {notifSupported && (
-            <div className="neo-raised" style={styles.card}>
-              <div style={styles.cardHeader}>
-                <Bell size={16} style={{ color: 'var(--accent-color)' }} />
-                <h3 style={styles.cardTitle}>{t('notif.title', lang)}</h3>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                  {t('notif.enableToggle', lang)}
-                </span>
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    checked={notificationsEnabled}
-                    onChange={handleToggleNotifications}
-                  />
-                  <span className="toggle-slider" />
-                </label>
-              </div>
-  
+          {/* SECTION 2: Notifications — always visible, adapts to platform */}
+          <div className="neo-raised" style={styles.card}>
+            <div style={styles.cardHeader}>
+              <Bell size={16} style={{ color: 'var(--accent-color)' }} />
+              <h3 style={styles.cardTitle}>{t('notif.title', lang)}</h3>
             </div>
-          )}
+
+            {/* Status badge — reflects both opt-out preference AND real permission state */}
+            <div style={{ marginBottom: '12px' }}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '9px',
+                fontWeight: '700',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                backgroundColor: notifUnsupported
+                  ? 'rgba(127,140,141,0.12)'
+                  : notifPermissionBlocked
+                    ? 'rgba(247,183,49,0.15)'
+                    : notificationsEnabled
+                      ? 'rgba(34,197,94,0.12)'
+                      : 'rgba(239,68,68,0.12)',
+                color: notifUnsupported
+                  ? 'var(--text-secondary)'
+                  : notifPermissionBlocked
+                    ? '#f7b731'
+                    : notificationsEnabled
+                      ? 'var(--color-income)'
+                      : 'var(--color-expense)',
+              }}>
+                {notifUnsupported
+                  ? `⚠ ${t('settings.unavailable', lang) || 'Web only — works on Android'}`
+                  : notifPermissionBlocked
+                    ? `⚠ ${t('notif.permissionDeniedHint', lang) || 'Permission — enable in device settings'}`
+                    : notificationsEnabled
+                      ? `✓ ${t('notif.enabled', lang)}`
+                      : `✗ ${t('notif.disabled', lang)}`
+                }
+              </span>
+            </div>
+
+            <p style={{ ...styles.cardDesc, marginBottom: '12px' }}>
+              {notifUnsupported
+                ? t('notif.browserDesc', lang)
+                : t('notif.notificationDesc', lang)
+              }
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                {t('notif.enableToggle', lang)}
+              </span>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={notificationsEnabled}
+                  onChange={handleToggleNotifications}
+                />
+                <span className="toggle-slider" />
+              </label>
+            </div>
+
+          </div>
 
           {/* SECTION 3: Data Portability */}
           <div className="neo-raised" style={styles.card}>
@@ -414,6 +476,7 @@ Settings.propTypes = {
   categories: PropTypes.array,
   budgets: PropTypes.array,
   onNavigate: PropTypes.func,
+  reminders: PropTypes.array,
   lang: PropTypes.string,
 };
 

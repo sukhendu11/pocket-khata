@@ -232,7 +232,7 @@ describe('Floating Close Button - AccountManager', () => {
 
     // Click the + button to open the add account modal
     const allButtons = screen.getAllByRole('button');
-    fireEvent.click(allButtons[1]); // + add button
+    fireEvent.click(allButtons[2]); // + add button (after back[0], home[1])
     expect(screen.getByText('Add Financial Wallet')).toBeTruthy();
 
     const closeBtn = container.querySelector('.bottom-drawer .drawer-header button:last-child');
@@ -253,7 +253,7 @@ describe('Floating Close Button - AccountManager', () => {
     );
 
     const allButtons = screen.getAllByRole('button');
-    fireEvent.click(allButtons[1]); // + add button
+    fireEvent.click(allButtons[2]); // + add button (after back[0], home[1])
     expect(screen.getByText('Add Financial Wallet')).toBeTruthy();
 
     const closeBtn = container.querySelector('.bottom-drawer .drawer-header button:last-child');
@@ -300,7 +300,7 @@ describe('Floating Close Button - CategoryManager', () => {
     );
 
     // Click the + button to open the add category modal
-    const addBtn = screen.getAllByRole('button')[1]; // + add button
+    const addBtn = screen.getAllByRole('button')[2]; // + add button (after back[0], home[1])
     fireEvent.click(addBtn);
     expect(screen.getByText('New Category')).toBeTruthy();
 
@@ -323,7 +323,7 @@ describe('Floating Close Button - CategoryManager', () => {
       />
     );
 
-    const addBtn = screen.getAllByRole('button')[1];
+    const addBtn = screen.getAllByRole('button')[2];
     fireEvent.click(addBtn);
 
     const drawer = container.querySelector('.bottom-drawer');
@@ -343,10 +343,9 @@ describe('Floating Close Button - CategoryManager', () => {
         onNavigate={() => {}}
         lang="en"
       />
-    );
-
-    const addBtn = screen.getAllByRole('button')[1];
+    );    const addBtn = screen.getAllByRole('button')[2];
     fireEvent.click(addBtn);
+
     expect(screen.getByText('New Category')).toBeTruthy();
 
     const closeBtn = getDrawerCloseBtn(container);
@@ -376,7 +375,7 @@ describe('Floating Close Button - CategoryManager', () => {
       />
     );
 
-    const addBtn = screen.getAllByRole('button')[1];
+    const addBtn = screen.getAllByRole('button')[2];
     fireEvent.click(addBtn);
 
     const closeBtn = getDrawerCloseBtn(container);
@@ -419,7 +418,7 @@ describe('Drawer Close Button — Structural Consistency', () => {
     );
     const addBtn = catContainer.querySelectorAll('button');
     // Click + button to open modal
-    fireEvent.click(addBtn[1]);
+    fireEvent.click(addBtn[2]);
     const catCloseBtn = getDrawerCloseBtn(catContainer);
     if (catCloseBtn) expect(catCloseBtn.querySelector('svg')).toBeTruthy();
     cleanup();

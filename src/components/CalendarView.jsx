@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Calendar, Info, BellRing } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Calendar, Info, BellRing, Home } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { t } from '../i18n';
 import { formatNumber } from '../utils';
@@ -161,7 +161,15 @@ export default function CalendarView({
           </div>
           <h2 style={{ ...styles.title, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('calendar.title', lang)}</h2>
         </div>
-        <div style={{ width: '36px' }} /> {/* placeholder for alignment */}
+        <button
+          className="neo-btn neo-btn-round home-btn"
+          style={{ width: '36px', height: '36px', borderRadius: '50%', padding: 0 }}
+          title={t('common.home', lang)}
+          aria-label={t('common.home', lang)}
+          onClick={() => { onNavigate('dashboard'); trackAction('home_nav', { source: 'calendar' }); }}
+        >
+          <Home size={18} />
+        </button>
       </div>
 
       {/* Month Navigator Control */}

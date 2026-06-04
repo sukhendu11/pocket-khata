@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import {
-  ArrowLeft, Plus, Calendar, BellRing,
+  ArrowLeft, Plus, Calendar, BellRing, Home,
   CheckCircle, AlertCircle, Trash2, X, CreditCard
 } from 'lucide-react';
 import PropTypes from 'prop-types';
@@ -32,16 +32,6 @@ export default function ReminderManager({
   const [initialLoad, setInitialLoad] = useState(true);
   const prevReminderCount = useRef(0);
 
-  useEffect(() => {
-    const count = filteredReminders.length;
-    if (count > 0 && count !== prevReminderCount.current) {
-      prevReminderCount.current = count;
-      setInitialLoad(true);
-      const timer = setTimeout(() => setInitialLoad(false), 1800);
-      return () => clearTimeout(timer);
-    }
-  }, [filteredReminders.length]);
-
   // Form states
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
@@ -64,6 +54,17 @@ export default function ReminderManager({
     if (filterTab === 'paid') return processedReminders.filter(r => r.status === 'paid');
     return processedReminders;
   }, [processedReminders, filterTab]);
+
+  // Staggered entrance animation — fires on data change
+  useEffect(() => {
+    const count = filteredReminders.length;
+    if (count > 0 && count !== prevReminderCount.current) {
+      prevReminderCount.current = count;
+      setInitialLoad(true);
+      const timer = setTimeout(() => setInitialLoad(false), 1800);
+      return () => clearTimeout(timer);
+    }
+  }, [filteredReminders.length]);
 
   // Hydrate form when editing
   useEffect(() => {
@@ -180,13 +181,35 @@ export default function ReminderManager({
           </div>
           <h2 style={{ ...styles.title, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('reminders.title', lang)}</h2>
         </div>
-        <button className="neo-btn neo-btn-round" style={styles.addBtn} onClick={openNewReminder}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            className="neo-btn neo-btn-round home-btn"
+            style={{ width: '36px', height: '36px', borderRadius: '50%', padding: 0 }}
+            title={t('common.home', lang)}
+            aria-label={t('common.home', lang)}
+            onClick={() => { onNavigate('dashboard'); trackAction('home_nav', { source: 'reminders' }); }}
+          >
+            <Home size={18} />
+          </button>
+          <button className="neo-btn neo-btn-round" style={styles.addBtn} onClick={openNewReminder}>
           <Plus size={18} />
         </button>
       </div>
+      </div>
 
-      {/* Tabs segment controller */}
-      <div className="neo-pressed-sm" style={styles.segmentContainer}>
+      {/* Tabs segment controller with sliding pill */}
+      <div className="neo-pressed-sm seg-sliding-container" style={styles.segmentContainer}>
+        {/* Sliding active pill */}
+        <div
+          className="seg-sliding-pill"
+          style={{
+            left: (() => {
+              const idx = ['unpaid', 'paid', 'all'].indexOf(filterTab);
+              return `${idx * 33.33}%`;
+            })(),
+            width: '33.33%',
+          }}
+        />
         {['unpaid', 'paid', 'all'].map(tab => (
           <button
             key={tab}
@@ -194,10 +217,19 @@ export default function ReminderManager({
             className="neo-btn"
             style={{
               ...styles.segmentBtn,
-              boxShadow: filterTab === tab ? 'var(--neomorphic-raised-sm)' : 'none',
-              color: filterTab === tab ? 'var(--accent-color)' : 'var(--text-secondary)',
+              position: 'relative',
+              zIndex: 1,
+              boxShadow: 'none',
+              backgroundColor: 'transparent',
+              borderColor: 'transparent',
+              color: filterTab === tab
+                ? tab === 'paid'
+                  ? 'var(--color-income)'
+                  : tab === 'unpaid'
+                    ? 'var(--color-expense)'
+                    : 'var(--accent-color)'
+                : 'var(--text-secondary)',
               fontWeight: filterTab === tab ? '700' : '500',
-              border: filterTab === tab ? '1px solid rgba(255,255,255,0.4)' : '1px solid transparent',
             }}
           >
             {tab === 'unpaid' ? t('unpaid', lang).toUpperCase() : tab === 'paid' ? t('paid', lang).toUpperCase() : t('txHistory.allTransactions', lang).toUpperCase()}
@@ -209,7 +241,7 @@ export default function ReminderManager({
       <div style={styles.listContainer}>
         {filteredReminders.length === 0 ? (
           <div className="neo-pressed-sm" style={styles.emptyState}>
-            <BellRing size={28} style={{ color: 'var(--text-secondary)', opacity: 0.5, marginBottom: '8px' }} />
+            <BellRing size={28} style={{ color: 'var(--text-secondary)', opacity: 0.5, marginBottom: '8px' }} className="empty-float" />
             <p>{t('reminders.noReminders', lang)}</p>
           </div>
         ) : (
